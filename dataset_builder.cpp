@@ -1,5 +1,7 @@
 #include "dataset_builder.h"
 
+#include "utils.h"
+
 FileId DatasetBuilder::register_fname(const std::string &fname) {
     auto new_id = (FileId) fids.size();
     fids.push_back(fname);
@@ -7,7 +9,7 @@ FileId DatasetBuilder::register_fname(const std::string &fname) {
 }
 
 void DatasetBuilder::add_trigram(const FileId &fid, const TriGram &val) {
-    index[val].push_back(fid);
+    run_offsets[val].push_back(fid);
 }
 
 std::vector<uint8_t> DatasetBuilder::compress_run(const std::vector <FileId> &files) {
@@ -27,6 +29,21 @@ std::vector<uint8_t> DatasetBuilder::compress_run(const std::vector <FileId> &fi
     return result;
 }
 
+void DatasetBuilder::index(const std::string &filepath) {
+    FileId fid = this->register_fname(filepath);
+
+    std::ifstream in(filepath, std::ifstream::ate | std::ifstream::binary);
+    long fsize = in.tellg();
+    in.seekg(0, std::ifstream::beg);
+
+    std::vector<TriGram> out;
+    yield_trigrams(in, fsize, out);
+
+    for (TriGram gram3 : out) {
+        this->add_trigram(fid, gram3);
+    }
+}
+
 void DatasetBuilder::save(const std::string &fname) {
     std::vector <uint32_t> offsets;
     std::ofstream out(fname, std::ofstream::binary);
@@ -43,9 +60,9 @@ void DatasetBuilder::save(const std::string &fname) {
     char blank[2] = {0, 0};
     out.write(blank, 2);
 
-    for (int i = 0; i < 16777216; i++) {
+    for (int i = 0; i < NUM_TRIGRAMS; i++) {
         offsets.push_back((uint32_t) out.tellp());
-        for (auto b : compress_run(index[i])) {
+        for (auto b : compress_run(run_offsets[i])) {
             out.write((char *) &b, 1);
         }
     }

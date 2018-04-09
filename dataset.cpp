@@ -28,7 +28,7 @@ void OnDiskDataset::load(const std::string &fname) {
 
     long fsize = raw_data.tellg();
     raw_data.seekg(fsize - 16777216*4, std::ifstream::beg);
-    raw_data.read((char *)run_offsets, 16777216*4);
+    raw_data.read((char*)run_offsets.data(), 16777216*4);
 }
 
 const std::string &OnDiskDataset::get_file_name(FileId fid) {

@@ -4,3 +4,4 @@ CMakeFiles/
 .vscode/
 Makefile
 *.cmake
+*.ursa
