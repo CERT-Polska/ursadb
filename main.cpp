@@ -10,11 +10,6 @@
 #include "dataset_builder.h"
 
 
-class Database {
-    std::vector<OnDiskDataset> datasets;
-};
-
-
 void yield_trigrams(std::ifstream &infile, long insize, std::vector<TriGram> &out) {
     uint8_t ringbuffer[3];
     infile.read((char *)ringbuffer, 3);
