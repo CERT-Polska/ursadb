@@ -1,3 +1,5 @@
+#pragma once
+
 #include "dataset.h"
 #include "query.h"
 
