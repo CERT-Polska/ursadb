@@ -1,2 +1,2 @@
-#define FileId uint32_t
-#define TriGram uint32_t
+using FileId=uint32_t;
+using TriGram=uint32_t;
