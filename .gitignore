@@ -1,5 +1,6 @@
 ursadb
 CMakeCache.txt
 CMakeFiles/
+.vscode/
 Makefile
 *.cmake
