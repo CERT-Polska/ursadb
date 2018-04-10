@@ -21,4 +21,5 @@ public:
     OnDiskDataset(const std::string &fname);
 
     std::vector<std::string> query_primitive(const TriGram &trigram);
+    void query_primitive(const TriGram &trigram, std::vector<std::string> &out);
 };

@@ -8,6 +8,8 @@
 
 #include "OnDiskDataset.h"
 #include "DatasetBuilder.h"
+#include "Query.h"
+#include "Database.h"
 
 
 int main(int argc, char *argv[]) {
@@ -39,6 +41,18 @@ int main(int argc, char *argv[]) {
         for (auto file : result) {
             std::cout << file << std::endl;
         }
+    } else if (argv[1] == std::string("select_poc")) {
+        Query test = q_or({ q("wtf12"), q("UTFd") });
+        test.print_query();
+        Database db("db.ursa");
+        std::vector<std::string> out;
+        db.execute(test, out);
+
+        std::cout << "---" << std::endl;
+        for (std::string &s : out) {
+            std::cout << s << std::endl;
+        }
+        std::cout << "---" << std::endl;
     }
     return 0;
 }

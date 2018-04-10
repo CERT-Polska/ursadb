@@ -20,10 +20,15 @@ const std::string &OnDiskDataset::get_file_name(FileId fid) {
 
 std::vector<std::string> OnDiskDataset::query_primitive(const TriGram &trigram) {
     std::vector<std::string> res;
+    query_primitive(trigram, res);
+    return res;
+}
+
+void OnDiskDataset::query_primitive(const TriGram &trigram, std::vector<std::string> &out) {
+    std::cout << "query_primitive(" << trigram << ")" << std::endl;
 
     for (FileId fid : indices[0].query_primitive(trigram)) {
-        res.push_back(get_file_name(fid));
+        std::cout << "pushing " << get_file_name(fid) << std::endl;
+        out.push_back(get_file_name(fid));
     }
-
-    return res;
 }
