@@ -1,0 +1,7 @@
+ursadb:
+  script:
+    - cd apps/my_project
+    - mkdir build
+    - cd build
+    - cmake ..
+    - make
