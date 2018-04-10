@@ -9,5 +9,4 @@ class Database {
 
 public:
     void query(const Query &query);
-    void index_path(const std::string &path);
 };

@@ -13,6 +13,7 @@ std::vector<TriGram> get_trigrams(std::ifstream &infile, long insize) {
     int offset = 2;
 
     while (offset < insize) {
+        // TODO(_) - this is very slow. Unnecessary mod is slow, and reading byte by byte is VERY slow.
         uint32_t gram3 =
                 (ringbuffer[(offset - 2) % 3] << 16U) +
                 (ringbuffer[(offset - 1) % 3] << 8U) +

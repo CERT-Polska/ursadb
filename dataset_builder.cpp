@@ -12,9 +12,9 @@ void DatasetBuilder::add_trigram(const FileId &fid, const TriGram &val) {
     run_offsets[val].push_back(fid);
 }
 
-std::vector<uint8_t> DatasetBuilder::compress_run(const std::vector <FileId> &files) {
+std::vector<uint8_t> DatasetBuilder::compress_run(const std::vector<FileId> &files) {
     uint32_t prev = 0;
-    std::vector <uint8_t> result;
+    std::vector<uint8_t> result;
 
     for (uint32_t fid : files) {
         uint32_t diff = (fid + 1U) - prev;
@@ -44,7 +44,7 @@ void DatasetBuilder::index(const std::string &filepath) {
 }
 
 void DatasetBuilder::save(const std::string &fname) {
-    std::vector <uint32_t> offsets;
+    std::vector<uint32_t> offsets;
     std::ofstream out(fname, std::ofstream::binary);
 
     out.write((char*)&DB_MAGIC, 4);
