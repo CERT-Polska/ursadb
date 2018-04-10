@@ -10,14 +10,14 @@
 
 
 OnDiskIndex::OnDiskIndex(const std::string &fname) : run_offsets(NUM_TRIGRAMS) {
-    int fd = open(fname.c_str(), O_RDONLY, (mode_t)0600);
+    int fd = open(fname.c_str(), O_RDONLY, (mode_t) 0600);
     auto fsize = static_cast<size_t>(lseek(fd, 0, SEEK_END));
-    mmap_ptr = (uint8_t*)mmap(nullptr, fsize, PROT_READ, MAP_SHARED, fd, 0);
+    mmap_ptr = (uint8_t *) mmap(nullptr, fsize, PROT_READ, MAP_SHARED, fd, 0);
 
-    uint32_t magic = *(uint32_t*)mmap_ptr;
-    uint32_t version = *(uint32_t*)(mmap_ptr + 4);
-    ntype = static_cast<IndexType>(*(uint32_t*)(mmap_ptr + 8));
-    uint32_t reserved = *(uint32_t*)(mmap_ptr + 12);
+    uint32_t magic = *(uint32_t *) mmap_ptr;
+    uint32_t version = *(uint32_t *) (mmap_ptr + 4);
+    ntype = static_cast<IndexType>(*(uint32_t *) (mmap_ptr + 8));
+    uint32_t reserved = *(uint32_t *) (mmap_ptr + 12);
 
     if (magic != DB_MAGIC) {
         throw std::runtime_error("invalid magic, not a catdata");
@@ -60,7 +60,7 @@ std::vector<FileId> OnDiskIndex::read_compressed_run(uint8_t *start, uint8_t *en
 
 std::vector<FileId> OnDiskIndex::query_primitive(const TriGram &trigram) {
     uint32_t ptr = run_offsets[trigram];
-    uint32_t next_ptr = run_offsets[trigram+1];
+    uint32_t next_ptr = run_offsets[trigram + 1];
     // TODO(_): check for overflow
     // Note: it's also possible to increase run_offsets size by 1.
 

@@ -18,7 +18,7 @@ void DatasetBuilder::save(const std::string &fname) {
 
     json dataset;
 
-    std::set<std::string> c_set {"index." + fname};
+    std::set<std::string> c_set{"index." + fname};
     json j_indices(c_set);
     json j_fids(fids);
 

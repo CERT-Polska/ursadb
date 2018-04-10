@@ -19,5 +19,6 @@ class OnDiskDataset {
 
 public:
     OnDiskDataset(const std::string &fname);
+
     std::vector<std::string> query_primitive(const TriGram &trigram);
 };
