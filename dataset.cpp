@@ -2,11 +2,10 @@
 
 void OnDiskDataset::load(const std::string &fname) {
     raw_data = std::ifstream(fname, std::ifstream::binary);
-    char header[4] = { (char)0xCA, (char)0x7D, (char)0xA7, (char)0xA};
-    char cur_header[4];
-    raw_data.read((char *)&cur_header, 4);
 
-    if (cur_header[0] != (char)0xCA || cur_header[1] != (char)0x7D || cur_header[2] != (char)0xA7 || cur_header[3] != (char)0xA) {
+    uint32_t magic;
+    raw_data.read((char *)&magic, 4);
+    if (magic != DB_MAGIC) {
         throw std::runtime_error("Invalid header, improper magic.");
     }
 
@@ -27,8 +26,8 @@ void OnDiskDataset::load(const std::string &fname) {
     raw_data.seekg(0, std::ifstream::end);
 
     long fsize = raw_data.tellg();
-    raw_data.seekg(fsize - 16777216*4, std::ifstream::beg);
-    raw_data.read((char*)run_offsets.data(), 16777216*4);
+    raw_data.seekg(fsize - NUM_TRIGRAMS*4, std::ifstream::beg);
+    raw_data.read((char*)run_offsets.data(), NUM_TRIGRAMS*4);
 }
 
 const std::string &OnDiskDataset::get_file_name(FileId fid) {

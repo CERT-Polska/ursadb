@@ -36,8 +36,7 @@ void DatasetBuilder::index(const std::string &filepath) {
     long fsize = in.tellg();
     in.seekg(0, std::ifstream::beg);
 
-    std::vector<TriGram> out;
-    yield_trigrams(in, fsize, out);
+    std::vector<TriGram> out = get_trigrams(in, fsize);
 
     for (TriGram gram3 : out) {
         this->add_trigram(fid, gram3);
@@ -48,8 +47,7 @@ void DatasetBuilder::save(const std::string &fname) {
     std::vector <uint32_t> offsets;
     std::ofstream out(fname, std::ofstream::binary);
 
-    char header[4] = {(char) 0xCA, (char) 0x7D, (char) 0xA7, (char) 0xA};
-    out.write(header, 4);
+    out.write((char*)&DB_MAGIC, 4);
 
     for (int i = 0; i < fids.size(); i++) {
         auto fnsize = (uint16_t) fids[i].size();

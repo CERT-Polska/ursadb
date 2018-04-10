@@ -1,7 +1,13 @@
 #include "utils.h"
 
 
-void yield_trigrams(std::ifstream &infile, long insize, std::vector<TriGram> &out) {
+std::vector<TriGram> get_trigrams(std::ifstream &infile, long insize) {
+    std::vector<TriGram> out;
+
+    if (insize < 3) {
+        return out;
+    }
+
     uint8_t ringbuffer[3];
     infile.read((char *)ringbuffer, 3);
     int offset = 2;
@@ -15,4 +21,5 @@ void yield_trigrams(std::ifstream &infile, long insize, std::vector<TriGram> &ou
         offset += 1;
         infile.read((char *)&ringbuffer[offset % 3], 1);
     }
+    return out;
 }

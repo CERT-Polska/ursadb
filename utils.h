@@ -6,4 +6,4 @@
 
 #include "core.h"
 
-void yield_trigrams(std::ifstream &infile, long insize, std::vector<TriGram> &out);
+std::vector<TriGram> get_trigrams(std::ifstream &infile, long insize);

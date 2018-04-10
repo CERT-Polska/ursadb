@@ -5,3 +5,4 @@ CMakeFiles/
 Makefile
 *.cmake
 *.ursa
+*.test
