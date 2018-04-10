@@ -32,12 +32,9 @@ void DatasetBuilder::save(const std::string &fname) {
 
 void DatasetBuilder::index(const std::string &filepath) {
     FileId fid = register_fname(filepath);
+    MemMap in(filepath);
 
-    std::ifstream in(filepath, std::ifstream::ate | std::ifstream::binary);
-    long fsize = in.tellg();
-    in.seekg(0, std::ifstream::beg);
-
-    std::vector<TriGram> out = get_trigrams(in, fsize);
+    std::vector<TriGram> out = get_trigrams(in);
 
     for (TriGram gram3 : out) {
         std::cout << "add trigram " << std::hex << gram3 << std::endl;

@@ -16,7 +16,7 @@ class OnDiskIndex {
     MemMap disk_map;
     IndexType ntype;
 
-    std::vector<FileId> read_compressed_run(uint8_t *start, uint8_t *end);
+    std::vector<FileId> read_compressed_run(const uint8_t *start, const uint8_t *end) const;
 
 public:
     OnDiskIndex(const std::string &fname);

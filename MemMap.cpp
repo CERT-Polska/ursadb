@@ -31,18 +31,15 @@ MemMap::MemMap(const std::string &fname) {
 }
 
 MemMap::~MemMap() {
-    if (munmap(mmap_ptr, fsize) == -1) {
-        close(fd);
-        throw std::runtime_error("error unmapping file");
-    }
-
+    // FIXME error checking(?)
+    munmap(mmap_ptr, fsize);
     close(fd);
 }
 
-uint8_t &MemMap::operator[](const size_t &offset) {
+const uint8_t &MemMap::operator[](const size_t &offset) const {
     return mmap_ptr[offset];
 }
 
-const size_t &MemMap::size() {
+const size_t &MemMap::size() const {
     return fsize;
 }

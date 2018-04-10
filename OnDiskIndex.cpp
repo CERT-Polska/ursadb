@@ -9,7 +9,7 @@
 #include "OnDiskIndex.h"
 
 
-OnDiskIndex::OnDiskIndex(const std::string &fname) : run_offsets(NUM_TRIGRAMS), disk_map(fname) {
+OnDiskIndex::OnDiskIndex(const std::string &fname) : run_offsets(NUM_TRIGRAMS + 1), disk_map(fname) {
     uint32_t magic = *(uint32_t *) &disk_map[0];
     uint32_t version = *(uint32_t *) &disk_map[4];
     ntype = static_cast<IndexType>(*(uint32_t *) &disk_map[8]);
@@ -27,17 +27,17 @@ OnDiskIndex::OnDiskIndex(const std::string &fname) : run_offsets(NUM_TRIGRAMS), 
         throw std::runtime_error("invalid index type");
     }
 
-    memcpy(&run_offsets[0], &disk_map[disk_map.size() - NUM_TRIGRAMS * 4], NUM_TRIGRAMS * 4);
+    memcpy(run_offsets.data(), &disk_map[disk_map.size() - NUM_TRIGRAMS * 4], NUM_TRIGRAMS * 4);
 }
 
 
-std::vector<FileId> OnDiskIndex::read_compressed_run(uint8_t *start, uint8_t *end) {
+std::vector<FileId> OnDiskIndex::read_compressed_run(const uint8_t *start, const uint8_t *end) const {
     std::vector<FileId> res;
     uint32_t acc = 0;
     uint32_t shift = 0;
     uint32_t base = 0;
 
-    for (uint8_t *ptr = start; ptr < end; ++ptr) {
+    for (const uint8_t *ptr = start; ptr < end; ++ptr) {
         uint32_t next = *ptr;
 
         acc += (next & 0x7FU) << shift;
@@ -57,8 +57,5 @@ std::vector<FileId> OnDiskIndex::read_compressed_run(uint8_t *start, uint8_t *en
 std::vector<FileId> OnDiskIndex::query_primitive(const TriGram &trigram) {
     uint32_t ptr = run_offsets[trigram];
     uint32_t next_ptr = run_offsets[trigram + 1];
-    // TODO(_): check for overflow
-    // Note: it's also possible to increase run_offsets size by 1.
-
     return read_compressed_run(&disk_map[ptr], &disk_map[next_ptr]);
 }

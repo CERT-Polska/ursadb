@@ -5,5 +5,6 @@
 #include <fstream>
 
 #include "Core.h"
+#include "MemMap.h"
 
-std::vector<TriGram> get_trigrams(std::ifstream &infile, long insize);
+std::vector<TriGram> get_trigrams(const MemMap &infile);

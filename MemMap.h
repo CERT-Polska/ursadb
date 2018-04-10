@@ -12,6 +12,6 @@ class MemMap {
 public:
     MemMap(const std::string &fname);
     ~MemMap();
-    uint8_t &operator[](const size_t &offset);
-    const size_t &size();
+    const uint8_t &operator[](const size_t &offset) const;
+    const size_t &size() const;
 };
