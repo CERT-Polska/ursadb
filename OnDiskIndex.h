@@ -5,6 +5,7 @@
 #include <fstream>
 
 #include "Core.h"
+#include "MemMap.h"
 
 enum IndexType {
     GRAM3 = 1
@@ -12,7 +13,7 @@ enum IndexType {
 
 class OnDiskIndex {
     std::vector<uint32_t> run_offsets;
-    uint8_t *mmap_ptr;
+    MemMap disk_map;
     IndexType ntype;
 
     std::vector<FileId> read_compressed_run(uint8_t *start, uint8_t *end);
