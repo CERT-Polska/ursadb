@@ -14,6 +14,7 @@ public:
 
     void index(const std::string &filepath);
     void save(const std::string &fname);
+
 private:
     std::vector<std::string> fids;
     std::vector<std::vector<FileId>> run_offsets;
