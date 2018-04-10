@@ -12,14 +12,13 @@
 class DatasetBuilder {
 public:
     DatasetBuilder();
-    ~DatasetBuilder();
 
     void index(const std::string &filepath);
     void save(const std::string &fname);
 
 private:
     std::vector<std::string> fids;
-    std::vector<IndexBuilder*> indices;
+    std::vector<IndexBuilder> indices;
 
     FileId register_fname(const std::string &fname);
 };

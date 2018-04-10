@@ -13,7 +13,7 @@ using json = nlohmann::json;
 
 class OnDiskDataset {
     std::vector<std::string> fnames;
-    std::vector<OnDiskIndex*> indices;
+    std::vector<OnDiskIndex> indices;
 
     const std::string &get_file_name(FileId fid);
 

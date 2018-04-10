@@ -4,14 +4,7 @@
 #include "OnDiskDataset.h"
 
 DatasetBuilder::DatasetBuilder() {
-    auto *ndx = new IndexBuilder;
-    indices.push_back(ndx);
-}
-
-DatasetBuilder::~DatasetBuilder() {
-    for (auto ndx : indices) {
-        delete ndx;
-    }
+    indices.emplace_back();
 }
 
 FileId DatasetBuilder::register_fname(const std::string &fname) {
@@ -21,7 +14,7 @@ FileId DatasetBuilder::register_fname(const std::string &fname) {
 }
 
 void DatasetBuilder::save(const std::string &fname) {
-    indices[0]->save("index." + fname);
+    indices[0].save("index." + fname);
 
     json dataset;
 
@@ -48,6 +41,6 @@ void DatasetBuilder::index(const std::string &filepath) {
 
     for (TriGram gram3 : out) {
         std::cout << "add trigram " << std::hex << gram3 << std::endl;
-        indices[0]->add_trigram(fid, gram3);
+        indices[0].add_trigram(fid, gram3);
     }
 }

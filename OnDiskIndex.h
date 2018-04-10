@@ -11,7 +11,7 @@ enum IndexType {
 };
 
 class OnDiskIndex {
-    uint32_t run_offsets[NUM_TRIGRAMS];
+    std::vector<uint32_t> run_offsets;
     std::ifstream raw_data;
     IndexType ntype;
 

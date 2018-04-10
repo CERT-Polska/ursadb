@@ -2,7 +2,7 @@
 #include "OnDiskIndex.h"
 
 
-OnDiskIndex::OnDiskIndex(const std::string &fname) {
+OnDiskIndex::OnDiskIndex(const std::string &fname) : run_offsets(NUM_TRIGRAMS) {
     raw_data = std::ifstream(fname, std::ifstream::binary | std::ifstream::ate);
     long fsize = raw_data.tellg();
     raw_data.seekg(0, std::ifstream::beg);
@@ -13,7 +13,7 @@ OnDiskIndex::OnDiskIndex(const std::string &fname) {
 
     raw_data.read((char*)&magic, 4);
 
-    if (magic != 0xCA7DA7A) {
+    if (magic != DB_MAGIC) {
         throw std::runtime_error("invalid magic, not a catdata");
     }
 
