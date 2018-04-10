@@ -30,7 +30,7 @@ std::vector<uint8_t> DatasetBuilder::compress_run(const std::vector<FileId> &fil
 }
 
 void DatasetBuilder::index(const std::string &filepath) {
-    FileId fid = this->register_fname(filepath);
+    FileId fid = register_fname(filepath);
 
     std::ifstream in(filepath, std::ifstream::ate | std::ifstream::binary);
     long fsize = in.tellg();
