@@ -3,4 +3,4 @@ project(ursadb)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(ursadb main.cpp utils.cpp dataset.cpp dataset_builder.cpp database.cpp database.h query.cpp query.h)
+add_executable(ursadb main.cpp Utils.cpp OnDiskDataset.cpp DatasetBuilder.cpp Database.cpp Database.h OnDiskIndex.cpp OnDiskIndex.h IndexBuilder.cpp IndexBuilder.h)

@@ -6,8 +6,8 @@
 #include <list>
 
 
-#include "dataset.h"
-#include "dataset_builder.h"
+#include "OnDiskDataset.h"
+#include "DatasetBuilder.h"
 
 
 int main(int argc, char *argv[]) {
@@ -32,11 +32,12 @@ int main(int argc, char *argv[]) {
             return 2;
         }
         TriGram raw_query = (query[0] << 16) + (query[1] << 8) + (query[2] << 0);
-        OnDiskDataset index(dbpath);
-        std::vector<FileId> result = index.query_index(raw_query);
+        std::cout << "searching for trigram " << std::hex << raw_query << std::endl;
+        OnDiskDataset *dataset = new OnDiskDataset(dbpath);
+        std::vector<std::string> result = dataset->query_primitive(raw_query);
 
         for (auto file : result) {
-            std::cout << index.get_file_name(file) << std::endl;
+            std::cout << file << std::endl;
         }
     }
     return 0;
