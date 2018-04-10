@@ -32,8 +32,7 @@ int main(int argc, char *argv[]) {
             return 2;
         }
         TriGram raw_query = (query[0] << 16) + (query[1] << 8) + (query[2] << 0);
-        OnDiskDataset index;
-        index.load(dbpath);
+        OnDiskDataset index(dbpath);
         std::vector<FileId> result = index.query_index(raw_query);
 
         for (auto file : result) {

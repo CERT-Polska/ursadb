@@ -9,15 +9,17 @@
 
 class OnDiskDataset {
 public:
-    OnDiskDataset() :run_offsets(NUM_TRIGRAMS) {
+    OnDiskDataset(const std::string &fname) :run_offsets(NUM_TRIGRAMS) {
+        load(fname);
     }
 
-    void load(const std::string &fname);
     const std::string &get_file_name(FileId fid);
-    std::vector<FileId> read_compressed_run(std::ifstream &runs, size_t len);
     std::vector<FileId> query_index(const TriGram &trigram);
 
 private:
+    std::vector<FileId> read_compressed_run(std::ifstream &runs, size_t len);
+    void load(const std::string &fname);
+
     std::vector<std::string> fnames;
     std::ifstream raw_data;
     std::vector<uint32_t> run_offsets;

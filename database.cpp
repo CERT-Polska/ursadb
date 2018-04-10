@@ -3,10 +3,10 @@
 
 
 void Database::compact() {
-    // TODO compact, rewrite DB to the optimal form
+    // TODO(monk): compact, rewrite DB to the optimal form
 }
 
 void Database::query(const Query &query) {
-    // TODO for each privimite query all datasets
-    // TODO apply AND/ORs on results according to the Query
+    // TODO(monk): for each privimite query all datasets
+    // TODO(monk): apply AND/ORs on results according to the Query
 }

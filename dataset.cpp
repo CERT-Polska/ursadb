@@ -10,6 +10,7 @@ void OnDiskDataset::load(const std::string &fname) {
     }
 
     while (1) {
+        // TODO(monk): consider other on-disk data format.
         uint16_t fnlen;
         raw_data.read((char *)&fnlen, 2);
 
@@ -43,7 +44,7 @@ std::vector<FileId> OnDiskDataset::read_compressed_run(std::ifstream &runs, size
     for (int i = 0; i < len; i++) {
         char next_raw;
         runs.read(&next_raw, 1);
-        auto next = (uint32_t)next_raw;
+        uint32_t next = next_raw;
 
         acc += (next & 0x7FU) << shift;
         shift += 7U;
@@ -60,7 +61,9 @@ std::vector<FileId> OnDiskDataset::read_compressed_run(std::ifstream &runs, size
 
 std::vector<FileId> OnDiskDataset::query_index(const TriGram &trigram) {
     uint32_t ptr = run_offsets[trigram];
-    uint32_t next_ptr = run_offsets[trigram+1]; // TODO ensure overflow
+    uint32_t next_ptr = run_offsets[trigram+1];
+    // TODO(_): check for overflow
+    // Note: it's also possible to increase run_offsets size by 1.
 
     raw_data.seekg(ptr);
     return read_compressed_run(raw_data, next_ptr - ptr);
