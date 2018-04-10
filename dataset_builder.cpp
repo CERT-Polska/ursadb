@@ -50,7 +50,7 @@ void DatasetBuilder::save(const std::string &fname) {
     out.write((char*)&DB_MAGIC, 4);
 
     for (int i = 0; i < fids.size(); i++) {
-        auto fnsize = (uint16_t) fids[i].size();
+        uint16_t fnsize = fids[i].size();
         out.write((char *) &fnsize, 2);
         out.write(fids[i].c_str(), fids[i].size());
     }
@@ -59,10 +59,9 @@ void DatasetBuilder::save(const std::string &fname) {
     out.write(blank, 2);
 
     for (int i = 0; i < NUM_TRIGRAMS; i++) {
-        offsets.push_back((uint32_t) out.tellp());
-        for (auto b : compress_run(run_offsets[i])) {
-            out.write((char *) &b, 1);
-        }
+        offsets.push_back(out.tellp());
+        std::vector<uint8_t> run = compress_run(run_offsets[i]);
+        out.write((char*)run.data(), run.size());
     }
 
     for (auto offset : offsets) {
