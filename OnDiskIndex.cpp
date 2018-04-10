@@ -1,51 +1,48 @@
 #include <iostream>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <cstring>
+
 #include "OnDiskIndex.h"
 
 
 OnDiskIndex::OnDiskIndex(const std::string &fname) : run_offsets(NUM_TRIGRAMS) {
-    raw_data = std::ifstream(fname, std::ifstream::binary | std::ifstream::ate);
-    long fsize = raw_data.tellg();
-    raw_data.seekg(0, std::ifstream::beg);
+    int fd = open(fname.c_str(), O_RDONLY, (mode_t)0600);
+    auto fsize = static_cast<size_t>(lseek(fd, 0, SEEK_END));
+    mmap_ptr = (uint8_t*)mmap(nullptr, fsize, PROT_READ, MAP_SHARED, fd, 0);
 
-    uint32_t magic;
-    uint32_t version;
-    uint32_t reserved;
-
-    raw_data.read((char*)&magic, 4);
+    uint32_t magic = *(uint32_t*)mmap_ptr;
+    uint32_t version = *(uint32_t*)(mmap_ptr + 4);
+    ntype = static_cast<IndexType>(*(uint32_t*)(mmap_ptr + 8));
+    uint32_t reserved = *(uint32_t*)(mmap_ptr + 12);
 
     if (magic != DB_MAGIC) {
         throw std::runtime_error("invalid magic, not a catdata");
     }
 
-    raw_data.read((char*)&version, 4);
-
     if (version != 5) {
         throw std::runtime_error("unsupported version");
     }
-
-    raw_data.read((char*)&ntype, 4);
 
     if (ntype != GRAM3) {
         throw std::runtime_error("invalid index type");
     }
 
-    raw_data.read((char*)&reserved, 4);
-
-    raw_data.seekg(fsize - NUM_TRIGRAMS*4, std::ifstream::beg);
-    raw_data.read((char*)&run_offsets[0], NUM_TRIGRAMS*4);
+    memcpy(&run_offsets[0], &mmap_ptr[fsize - NUM_TRIGRAMS * 4], NUM_TRIGRAMS * 4);
 }
 
 
-std::vector<FileId> OnDiskIndex::read_compressed_run(std::ifstream &runs, size_t len) {
+std::vector<FileId> OnDiskIndex::read_compressed_run(uint8_t *start, uint8_t *end) {
     std::vector<FileId> res;
     uint32_t acc = 0;
     uint32_t shift = 0;
     uint32_t base = 0;
 
-    for (int i = 0; i < len; i++) {
-        char next_raw;
-        runs.read(&next_raw, 1);
-        uint32_t next = next_raw;
+    for (uint8_t *ptr = start; ptr < end; ++ptr) {
+        uint32_t next = *ptr;
 
         acc += (next & 0x7FU) << shift;
         shift += 7U;
@@ -67,6 +64,5 @@ std::vector<FileId> OnDiskIndex::query_primitive(const TriGram &trigram) {
     // TODO(_): check for overflow
     // Note: it's also possible to increase run_offsets size by 1.
 
-    raw_data.seekg(ptr);
-    return read_compressed_run(raw_data, next_ptr - ptr);
+    return read_compressed_run(&mmap_ptr[ptr], &mmap_ptr[next_ptr]);
 }

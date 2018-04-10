@@ -12,10 +12,10 @@ enum IndexType {
 
 class OnDiskIndex {
     std::vector<uint32_t> run_offsets;
-    std::ifstream raw_data;
+    uint8_t *mmap_ptr;
     IndexType ntype;
 
-    std::vector<FileId> read_compressed_run(std::ifstream &runs, size_t len);
+    std::vector<FileId> read_compressed_run(uint8_t *start, uint8_t *end);
 
 public:
     OnDiskIndex(const std::string &fname);
