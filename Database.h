@@ -11,7 +11,8 @@ class Database {
     void compact();
 
 public:
-    Database(const std::string &fname);
+    explicit Database(const std::string &fname);
     void execute(const Query &query, std::vector<std::string> &out);
     void add_dataset(DatasetBuilder &builder);
+    void save();
 };

@@ -54,7 +54,7 @@ std::vector<FileId> OnDiskIndex::read_compressed_run(const uint8_t *start, const
 }
 
 
-std::vector<FileId> OnDiskIndex::query_primitive(const TriGram &trigram) {
+std::vector<FileId> OnDiskIndex::query_primitive(const TriGram &trigram) const {
     uint32_t ptr = run_offsets[trigram];
     uint32_t next_ptr = run_offsets[trigram + 1];
 
@@ -64,5 +64,8 @@ std::vector<FileId> OnDiskIndex::query_primitive(const TriGram &trigram) {
         std::cout << "for " << trigram << ": " << (next_ptr - ptr) << std::endl;
     }
 
-    return read_compressed_run(&disk_map[ptr], &disk_map[next_ptr]);
+    std::vector<FileId> out = read_compressed_run(&disk_map[ptr], &disk_map[next_ptr]);
+
+    std::cout << "returning " << out.size() << " elems" << std::endl;
+    return out;
 }

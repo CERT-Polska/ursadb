@@ -7,19 +7,23 @@
 #include "Core.h"
 #include "OnDiskIndex.h"
 #include "Json.h"
+#include "Query.h"
 
 using json = nlohmann::json;
 
 
 class OnDiskDataset {
+    std::string name;
     std::vector<std::string> fnames;
     std::vector<OnDiskIndex> indices;
 
-    const std::string &get_file_name(FileId fid);
+    const std::string &get_file_name(FileId fid) const;
+    void query_primitive(const TriGram &trigram, std::vector<FileId> &out) const;
+    std::vector<FileId> query_primitive(const TriGram &trigram) const;
+    std::vector<FileId> internal_execute(const Query &query) const;
 
 public:
     OnDiskDataset(const std::string &fname);
-
-    std::vector<std::string> query_primitive(const TriGram &trigram);
-    void query_primitive(const TriGram &trigram, std::vector<std::string> &out);
+    const std::string &get_name() const;
+    void execute(const Query &query, std::vector<std::string> &out) const;
 };

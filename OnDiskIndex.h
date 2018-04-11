@@ -21,5 +21,5 @@ class OnDiskIndex {
 public:
     OnDiskIndex(const std::string &fname);
 
-    std::vector<FileId> query_primitive(const TriGram &trigram);
+    std::vector<FileId> query_primitive(const TriGram &trigram) const;
 };
