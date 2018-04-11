@@ -20,10 +20,10 @@ class OnDiskDataset {
     const std::string &get_file_name(FileId fid) const;
     void query_primitive(TriGram trigram, std::vector<FileId> &out) const;
     std::vector<FileId> query_primitive(TriGram trigram) const;
-    std::vector<FileId> internal_execute(const Query &query) const;
+    QueryResult internal_execute(const Query &query) const;
 
 public:
     explicit OnDiskDataset(const std::string &fname);
     const std::string &get_name() const;
-    void execute(const Query &query, std::vector<std::string> &out) const;
+    void execute(const Query &query, std::vector<std::string> *out) const;
 };

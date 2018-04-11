@@ -34,7 +34,7 @@ void Database::compact() {
 
 void Database::execute(const Query &query, std::vector<std::string> &out) {
     for (const auto &ds: datasets) {
-        ds.execute(query, out);
+        ds.execute(query, &out);
     }
 }
 

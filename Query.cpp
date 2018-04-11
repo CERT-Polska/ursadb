@@ -1,8 +1,34 @@
 #include "Query.h"
 
-#include <utility>
+void QueryResult::do_or(const QueryResult &&other) {
+    if (this->is_everything() || other.is_everything()) {
+        has_everything = true;
+        return;
+    }
 
-#include "Utils.h"
+    std::vector<FileId> new_results;
+    std::set_union(
+        other.results.begin(), other.results.end(),
+        results.begin(), results.end(),
+        std::back_inserter(new_results));
+    std::swap(new_results, results);
+}
+
+void QueryResult::do_and(const QueryResult &&other) {
+    if (other.is_everything()) {
+        return;
+    }
+    if (this->is_everything()) {
+        *this = QueryResult(other);
+        return;
+    }
+
+    auto new_end = std::set_intersection(
+        other.results.begin(), other.results.end(),
+        results.begin(), results.end(),
+        results.begin());
+    results.erase(new_end, results.end());
+}
 
 const std::vector<Query> &Query::as_queries() const {
     return queries;

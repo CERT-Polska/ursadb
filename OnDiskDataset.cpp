@@ -20,58 +20,42 @@ const std::string &OnDiskDataset::get_file_name(FileId fid) const {
 }
 
 std::vector<FileId> OnDiskDataset::query_primitive(TriGram trigram) const {
-    std::vector<FileId> res;
-    query_primitive(trigram, res);
-    return res;
-}
-
-void OnDiskDataset::query_primitive(TriGram trigram, std::vector<FileId> &out) const {
-    std::cout << "query_primitive(" << trigram << ")" << std::endl;
-
+    std::vector<FileId> out;
     for (const FileId &fid : indices[0].query_primitive(trigram)) {
         std::cout << "pushing " << fid << " " << get_file_name(fid) << std::endl;
         out.push_back(fid);
     }
-}
-
-std::vector<FileId> OnDiskDataset::internal_execute(const Query &query) const {
-    std::vector<FileId> out;
-
-    if (query.get_type() == QueryType::PRIMITIVE) {
-        query_primitive(query.as_trigram(), out);
-    } else if (query.get_type() == QueryType::OR) {
-        for (auto &q : query.as_queries()) {
-            std::vector<FileId> new_out;
-            std::vector<FileId> partial = internal_execute(q);
-            std::set_union(partial.begin(), partial.end(), out.begin(), out.end(), std::back_inserter(new_out));
-            out = new_out;
-        }
-    } else if (query.get_type() == QueryType::AND) {
-        bool is_first = true;
-
-        for (auto &q : query.as_queries()) {
-            std::vector<FileId> new_out;
-            std::vector<FileId> partial = internal_execute(q);
-
-            if (!is_first) {
-                std::set_intersection(partial.begin(), partial.end(), out.begin(), out.end(),
-                                      std::back_inserter(new_out));
-                out = new_out;
-            } else {
-                is_first = false;
-                out = partial;
-            }
-        }
-    }
-
     return out;
 }
 
-void OnDiskDataset::execute(const Query &query, std::vector<std::string> &out) const {
-    std::vector<FileId> fids = internal_execute(query);
+QueryResult OnDiskDataset::internal_execute(const Query &query) const {
+    if (query.get_type() == QueryType::PRIMITIVE) {
+        return query_primitive(query.as_trigram());
+    } else if (query.get_type() == QueryType::OR) {
+        QueryResult result = QueryResult::empty();
+        for (auto &q : query.as_queries()) {
+            result.do_or(internal_execute(q));
+        }
+        return result;
+    } else if (query.get_type() == QueryType::AND) {
+        QueryResult result = QueryResult::everything();
+        for (auto &q : query.as_queries()) {
+            result.do_and(internal_execute(q));
+        }
+        return result;
+    } else {
+        throw std::runtime_error("Unknown query type");
+    }
+}
 
-    for (const auto &fid : fids) {
-        out.push_back(get_file_name(fid));
+void OnDiskDataset::execute(const Query &query, std::vector<std::string> *out) const {
+    QueryResult result = internal_execute(query);
+    if (result.is_everything()) {
+        std::copy(fnames.begin(), fnames.end(), std::back_inserter(*out));
+    } else {
+        for (const auto &fid : result.vector()) {
+            out->push_back(get_file_name(fid));
+        }
     }
 }
 
