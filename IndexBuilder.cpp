@@ -10,20 +10,6 @@ void IndexBuilder::add_trigram(FileId fid, TriGram val) {
     raw_index[val].push_back(fid);
 }
 
-void IndexBuilder::compress_run(const std::vector<FileId> &run, std::ofstream &out) {
-    uint32_t prev = 0;
-
-    for (auto next : run) {
-        uint32_t diff = (next + 1U) - prev;
-        while (diff >= 0x80U) {
-            out.put((uint8_t) (0x80U | (diff & 0x7FU)));
-            diff >>= 7;
-        }
-        out.put((uint8_t) diff);
-        prev = next + 1U;
-    }
-}
-
 void IndexBuilder::save(const std::string &fname) {
     std::ofstream out(fname, std::ofstream::binary);
 

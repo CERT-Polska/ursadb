@@ -36,11 +36,3 @@ MemMap::~MemMap() {
     munmap(mmap_ptr, fsize);
     close(fd);
 }
-
-const uint8_t &MemMap::operator[](const size_t &offset) const {
-    return mmap_ptr[offset];
-}
-
-const size_t &MemMap::size() const {
-    return fsize;
-}

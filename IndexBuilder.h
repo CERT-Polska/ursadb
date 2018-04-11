@@ -5,12 +5,11 @@
 #include <fstream>
 
 #include "Core.h"
+#include "Utils.h"
 
 
 class IndexBuilder {
     std::vector<std::vector<FileId>> raw_index;
-
-    void compress_run(const std::vector<FileId> &run, std::ofstream &out);
 
 public:
     IndexBuilder();

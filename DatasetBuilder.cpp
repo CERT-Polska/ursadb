@@ -34,7 +34,7 @@ void DatasetBuilder::index(const std::string &filepath) {
     FileId fid = register_fname(filepath);
     MemMap in(filepath);
 
-    std::vector<TriGram> out = get_trigrams(in, in.size());
+    std::vector<TriGram> out = get_trigrams(in.data(), in.size());
 
     for (TriGram gram3 : out) {
         std::cout << "add trigram " << std::hex << gram3 << std::endl;

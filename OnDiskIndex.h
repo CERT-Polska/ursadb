@@ -11,11 +11,9 @@ enum IndexType {
 };
 
 class OnDiskIndex {
-    uint32_t *run_offsets;
+    const uint32_t *run_offsets;
     MemMap disk_map;
     IndexType ntype;
-
-    std::vector<FileId> read_compressed_run(const uint8_t *start, const uint8_t *end) const;
 
     static constexpr uint32_t VERSION = 5;
 

@@ -12,6 +12,12 @@ class MemMap {
 public:
     explicit MemMap(const std::string &fname);
     ~MemMap();
-    const uint8_t &operator[](const size_t &offset) const;
-    const size_t &size() const;
+
+    const uint8_t *data() const {
+        return mmap_ptr;
+    }
+
+    const size_t &size() const {
+        return fsize;
+    }
 };

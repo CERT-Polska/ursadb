@@ -42,7 +42,7 @@ Query::Query(const QueryType &type, const std::vector<Query> &queries)
 
 Query::Query(const std::string &str)
         : type(QueryType::AND), queries() {
-    auto trigrams = get_trigrams(str, str.size());
+    auto trigrams = get_trigrams((uint8_t*)str.data(), str.size());
 
     for (auto trigram : trigrams) {
         queries.emplace_back(trigram);
