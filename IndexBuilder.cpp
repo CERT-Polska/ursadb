@@ -1,6 +1,7 @@
-#include <iostream>
 #include "IndexBuilder.h"
 
+#include <iostream>
+#include <algorithm>
 
 IndexBuilder::IndexBuilder() : raw_index(NUM_TRIGRAMS) {
 
@@ -23,16 +24,16 @@ void IndexBuilder::save(const std::string &fname) {
     out.write((char *) &ndx_type, 4);
     out.write((char *) &reserved, 4);
 
-    auto *offsets = new uint32_t[NUM_TRIGRAMS + 1];
+    std::vector<uint32_t> offsets(NUM_TRIGRAMS + 1);
 
     for (int i = 0; i < NUM_TRIGRAMS; i++) {
         offsets[i] = (uint32_t) out.tellp();
+        std::sort(raw_index[i].begin(), raw_index[i].end() );
+        raw_index[i].erase(unique(raw_index[i].begin(), raw_index[i].end()), raw_index[i].end() );
         compress_run(raw_index[i], out);
     }
     offsets[NUM_TRIGRAMS] = (uint32_t) out.tellp();
 
-    out.write((char *) offsets, (NUM_TRIGRAMS + 1) * 4);
+    out.write((char *) offsets.data(), (NUM_TRIGRAMS + 1) * 4);
     out.close();
-
-    delete[] offsets;
 }

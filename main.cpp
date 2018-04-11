@@ -38,8 +38,10 @@ int main(int argc, char *argv[]) {
         for (std::string &s : out) {
             std::cout << s << std::endl;
         }
-    }
-    else if (argv[1] == std::string("select_poc")) {
+    } else if (argv[1] == std::string("compact")) {
+        Database db(argv[2]);
+        db.compact();
+    } else if (argv[1] == std::string("select_poc")) {
         Query test = q_or({ q("more problem"), q("more problem"), q("more problem"), q("wtf") });
         std::cout << test << std::endl;
         Database db("db.ursa");

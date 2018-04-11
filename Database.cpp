@@ -29,7 +29,8 @@ void Database::add_dataset(DatasetBuilder &builder) {
 }
 
 void Database::compact() {
-    // TODO(monk): compact, rewrite DB to the optimal form
+    int num_datasets;
+    std::vector<OnDiskDataset> datasets;
 }
 
 void Database::execute(const Query &query, std::vector<std::string> &out) {
