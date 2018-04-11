@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <ostream>
 
 #include "Core.h"
 
@@ -21,7 +22,6 @@ public:
     const std::vector<Query> &as_queries() const;
     const TriGram &as_trigram() const;
     const QueryType &get_type() const;
-    void print_query() const;
 
 private:
     QueryType type;
@@ -32,3 +32,4 @@ private:
 Query q(const std::string &str);
 Query q_and(const std::vector<Query> &queries);
 Query q_or(const std::vector<Query> &queries);
+std::ostream& operator<<(std::ostream& os, const Query& query);

@@ -1,4 +1,5 @@
 #include "Query.h"
+
 #include <utility>
 
 #include "Utils.h"
@@ -22,25 +23,26 @@ Query::Query(const std::string &str)
     }
 }
 
-void Query::print_query() const {
+std::ostream& operator<<(std::ostream& os, const Query& query) {
+    QueryType type = query.get_type();
     if (type == QueryType::AND || type == QueryType::OR) {
         if (type == QueryType::AND) {
-            std::cout << "AND(";
+            os << "AND(";
         } else if (type == QueryType::OR) {
-            std::cout << "OR(";
+            os << "OR(";
         }
 
         bool is_first = true;
-        for (const auto &q : queries) {
+        for (const auto &q : query.as_queries()) {
             if (!is_first) {
-                std::cout << ", ";
+                os << ", ";
             }
             is_first = false;
-            q.print_query();
+            os << q;
         }
-        std::cout << ")";
+        os << ")";
     } else if (type == QueryType::PRIMITIVE) {
-        std::cout << std::hex << "'" << trigram << "'";
+        os << std::hex << "'" << query.as_trigram() << "'";
     }
 }
 

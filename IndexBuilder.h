@@ -15,7 +15,6 @@ class IndexBuilder {
 public:
     IndexBuilder();
 
-    void add_trigram(const FileId &fid, const TriGram &val);
-
+    void add_trigram(FileId fid, TriGram val);
     void save(const std::string &fname);
 };

@@ -3,7 +3,6 @@
 #include <vector>
 #include <string>
 #include <fstream>
-
 #include "Core.h"
 #include "MemMap.h"
 
@@ -12,14 +11,16 @@ enum IndexType {
 };
 
 class OnDiskIndex {
-    std::vector<uint32_t> run_offsets;
+    uint32_t *run_offsets;
     MemMap disk_map;
     IndexType ntype;
 
     std::vector<FileId> read_compressed_run(const uint8_t *start, const uint8_t *end) const;
 
-public:
-    OnDiskIndex(const std::string &fname);
+    static constexpr uint32_t VERSION = 5;
 
-    std::vector<FileId> query_primitive(const TriGram &trigram) const;
+public:
+    explicit OnDiskIndex(const std::string &fname);
+
+    std::vector<FileId> query_primitive(TriGram trigram) const;
 };

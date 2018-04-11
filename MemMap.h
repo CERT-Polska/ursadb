@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <cstddef>
-#include "MemMap.h"
+#include <string>
 
 class MemMap {
     int fd;
@@ -10,7 +10,7 @@ class MemMap {
     size_t fsize;
 
 public:
-    MemMap(const std::string &fname);
+    explicit MemMap(const std::string &fname);
     ~MemMap();
     const uint8_t &operator[](const size_t &offset) const;
     const size_t &size() const;

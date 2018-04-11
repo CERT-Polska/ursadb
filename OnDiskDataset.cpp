@@ -1,8 +1,8 @@
 #include "OnDiskDataset.h"
 #include "Query.h"
 
-OnDiskDataset::OnDiskDataset(const std::string &fname) {
-    std::ifstream in(fname);
+OnDiskDataset::OnDiskDataset(const std::string &fname) :name(fname) {
+    std::ifstream in(name);
     json j;
     in >> j;
 
@@ -13,21 +13,19 @@ OnDiskDataset::OnDiskDataset(const std::string &fname) {
     for (std::string filename : j["filenames"]) {
         fnames.push_back(filename);
     }
-
-    name = fname;
 }
 
 const std::string &OnDiskDataset::get_file_name(FileId fid) const {
     return fnames.at(fid);
 }
 
-std::vector<FileId> OnDiskDataset::query_primitive(const TriGram &trigram) const {
+std::vector<FileId> OnDiskDataset::query_primitive(TriGram trigram) const {
     std::vector<FileId> res;
     query_primitive(trigram, res);
     return res;
 }
 
-void OnDiskDataset::query_primitive(const TriGram &trigram, std::vector<FileId> &out) const {
+void OnDiskDataset::query_primitive(TriGram trigram, std::vector<FileId> &out) const {
     std::cout << "query_primitive(" << trigram << ")" << std::endl;
 
     for (const FileId &fid : indices[0].query_primitive(trigram)) {

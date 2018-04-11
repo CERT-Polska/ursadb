@@ -29,9 +29,19 @@ int main(int argc, char *argv[]) {
         }
         db.add_dataset(builder);
         db.save();
-    } else if (argv[1] == std::string("select_poc")) {
+    } else if (argv[1] == std::string("query")) {
+        Query test = q(argv[3]);
+        std::cout << test << std::endl;
+        Database db(argv[2]);
+        std::vector<std::string> out;
+        db.execute(test, out);
+        for (std::string &s : out) {
+            std::cout << s << std::endl;
+        }
+    }
+    else if (argv[1] == std::string("select_poc")) {
         Query test = q_or({ q("more problem"), q("more problem"), q("more problem"), q("wtf") });
-        test.print_query();
+        std::cout << test << std::endl;
         Database db("db.ursa");
         std::vector<std::string> out;
         db.execute(test, out);

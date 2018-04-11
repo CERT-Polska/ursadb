@@ -1,11 +1,8 @@
 #pragma once
 
-#include <iostream>
 #include <vector>
-#include <fstream>
 
 #include "Core.h"
-#include "MemMap.h"
 
 template <typename T>
 std::vector<TriGram> get_trigrams(const T &mem, size_t size) {

@@ -6,7 +6,7 @@ IndexBuilder::IndexBuilder() : raw_index(NUM_TRIGRAMS) {
 
 }
 
-void IndexBuilder::add_trigram(const FileId &fid, const TriGram &val) {
+void IndexBuilder::add_trigram(FileId fid, TriGram val) {
     raw_index[val].push_back(fid);
 }
 

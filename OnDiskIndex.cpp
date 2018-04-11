@@ -9,7 +9,7 @@
 #include "OnDiskIndex.h"
 
 
-OnDiskIndex::OnDiskIndex(const std::string &fname) : run_offsets(NUM_TRIGRAMS + 1), disk_map(fname) {
+OnDiskIndex::OnDiskIndex(const std::string &fname) : disk_map(fname) {
     uint32_t magic = *(uint32_t *) &disk_map[0];
     uint32_t version = *(uint32_t *) &disk_map[4];
     ntype = static_cast<IndexType>(*(uint32_t *) &disk_map[8]);
@@ -19,7 +19,7 @@ OnDiskIndex::OnDiskIndex(const std::string &fname) : run_offsets(NUM_TRIGRAMS + 
         throw std::runtime_error("invalid magic, not a catdata");
     }
 
-    if (version != 5) {
+    if (version != OnDiskIndex::VERSION) {
         throw std::runtime_error("unsupported version");
     }
 
@@ -27,7 +27,7 @@ OnDiskIndex::OnDiskIndex(const std::string &fname) : run_offsets(NUM_TRIGRAMS + 
         throw std::runtime_error("invalid index type");
     }
 
-    memcpy(run_offsets.data(), &disk_map[disk_map.size() - NUM_TRIGRAMS * 4], NUM_TRIGRAMS * 4);
+    run_offsets = (uint32_t*) &disk_map[disk_map.size() - NUM_TRIGRAMS * 4];
 }
 
 
@@ -54,7 +54,7 @@ std::vector<FileId> OnDiskIndex::read_compressed_run(const uint8_t *start, const
 }
 
 
-std::vector<FileId> OnDiskIndex::query_primitive(const TriGram &trigram) const {
+std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram) const {
     uint32_t ptr = run_offsets[trigram];
     uint32_t next_ptr = run_offsets[trigram + 1];
 
@@ -65,7 +65,6 @@ std::vector<FileId> OnDiskIndex::query_primitive(const TriGram &trigram) const {
     }
 
     std::vector<FileId> out = read_compressed_run(&disk_map[ptr], &disk_map[next_ptr]);
-
     std::cout << "returning " << out.size() << " elems" << std::endl;
     return out;
 }
