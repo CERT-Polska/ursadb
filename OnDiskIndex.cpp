@@ -27,7 +27,7 @@ OnDiskIndex::OnDiskIndex(const std::string &fname) : disk_map(fname) {
         throw std::runtime_error("invalid index type");
     }
 
-    run_offsets = (uint32_t*) &disk_map[disk_map.size() - NUM_TRIGRAMS * 4];
+    run_offsets = (uint32_t*) &disk_map[disk_map.size() - (NUM_TRIGRAMS + 1) * 4];
 }
 
 
