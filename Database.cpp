@@ -29,8 +29,8 @@ void Database::add_dataset(DatasetBuilder &builder) {
 }
 
 void Database::compact() {
-    int num_datasets;
-    std::vector<OnDiskDataset> datasets;
+    std::string output_file = "merged.ursa";
+    OnDiskDataset::merge(output_file, datasets);
 }
 
 void Database::execute(const Query &query, std::vector<std::string> &out) {

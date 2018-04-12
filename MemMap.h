@@ -11,7 +11,11 @@ class MemMap {
 
 public:
     explicit MemMap(const std::string &fname);
+    constexpr MemMap(MemMap &&other) = default;
     ~MemMap();
+
+    // Disables copy constructor - we DO NOT want to accidentaly copy MemMap object
+    MemMap(const MemMap &other) = delete;
 
     const uint8_t *data() const {
         return mmap_ptr;

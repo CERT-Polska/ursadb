@@ -37,7 +37,6 @@ void DatasetBuilder::index(const std::string &filepath) {
     std::vector<TriGram> out = get_trigrams(in.data(), in.size());
 
     for (TriGram gram3 : out) {
-        std::cout << "add trigram " << std::hex << gram3 << std::endl;
         indices[0].add_trigram(fid, gram3);
     }
 }

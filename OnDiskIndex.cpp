@@ -26,7 +26,7 @@ OnDiskIndex::OnDiskIndex(const std::string &fname) : disk_map(fname) {
         throw std::runtime_error("unsupported version");
     }
 
-    if (ntype != GRAM3) {
+    if (ntype != IndexType::GRAM3) {
         throw std::runtime_error("invalid index type");
     }
 
@@ -37,30 +37,23 @@ std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram) const {
     uint32_t ptr = run_offsets[trigram];
     uint32_t next_ptr = run_offsets[trigram + 1];
 
-    if (ptr == next_ptr) {
-        std::cout << "empty index for " << trigram << std::endl;
-    } else {
-        std::cout << "for " << trigram << ": " << (next_ptr - ptr) << std::endl;
-    }
-
     const uint8_t *data = disk_map.data();
     std::vector<FileId> out = read_compressed_run(&data[ptr], &data[next_ptr]);
-    std::cout << "returning " << out.size() << " elems" << std::endl;
     return out;
 }
 
-void OnDiskIndex::on_disk_merge(std::string fname, IndexType merge_type, std::vector<OnDiskIndex> indexes) {
+void OnDiskIndex::on_disk_merge(std::string fname, IndexType merge_type, const std::vector<IndexMergeHelper> &indexes) {
     std::ofstream out(fname, std::ofstream::binary);
 
-    if (!std::all_of(indexes.begin(), indexes.end(), [merge_type](OnDiskIndex &ndx) {
-        return ndx.ntype == merge_type;
+    if (!std::all_of(indexes.begin(), indexes.end(), [merge_type](const IndexMergeHelper &ndx) {
+        return ndx.index->ntype == merge_type;
     })) {
         throw new std::runtime_error("Unexpected index type during merge");
     }
 
     uint32_t magic = DB_MAGIC;
     uint32_t version = 5;
-    uint32_t ndx_type = merge_type;
+    uint32_t ndx_type = (uint32_t)merge_type;
     uint32_t reserved = 0;
 
     out.write((char *) &magic, 4);
@@ -74,11 +67,15 @@ void OnDiskIndex::on_disk_merge(std::string fname, IndexType merge_type, std::ve
     for (int i = 0; i < NUM_TRIGRAMS; i++) {
         out_offsets[i] = (uint32_t) out.tellp();
         std::vector<FileId> all_ids;
-        for (int j = 0; j < indexes.size(); j++) {
+        FileId baseline = 0;
+        for (const IndexMergeHelper &helper : indexes) {
             std::vector<FileId> new_ids = read_compressed_run(
-                indexes[j].data() + indexes[j].run_offsets[i],
-                indexes[j].data() + indexes[j].run_offsets[i + 1]);
-            all_ids.insert(std::end(all_ids), std::begin(new_ids), std::end(new_ids));
+                helper.index->data() + helper.index->run_offsets[i],
+                helper.index->data() + helper.index->run_offsets[i + 1]);
+            for (FileId id : new_ids) {
+                all_ids.push_back(id + baseline);
+            }
+            baseline += helper.file_count;
         }
         compress_run(all_ids, out);
     }

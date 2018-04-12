@@ -6,9 +6,7 @@
 #include "Core.h"
 #include "MemMap.h"
 
-enum IndexType {
-    GRAM3 = 1
-};
+struct IndexMergeHelper;
 
 class OnDiskIndex {
     const uint32_t *run_offsets;
@@ -21,6 +19,15 @@ class OnDiskIndex {
 public:
     explicit OnDiskIndex(const std::string &fname);
 
+    IndexType index_type() const { return ntype; }
     std::vector<FileId> query_primitive(TriGram trigram) const;
-    static void on_disk_merge(std::string fname, IndexType merge_type, std::vector<OnDiskIndex> indexes);
+    static void on_disk_merge(std::string fname, IndexType merge_type, const std::vector<IndexMergeHelper> &indexes);
+};
+
+struct IndexMergeHelper {
+    const OnDiskIndex *index;
+    uint32_t file_count;
+
+    IndexMergeHelper(const OnDiskIndex *index, uint32_t file_count)
+        :index(index), file_count(file_count) {}
 };

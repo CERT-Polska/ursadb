@@ -1,4 +1,7 @@
 #include "OnDiskDataset.h"
+
+#include <set>
+
 #include "Query.h"
 
 OnDiskDataset::OnDiskDataset(const std::string &fname) :name(fname) {
@@ -22,7 +25,6 @@ const std::string &OnDiskDataset::get_file_name(FileId fid) const {
 std::vector<FileId> OnDiskDataset::query_primitive(TriGram trigram) const {
     std::vector<FileId> out;
     for (const FileId &fid : indices[0].query_primitive(trigram)) {
-        std::cout << "pushing " << fid << " " << get_file_name(fid) << std::endl;
         out.push_back(fid);
     }
     return out;
@@ -61,4 +63,56 @@ void OnDiskDataset::execute(const Query &query, std::vector<std::string> *out) c
 
 const std::string &OnDiskDataset::get_name() const {
     return name;
+}
+
+void OnDiskDataset::merge(const std::string &outname, const std::vector<OnDiskDataset> &datasets) {
+    std::set<IndexType> index_types;
+
+    for (const OnDiskDataset &dataset : datasets) {
+        for (const OnDiskIndex &index : dataset.indices) {
+            index_types.insert(index.index_type());
+        }
+    }
+
+    json dataset;
+
+    std::vector<std::string> index_names;
+    for (IndexType index_type : index_types) {
+        std::string index_name = outname + "." + get_index_type_name(index_type) + ".ursa";
+        index_names.push_back(index_name);
+        std::vector<IndexMergeHelper> indexes;
+        for (const OnDiskDataset &dataset : datasets) {
+            indexes.push_back(IndexMergeHelper(
+                &dataset.get_index_with_type(index_type),
+                dataset.fnames.size()
+            ));
+        }
+        OnDiskIndex::on_disk_merge(index_name, index_type, indexes);
+    }
+
+    std::vector<std::string> file_names;
+    for (const OnDiskDataset &dataset : datasets) {
+        for (const std::string fname : dataset.fnames) {
+            file_names.push_back(fname);
+        }
+    }
+
+    json j_indices(index_names);
+    json j_fids(file_names);
+
+    dataset["indices"] = j_indices;
+    dataset["filenames"] = j_fids;
+
+    std::ofstream o(outname);
+    o << std::setw(4) << dataset << std::endl;
+    o.close();
+}
+
+const OnDiskIndex &OnDiskDataset::get_index_with_type(IndexType index_type) const {
+    for (const OnDiskIndex &index : indices) {
+        if (index.index_type() == index_type) {
+            return index;
+        }
+    }
+    throw std::runtime_error("Requested index type doesn't exist in dataset");
 }
