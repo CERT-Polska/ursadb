@@ -8,7 +8,7 @@ std::vector<TriGram> get_trigrams(const uint8_t *mem, size_t size) {
         return out;
     }
 
-    uint32_t gram3 = 0;
+    uint32_t gram3 = (mem[0] << 8U) | mem[1];
 
     for (int offset = 2; offset < size; offset++) {
         gram3 = ((gram3 & 0xFFFFU) << 8U) | mem[offset];
