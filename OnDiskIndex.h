@@ -3,22 +3,31 @@
 #include <vector>
 #include <string>
 #include <fstream>
-
 #include "Core.h"
+#include "MemMap.h"
 
-enum IndexType {
-    GRAM3 = 1
-};
+struct IndexMergeHelper;
 
 class OnDiskIndex {
-    std::vector<uint32_t> run_offsets;
-    uint8_t *mmap_ptr;
+    const uint32_t *run_offsets;
+    MemMap disk_map;
     IndexType ntype;
 
-    std::vector<FileId> read_compressed_run(uint8_t *start, uint8_t *end);
+    const uint8_t *data() const { return disk_map.data(); }
+    static constexpr uint32_t VERSION = 5;
 
 public:
-    OnDiskIndex(const std::string &fname);
+    explicit OnDiskIndex(const std::string &fname);
 
-    std::vector<FileId> query_primitive(const TriGram &trigram);
+    IndexType index_type() const { return ntype; }
+    std::vector<FileId> query_primitive(TriGram trigram) const;
+    static void on_disk_merge(std::string fname, IndexType merge_type, const std::vector<IndexMergeHelper> &indexes);
+};
+
+struct IndexMergeHelper {
+    const OnDiskIndex *index;
+    uint32_t file_count;
+
+    IndexMergeHelper(const OnDiskIndex *index, uint32_t file_count)
+        :index(index), file_count(file_count) {}
 };

@@ -1,27 +1,14 @@
-#include <iostream>
 #include "IndexBuilder.h"
 
+#include <iostream>
+#include <algorithm>
 
 IndexBuilder::IndexBuilder() : raw_index(NUM_TRIGRAMS) {
 
 }
 
-void IndexBuilder::add_trigram(const FileId &fid, const TriGram &val) {
+void IndexBuilder::add_trigram(FileId fid, TriGram val) {
     raw_index[val].push_back(fid);
-}
-
-void IndexBuilder::compress_run(const std::vector<FileId> &run, std::ofstream &out) {
-    uint32_t prev = 0;
-
-    for (auto next : run) {
-        uint32_t diff = (next + 1U) - prev;
-        while (diff >= 0x80U) {
-            out.put((uint8_t) (0x80U | (diff & 0x7FU)));
-            diff >>= 7;
-        }
-        out.put((uint8_t) diff);
-        prev = next + 1U;
-    }
 }
 
 void IndexBuilder::save(const std::string &fname) {
@@ -37,15 +24,16 @@ void IndexBuilder::save(const std::string &fname) {
     out.write((char *) &ndx_type, 4);
     out.write((char *) &reserved, 4);
 
-    auto *offsets = new uint32_t[NUM_TRIGRAMS];
+    std::vector<uint32_t> offsets(NUM_TRIGRAMS + 1);
 
     for (int i = 0; i < NUM_TRIGRAMS; i++) {
         offsets[i] = (uint32_t) out.tellp();
+        std::sort(raw_index[i].begin(), raw_index[i].end() );
+        raw_index[i].erase(unique(raw_index[i].begin(), raw_index[i].end()), raw_index[i].end() );
         compress_run(raw_index[i], out);
     }
+    offsets[NUM_TRIGRAMS] = (uint32_t) out.tellp();
 
-    out.write((char *) offsets, NUM_TRIGRAMS * 4);
+    out.write((char *) offsets.data(), (NUM_TRIGRAMS + 1) * 4);
     out.close();
-
-    delete[] offsets;
 }

@@ -14,7 +14,6 @@ public:
     DatasetBuilder();
 
     void index(const std::string &filepath);
-
     void save(const std::string &fname);
 
 private:

@@ -1,13 +1,17 @@
 #include <iostream>
 #include <unistd.h>
+#include <utility>
 #include <vector>
 #include <fstream>
 #include <array>
 #include <list>
-
+#include <stack>
 
 #include "OnDiskDataset.h"
 #include "DatasetBuilder.h"
+#include "Query.h"
+#include "Database.h"
+#include "QueryParser.h"
 
 
 int main(int argc, char *argv[]) {
@@ -20,25 +24,25 @@ int main(int argc, char *argv[]) {
 
     std::string dbpath = argv[2];
     if (argv[1] == std::string("index")) {
+        Database db(dbpath);
         DatasetBuilder builder;
         for (int i = 3; i < argc; i++) {
             builder.index(argv[i]);
         }
-        builder.save(dbpath);
+        db.add_dataset(builder);
+        db.save();
     } else if (argv[1] == std::string("query")) {
-        std::string query = argv[3];
-        if (query.length() != 3) {
-            printf("Sorry, I'm just a simple PoC - query.length() == 3, please.");
-            return 2;
+        Query test = parse_query(argv[3]);
+        std::cout << test << std::endl;
+        Database db(argv[2]);
+        std::vector<std::string> out;
+        db.execute(test, out);
+        for (std::string &s : out) {
+            std::cout << s << std::endl;
         }
-        TriGram raw_query = (query[0] << 16) + (query[1] << 8) + (query[2] << 0);
-        std::cout << "searching for trigram " << std::hex << raw_query << std::endl;
-        OnDiskDataset *dataset = new OnDiskDataset(dbpath);
-        std::vector<std::string> result = dataset->query_primitive(raw_query);
-
-        for (auto file : result) {
-            std::cout << file << std::endl;
-        }
+    } else if (argv[1] == std::string("compact")) {
+        Database db(argv[2]);
+        db.compact();
     }
     return 0;
 }
