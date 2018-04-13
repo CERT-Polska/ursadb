@@ -18,7 +18,7 @@ std::vector<TriGram> get_trigrams(const uint8_t *mem, size_t size) {
     return out;
 }
 
-void compress_run(const std::vector<FileId> &run, std::ofstream &out) {
+void compress_run(const std::vector<FileId> &run, std::ostream &out) {
     uint32_t prev = 0;
 
     for (auto next : run) {

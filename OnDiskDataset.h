@@ -6,7 +6,7 @@
 
 #include "Core.h"
 #include "OnDiskIndex.h"
-#include "Json.h"
+#include "lib/Json.h"
 #include "Query.h"
 
 using json = nlohmann::json;
