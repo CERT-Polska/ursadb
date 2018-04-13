@@ -7,30 +7,19 @@
 #include <type_traits>
 
 #include "lib/pegtl.hpp"
+#include "lib/pegtl/contrib/unescape.hpp"
 #include "lib/pegtl/contrib/parse_tree.hpp"
 #include "lib/pegtl/contrib/abnf.hpp"
+
 #include "Query.h"
+#include "Parser.h"
+#include "StringParser.h"
 
 using namespace tao::TAO_PEGTL_NAMESPACE;  // NOLINT
 
 namespace queryparse
 {
-    // the grammar
-
     // clang-format off
-    struct xdigit : abnf::HEXDIG {};
-    struct unicode : list< seq< one< 'u' >, rep< 4, must< xdigit > > >, one< '\\' > > {};
-
-    struct escaped_char : one< '"', '\\', '/', 'b', 'f', 'n', 'r', 't' > {};
-    struct escaped : sor< escaped_char, unicode > {};
-    struct unescaped : utf8::range< 0x20, 0x10FFFF > {};
-    struct char_ : if_then_else< one< '\\' >, must< escaped >, unescaped > {};
-
-    struct string_content : until< at< one< '"' > >, must< char_ > > {};
-    struct string : seq< one< '"' >, must< string_content >, any >
-    {
-        using content = string_content;
-    };
 
     struct op_and : pad< seq < one< '&' >, one < '&' > >, space > {};
     struct op_or : pad< seq < one< '|' >, one < '|' > >, space > {};
@@ -125,7 +114,7 @@ namespace queryparse
 
     Query transform( const parse_tree::node& n ) {
         if (n.has_content()) {
-            return Query(n.content());
+            return Query(unescape_string(n.content()));
         }
 
         std::vector<Query> queries;
