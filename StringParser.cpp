@@ -35,6 +35,5 @@ std::string unescape_string(const std::string &str) {
   unescape::state s;
   string_input<> in(str, "query");
   parse < queryparse::padded, queryparse::action >(in, s);
-  std::cout << "UNESCAPED: " << s.unescaped << std::endl;
   return s.unescaped;
 }
