@@ -33,7 +33,7 @@ namespace queryparse
 
 std::string unescape_string(const std::string &str) {
   unescape::state s;
-  string_input<> in(str, "query");
+  string_input<> in(str, "literal");
   parse < queryparse::padded, queryparse::action >(in, s);
   return s.unescaped;
 }
