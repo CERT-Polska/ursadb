@@ -1,15 +1,17 @@
 #include <iostream>
 #include <unistd.h>
+#include <utility>
 #include <vector>
 #include <fstream>
 #include <array>
 #include <list>
-
+#include <stack>
 
 #include "OnDiskDataset.h"
 #include "DatasetBuilder.h"
 #include "Query.h"
 #include "Database.h"
+#include "QueryParser.h"
 
 
 int main(int argc, char *argv[]) {
@@ -30,7 +32,7 @@ int main(int argc, char *argv[]) {
         db.add_dataset(builder);
         db.save();
     } else if (argv[1] == std::string("query")) {
-        Query test = q(argv[3]);
+        Query test = parse_query(argv[3]);
         std::cout << test << std::endl;
         Database db(argv[2]);
         std::vector<std::string> out;
@@ -41,18 +43,6 @@ int main(int argc, char *argv[]) {
     } else if (argv[1] == std::string("compact")) {
         Database db(argv[2]);
         db.compact();
-    } else if (argv[1] == std::string("select_poc")) {
-        Query test = q_or({ q("more problem"), q("more problem"), q("more problem"), q("wtf") });
-        std::cout << test << std::endl;
-        Database db("db.ursa");
-        std::vector<std::string> out;
-        db.execute(test, out);
-
-        std::cout << "---" << std::endl;
-        for (std::string &s : out) {
-            std::cout << s << std::endl;
-        }
-        std::cout << "---" << std::endl;
     }
     return 0;
 }

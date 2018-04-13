@@ -38,7 +38,7 @@ Query::Query(const TriGram &trigram)
         : type(QueryType::PRIMITIVE), trigram(trigram) {}
 
 Query::Query(const QueryType &type, const std::vector<Query> &queries)
-        : type(type), queries(std::move(queries)) {}
+        : type(type), queries(queries) {}
 
 Query::Query(const std::string &str)
         : type(QueryType::AND), queries() {
