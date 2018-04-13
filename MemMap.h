@@ -4,10 +4,21 @@
 #include <cstddef>
 #include <string>
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 class MemMap {
+#ifdef __linux__
     int fd;
+#elif _WIN32
+    HANDLE hfile;
+    HANDLE hmap;
+#endif
     uint8_t *mmap_ptr;
     size_t fsize;
+
+    void cleanup();
 
 public:
     explicit MemMap(const std::string &fname);

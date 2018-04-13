@@ -1,5 +1,4 @@
 #include <iostream>
-#include <unistd.h>
 #include <utility>
 #include <vector>
 #include <fstream>
@@ -9,7 +8,6 @@
 
 #include "OnDiskDataset.h"
 #include "DatasetBuilder.h"
-#include "Query.h"
 #include "Database.h"
 #include "QueryParser.h"
 
@@ -19,6 +17,7 @@ int main(int argc, char *argv[]) {
         printf("Usage:\n");
         printf("%s index [database] [file]\n", argv[0]);
         printf("%s query [database] [query]\n", argv[0]);
+        fflush(stdout);
         return 1;
     }
 
