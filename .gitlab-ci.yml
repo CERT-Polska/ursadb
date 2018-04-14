@@ -1,6 +1,16 @@
-build:
+stages:
+  - build
+  - test
+
+make:
+  stage: build
   script:
     - mkdir build
     - cd build
     - cmake ..
     - make
+run_tests:
+  stage:
+    - test
+  script:
+    - ./ursadb_test
