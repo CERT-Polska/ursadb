@@ -9,7 +9,8 @@ make:
       - build/
   script:
     - mkdir build
-    - cmake --build build/ --target ursadb_test -- -j 4
+    - cmake ..
+    - make ursadb_test
 run_tests:
   stage: test
   dependencies:
