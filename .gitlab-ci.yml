@@ -9,6 +9,7 @@ make:
       - build/
   script:
     - mkdir build
+    - cd build
     - cmake ..
     - make ursadb_test
 run_tests:
