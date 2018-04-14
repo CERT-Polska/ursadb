@@ -10,7 +10,6 @@ make:
     - cmake ..
     - make
 run_tests:
-  stage:
-    - test
+  stage: test
   script:
     - ./ursadb_test
