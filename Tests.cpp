@@ -2,6 +2,38 @@
 
 #include "lib/Catch.h"
 #include "Utils.h"
+#include "QueryParser.h"
+#include "Query.h"
+
+
+TEST_CASE( "Test query parser", "[queryparser]" ) {
+    SECTION ( "Simple atomic" ) {
+        Query q = parse_query("\"tes\"");
+        REQUIRE( q.get_type() == QueryType::AND );
+        REQUIRE( q.as_queries().size() == 1 );
+        REQUIRE( q.as_queries()[0].as_trigram() == (('t' << 16U) | ('e' << 8U) | 's') );
+    }
+
+    SECTION ( "Double atomic" ) {
+        Query q = parse_query("\"test\"");
+        REQUIRE( q.get_type() == QueryType::AND );
+        REQUIRE( q.as_queries().size() == 2 );
+        REQUIRE( q.as_queries()[0].as_trigram() == (('t' << 16U) | ('e' << 8U) | 's') );
+        REQUIRE( q.as_queries()[1].as_trigram() == (('e' << 16U) | ('s' << 8U) | 't') );
+    }
+
+    SECTION ( "Logical or" ) {
+        Query q = parse_query("\"test\" || \"lol!\"");
+        REQUIRE( q.get_type() == QueryType::OR );
+        REQUIRE( q.as_queries().size() == 2 );
+        REQUIRE( q.as_queries()[0].get_type() == QueryType::AND );
+        REQUIRE( q.as_queries()[0].as_queries().size() == 2 );
+        REQUIRE( q.as_queries()[0].as_queries()[0].as_trigram() == (('t' << 16U) | ('e' << 8U) | 's') );
+        REQUIRE( q.as_queries()[0].as_queries()[1].as_trigram() == (('e' << 16U) | ('s' << 8U) | 't') );
+        REQUIRE( q.as_queries()[1].as_queries()[0].as_trigram() == (('l' << 16U) | ('o' << 8U) | 'l') );
+        REQUIRE( q.as_queries()[1].as_queries()[1].as_trigram() == (('o' << 16U) | ('l' << 8U) | '!') );
+    }
+}
 
 
 TEST_CASE( "Test get_trigrams", "[gram3]" ) {
