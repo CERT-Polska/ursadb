@@ -4,12 +4,16 @@ stages:
 
 make:
   stage: build
+  artifacts:
+    paths:
+      - build/
   script:
     - mkdir build
     - cd build
-    - cmake ..
-    - make
+    - cmake --build build/ --target ursadb_test -- -j 4
 run_tests:
   stage: test
+  dependencies:
+    - make
   script:
-    - ./ursadb_test
+    - ./build/ursadb_test
