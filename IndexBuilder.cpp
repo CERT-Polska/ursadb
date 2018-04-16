@@ -8,7 +8,10 @@ IndexBuilder::IndexBuilder(IndexType ntype) : raw_index(NUM_TRIGRAMS), ntype(nty
 }
 
 void IndexBuilder::add_trigram(FileId fid, TriGram val) {
-    raw_index[val].push_back(fid);
+    if (raw_index[val].empty() || raw_index[val].back() != fid) {
+        // guard against indexing same trigram twice
+        raw_index[val].push_back(fid);
+    }
 }
 
 void IndexBuilder::save(const std::string &fname) {
