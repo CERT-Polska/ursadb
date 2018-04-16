@@ -1,7 +1,9 @@
+#include "Database.h"
+
 #include <cstdio>
 #include <boost/filesystem.hpp>
 
-#include "Database.h"
+#include <fcntl.h>
 
 
 Database::Database(const std::string &fname) : db_fname(fname) {
@@ -24,10 +26,16 @@ Database::Database(const std::string &fname) : db_fname(fname) {
 }
 
 std::string Database::allocate_name() {
-    std::stringstream ss;
-    ss << "set." << num_datasets << "." << db_fname;
-    num_datasets++;
-    return ss.str();
+    while (true) {
+        std::stringstream ss;
+        ss << "set." << num_datasets << "." << db_fname;
+        num_datasets++;
+        std::string fname = ss.str();
+        int fd = open(fname.c_str(), O_CREAT | O_EXCL, 0777);
+        if (fd != -1) {
+            return fname;
+        }
+    }
 }
 
 void Database::add_dataset(DatasetBuilder &builder) {
