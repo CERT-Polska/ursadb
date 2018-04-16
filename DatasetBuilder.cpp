@@ -40,25 +40,6 @@ void DatasetBuilder::save(const std::string &fname) {
     o.close();
 }
 
-void DatasetBuilder::index_path(const std::string &filepath) {
-    using namespace boost::filesystem;
-
-    recursive_directory_iterator end;
-
-    for (recursive_directory_iterator dir(filepath); dir != end; ++dir)
-    {
-        if (is_regular_file(dir->path())) {
-            std::cout << dir->path().string() << std::endl;
-
-            try {
-                index(dir->path().string());
-            } catch (empty_file_error &e) {
-                std::cout << "empty file, skip" << std::endl;
-            }
-        }
-    }
-}
-
 void DatasetBuilder::index(const std::string &filepath) {
     MemMap in(filepath);
 

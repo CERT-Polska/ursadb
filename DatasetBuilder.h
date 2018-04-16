@@ -23,6 +23,4 @@ private:
     long total_bytes;
 
     FileId register_fname(const std::string &fname);
-
-    void index_path(const std::string &filepath);
 };
