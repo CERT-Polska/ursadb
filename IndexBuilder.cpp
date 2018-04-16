@@ -9,7 +9,7 @@ IndexBuilder::IndexBuilder(IndexType ntype) : raw_index(NUM_TRIGRAMS), ntype(nty
 
 void IndexBuilder::add_trigram(FileId fid, TriGram val) {
     if (raw_index[val].empty() || raw_index[val].back() != fid) {
-        // guard against indexing same trigram twice
+        // guard against indexing same (file, trigram) pair twice
         raw_index[val].push_back(fid);
     }
 }
