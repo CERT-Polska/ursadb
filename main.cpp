@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
     std::string dbpath = argv[2];
     if (argv[1] == std::string("index")) {
         Database db(dbpath);
-        DatasetBuilder builder;
+
 
         if (argc <= 3) {
             std::cout << "nothing to index" << std::endl;
@@ -33,10 +33,8 @@ int main(int argc, char *argv[]) {
         }
 
         for (int i = 3; i < argc; i++) {
-            builder.index(argv[i]);
+            db.index_path(argv[i]);
         }
-        db.add_dataset(builder);
-        db.save();
     } else if (argv[1] == std::string("query")) {
         if (argc != 4) {
             std::cout << "too few or too many arguments" << std::endl;

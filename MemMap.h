@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <string>
+#include <stdexcept>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -39,5 +40,17 @@ public:
 
     const size_t &size() const {
         return fsize;
+    }
+};
+
+class empty_file_error : public std::runtime_error
+{
+    std::string what_message;
+public:
+    explicit empty_file_error(const std::string& __arg) : runtime_error(__arg) {}
+
+    const char* what()
+    {
+        return what_message.c_str();
     }
 };

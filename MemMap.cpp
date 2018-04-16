@@ -27,6 +27,11 @@ MemMap::MemMap(const std::string &fname) : fname(fname) {
 
     fsize = static_cast<size_t>(lseek(fd, 0, SEEK_END));
 
+    if (fsize == 0) {
+        close(fd);
+        throw empty_file_error(fname);
+    }
+
     if (fsize == -1) {
         close(fd);
         throw std::runtime_error("lseek failed");

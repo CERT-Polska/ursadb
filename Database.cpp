@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <boost/filesystem.hpp>
 
 #include "Database.h"
 
@@ -67,4 +68,33 @@ void Database::save() {
     db_json["datasets"] = dataset_names;
     db_file << std::setw(4) << db_json << std::endl;
     db_file.close();
+}
+
+void Database::index_path(const std::string &filepath) {
+    using namespace boost::filesystem;
+
+    DatasetBuilder builder;
+    recursive_directory_iterator end;
+
+    for (recursive_directory_iterator dir(filepath); dir != end; ++dir)
+    {
+        if (is_regular_file(dir->path())) {
+            std::cout << dir->path().string() << std::endl;
+
+            try {
+                builder.index(dir->path().string());
+            } catch (empty_file_error &e) {
+                std::cout << "empty file, skip" << std::endl;
+            }
+
+            if (builder.processed_bytes() > 1024L*1024*512) {
+                std::cout << "new dataset " << builder.processed_bytes() << std::endl;
+                add_dataset(builder);
+                builder = DatasetBuilder();
+            }
+        }
+    }
+
+    add_dataset(builder);
+    save();
 }

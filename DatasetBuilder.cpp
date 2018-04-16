@@ -1,9 +1,14 @@
+#include <fstream>
+#include <iostream>
+#include <boost/filesystem.hpp>
+
 #include "DatasetBuilder.h"
 
 #include "Utils.h"
 #include "OnDiskDataset.h"
 
-DatasetBuilder::DatasetBuilder() {
+
+DatasetBuilder::DatasetBuilder() : total_bytes(0) {
     indices.emplace_back(IndexType::GRAM3);
 }
 
@@ -35,9 +40,35 @@ void DatasetBuilder::save(const std::string &fname) {
     o.close();
 }
 
+void DatasetBuilder::index_path(const std::string &filepath) {
+    using namespace boost::filesystem;
+
+    recursive_directory_iterator end;
+
+    for (recursive_directory_iterator dir(filepath); dir != end; ++dir)
+    {
+        if (is_regular_file(dir->path())) {
+            std::cout << dir->path().string() << std::endl;
+
+            try {
+                index(dir->path().string());
+            } catch (empty_file_error &e) {
+                std::cout << "empty file, skip" << std::endl;
+            }
+        }
+    }
+}
+
 void DatasetBuilder::index(const std::string &filepath) {
-    FileId fid = register_fname(filepath);
     MemMap in(filepath);
+
+    if (in.size() > 1024*1024*128) {
+        std::cout << "!!! TEMPORARY HACK, FILE TOO LARGE: " << filepath << std::endl;
+        return;
+    }
+
+    total_bytes += in.size();
+    FileId fid = register_fname(filepath);
 
     std::vector<TriGram> out = get_trigrams(in.data(), in.size());
 
