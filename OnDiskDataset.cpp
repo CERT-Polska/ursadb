@@ -78,7 +78,7 @@ void OnDiskDataset::merge(const std::string &outname, const std::vector<OnDiskDa
 
     std::vector<std::string> index_names;
     for (IndexType index_type : index_types) {
-        std::string index_name = outname + "." + get_index_type_name(index_type) + ".ursa";
+        std::string index_name = get_index_type_name(index_type) + "." + outname;
         index_names.push_back(index_name);
         std::vector<IndexMergeHelper> indexes;
         for (const OnDiskDataset &dataset : datasets) {
@@ -103,7 +103,7 @@ void OnDiskDataset::merge(const std::string &outname, const std::vector<OnDiskDa
     dataset["indices"] = j_indices;
     dataset["filenames"] = j_fids;
 
-    std::ofstream o(outname);
+    std::ofstream o(outname, std::ofstream::out);
     o << std::setw(4) << dataset << std::endl;
     o.close();
 }
@@ -115,4 +115,28 @@ const OnDiskIndex &OnDiskDataset::get_index_with_type(IndexType index_type) cons
         }
     }
     throw std::runtime_error("Requested index type doesn't exist in dataset");
+}
+
+void OnDiskDataset::drop() {
+    std::vector<std::string> idx_names;
+
+    for (auto it = indices.begin(); it != indices.end(); ++it) {
+        idx_names.push_back((*it).get_fname());
+    }
+
+    // deallocate objects to close MemMap, otherwise Windows won't allow us to delete file
+    indices.clear();
+
+    for (auto &idx_name : idx_names) {
+        if (std::remove(idx_name.c_str()) != 0) {
+            // FIXME this may leave object in undesired state
+            std::perror("Failed to delete file");
+            throw std::runtime_error("Failed to delete " + idx_name);
+        }
+    }
+
+    if (std::remove(get_name().c_str()) != 0) {
+        std::perror("Failed to delete file");
+        throw std::runtime_error("Failed to delete " + get_name());
+    }
 }

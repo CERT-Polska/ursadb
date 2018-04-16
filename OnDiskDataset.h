@@ -27,4 +27,5 @@ public:
     const std::string &get_name() const;
     void execute(const Query &query, std::vector<std::string> *out) const;
     static void merge(const std::string &outname, const std::vector<OnDiskDataset> &datasets);
+    void drop();
 };

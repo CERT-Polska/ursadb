@@ -17,7 +17,7 @@
 #include "MemMap.h"
 
 
-MemMap::MemMap(const std::string &fname) {
+MemMap::MemMap(const std::string &fname) : fname(fname) {
 #ifdef __linux__
     fd = open(fname.c_str(), O_RDONLY, (mode_t) 0600);
 
@@ -85,16 +85,18 @@ void MemMap::cleanup() {
         close(fd);
     }
 #elif _WIN32
-  if (hmap != NULL) {
-      ::CloseHandle(hmap);
-  }
+    UnmapViewOfFile(mmap_ptr);
 
-  if (hfile != INVALID_HANDLE_VALUE) {
-      ::CloseHandle(hfile);
-  }
+    if (hmap != NULL) {
+        ::CloseHandle(hmap);
+    }
+
+    if (hfile != INVALID_HANDLE_VALUE) {
+        ::CloseHandle(hfile);
+    }
 #endif
 }
 
 MemMap::~MemMap() {
-  cleanup();
+    cleanup();
 }

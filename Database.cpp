@@ -1,3 +1,5 @@
+#include <cstdio>
+
 #include "Database.h"
 
 
@@ -20,17 +22,30 @@ Database::Database(const std::string &fname) : db_fname(fname) {
     }
 }
 
-void Database::add_dataset(DatasetBuilder &builder) {
+std::string Database::allocate_name() {
     std::stringstream ss;
     ss << "set." << num_datasets << "." << db_fname;
-    builder.save(ss.str());
-    datasets.emplace_back(ss.str());
     num_datasets++;
+    return ss.str();
+}
+
+void Database::add_dataset(DatasetBuilder &builder) {
+    auto dataset_name = allocate_name();
+    builder.save(dataset_name);
+    datasets.emplace_back(dataset_name);
 }
 
 void Database::compact() {
-    std::string output_file = "merged.ursa";
-    OnDiskDataset::merge(output_file, datasets);
+    std::string dataset_name = allocate_name();
+    OnDiskDataset::merge(dataset_name, datasets);
+
+    for (auto &dataset : datasets) {
+        dataset.drop();
+    }
+
+    datasets.clear();
+    datasets.emplace_back(dataset_name);
+    save();
 }
 
 void Database::execute(const Query &query, std::vector<std::string> &out) {
@@ -40,7 +55,7 @@ void Database::execute(const Query &query, std::vector<std::string> &out) {
 }
 
 void Database::save() {
-    std::ofstream db_file(db_fname);
+    std::ofstream db_file(db_fname, std::ofstream::out);
     json db_json;
     db_json["num_datasets"] = num_datasets;
     std::vector<std::string> dataset_names;

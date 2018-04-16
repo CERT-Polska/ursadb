@@ -19,6 +19,7 @@ class OnDiskIndex {
 public:
     explicit OnDiskIndex(const std::string &fname);
 
+    const std::string &get_fname() const { return disk_map.name(); }
     IndexType index_type() const { return ntype; }
     std::vector<FileId> query_primitive(TriGram trigram) const;
     static void on_disk_merge(std::string fname, IndexType merge_type, const std::vector<IndexMergeHelper> &indexes);

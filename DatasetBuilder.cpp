@@ -4,7 +4,7 @@
 #include "OnDiskDataset.h"
 
 DatasetBuilder::DatasetBuilder() {
-    indices.emplace_back();
+    indices.emplace_back(IndexType::GRAM3);
 }
 
 FileId DatasetBuilder::register_fname(const std::string &fname) {
@@ -14,18 +14,23 @@ FileId DatasetBuilder::register_fname(const std::string &fname) {
 }
 
 void DatasetBuilder::save(const std::string &fname) {
-    indices[0].save("index." + fname);
+    std::set<std::string> c_set;
+
+    for (auto &ndx : indices) {
+        std::string ndx_name = get_index_type_name(ndx.index_type()) + "." + fname;
+        ndx.save(ndx_name);
+        c_set.emplace(ndx_name);
+    }
 
     json dataset;
 
-    std::set<std::string> c_set{"index." + fname};
     json j_indices(c_set);
     json j_fids(fids);
 
     dataset["indices"] = j_indices;
     dataset["filenames"] = j_fids;
 
-    std::ofstream o(fname);
+    std::ofstream o(fname, std::ofstream::out);
     o << std::setw(4) << dataset << std::endl;
     o.close();
 }

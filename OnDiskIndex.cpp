@@ -37,7 +37,7 @@ std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram) const {
 }
 
 void OnDiskIndex::on_disk_merge(std::string fname, IndexType merge_type, const std::vector<IndexMergeHelper> &indexes) {
-    std::ofstream out(fname, std::ofstream::binary);
+    std::ofstream out(fname, std::ofstream::binary | std::ofstream::out);
 
     if (!std::all_of(indexes.begin(), indexes.end(), [merge_type](const IndexMergeHelper &ndx) {
         return ndx.index->ntype == merge_type;

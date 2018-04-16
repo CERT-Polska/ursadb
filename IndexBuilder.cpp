@@ -3,7 +3,7 @@
 #include <iostream>
 #include <algorithm>
 
-IndexBuilder::IndexBuilder() : raw_index(NUM_TRIGRAMS) {
+IndexBuilder::IndexBuilder(IndexType ntype) : raw_index(NUM_TRIGRAMS), ntype(ntype) {
 
 }
 
@@ -12,7 +12,7 @@ void IndexBuilder::add_trigram(FileId fid, TriGram val) {
 }
 
 void IndexBuilder::save(const std::string &fname) {
-    std::ofstream out(fname, std::ofstream::binary);
+    std::ofstream out(fname, std::ofstream::binary | std::ofstream::out);
 
     uint32_t magic = DB_MAGIC;
     uint32_t version = 5;

@@ -8,6 +8,7 @@ class Database {
     std::string db_fname;
     int num_datasets;
     std::vector<OnDiskDataset> datasets;
+    std::string allocate_name();
 
 public:
     explicit Database(const std::string &fname);
