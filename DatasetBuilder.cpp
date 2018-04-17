@@ -50,9 +50,7 @@ void DatasetBuilder::index(const std::string &filepath) {
     total_bytes += in.size();
     FileId fid = register_fname(filepath);
 
-    std::vector<TriGram> out = get_trigrams(in.data(), in.size());
-
-    for (TriGram gram3 : out) {
-        indices[0].add_trigram(fid, gram3);
+    for (auto &ndx : indices) {
+        ndx.add_file(fid, in.data(), in.size());
     }
 }
