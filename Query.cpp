@@ -70,6 +70,7 @@ std::ostream& operator<<(std::ostream& os, const Query& query) {
     } else if (type == QueryType::PRIMITIVE) {
         os << std::hex << "'" << query.as_trigram() << "'";
     }
+    return os;
 }
 
 const QueryType &Query::get_type() const {

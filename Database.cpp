@@ -1,8 +1,9 @@
 #include "Database.h"
 
 #include <cstdio>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
+#include <unistd.h>
 #include <fcntl.h>
 
 
@@ -33,6 +34,7 @@ std::string Database::allocate_name() {
         std::string fname = ss.str();
         int fd = open(fname.c_str(), O_CREAT | O_EXCL, 0777);
         if (fd != -1) {
+            close(fd);
             return fname;
         }
     }
@@ -79,14 +81,12 @@ void Database::save() {
 }
 
 void Database::index_path(const std::string &filepath) {
-    using namespace boost::filesystem;
-
     DatasetBuilder builder;
-    recursive_directory_iterator end;
+    std::filesystem::recursive_directory_iterator end;
 
-    for (recursive_directory_iterator dir(filepath); dir != end; ++dir)
+    for (std::filesystem::recursive_directory_iterator dir(filepath); dir != end; ++dir)
     {
-        if (is_regular_file(dir->path())) {
+        if (std::filesystem::is_regular_file(dir->path())) {
             std::cout << dir->path().string() << std::endl;
 
             try {
