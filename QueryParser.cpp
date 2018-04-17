@@ -52,7 +52,7 @@ void print_node(const parse_tree::node &n, const std::string &s = "") {
 
 std::string unescape_string(const std::string &str) {
     std::string result;
-    for (int i = 0; i < str.size(); i++) {
+    for (int i = 1; i < str.size() - 1; i++) {
         if (str[i] == '\\') {
             if (str.at(i + 1) != 'x') {
                 return result;
