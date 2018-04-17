@@ -1,24 +1,15 @@
+#include "MemMap.h"
+
 #include <iostream>
 #include <unistd.h>
 #include <fcntl.h>
-
-#ifdef __linux__
 #include <sys/mman.h>
-#elif _WIN32
-#include <Windows.h>
-#else
-#error "Not a supported platform, can't provide memory mapped files."
-#endif
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <cstring>
 
-#include "MemMap.h"
-
 
 MemMap::MemMap(const std::string &fname) : fname(fname) {
-#ifdef __linux__
     fd = open(fname.c_str(), O_RDONLY, (mode_t) 0600);
 
     if (fd == -1) {
@@ -43,65 +34,24 @@ MemMap::MemMap(const std::string &fname) : fname(fname) {
         close(fd);
         throw std::runtime_error("mmap failed");
     }
-#elif _WIN32
-    SYSTEM_INFO sysinfo = {0};
-    ::GetSystemInfo(&sysinfo);
-    DWORD cbView = sysinfo.dwAllocationGranularity;
-
-    hfile = ::CreateFile(fname.c_str(), GENERIC_READ, FILE_SHARE_READ,
-                                NULL, OPEN_EXISTING, 0, NULL);
-    if (hfile == INVALID_HANDLE_VALUE) {
-        cleanup();
-        throw std::runtime_error("Failed to create mmap");
-    }
-
-    LARGE_INTEGER file_size = {0};
-    ::GetFileSizeEx(hfile, &file_size);
-    const unsigned long long cbFile =
-        static_cast<unsigned long long>(file_size.QuadPart);
-    fsize = (size_t) cbFile;
-
-    hmap = ::CreateFileMapping(hfile, NULL, PAGE_READONLY, 0, 0, NULL);
-
-    if (hmap == NULL) {
-        cleanup();
-        throw std::runtime_error("Failed to create file mapping");
-    }
-
-    uint8_t *pView = static_cast<uint8_t *>(
-        ::MapViewOfFile(hmap, FILE_MAP_READ, 0, 0, 0));
-
-    if (pView == NULL) {
-        cleanup();
-        throw std::runtime_error("Empty pointer on pView");
-    }
-
-    mmap_ptr = pView;
-#endif
 }
 
-void MemMap::cleanup() {
-#ifdef __linux__
+MemMap::MemMap(MemMap &&other) {
+    this->fd = other.fd;
+    this->fname = other.fname;
+    this->fsize = other.fsize;
+    this->mmap_ptr = other.mmap_ptr;
+
+    other.mmap_ptr = 0;
+    other.fd = -1;
+}
+
+MemMap::~MemMap() {
     if (mmap_ptr) {
         munmap(mmap_ptr, fsize);
     }
 
-    if (fd) {
+    if (fd != -1 && fd != 0) {
         close(fd);
     }
-#elif _WIN32
-    UnmapViewOfFile(mmap_ptr);
-
-    if (hmap != NULL) {
-        ::CloseHandle(hmap);
-    }
-
-    if (hfile != INVALID_HANDLE_VALUE) {
-        ::CloseHandle(hfile);
-    }
-#endif
-}
-
-MemMap::~MemMap() {
-    cleanup();
 }

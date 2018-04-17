@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
         printf("    %s index [database] [file]\n", argv[0]);
         printf("    %s query [database] [query]\n", argv[0]);
         printf("    %s compact [database]\n", argv[0]);
-        printf("    %s server");
+        printf("    %s server", argv[0]);
         fflush(stdout);
         return 1;
     }
@@ -34,8 +34,9 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
+        std::vector<IndexType> types = {IndexType::GRAM3, IndexType::TEXT4};
         for (int i = 3; i < argc; i++) {
-            db.index_path(argv[i]);
+            db.index_path(types, argv[i]);
         }
     } else if (argv[1] == std::string("query")) {
         if (argc != 4) {

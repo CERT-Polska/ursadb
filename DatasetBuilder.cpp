@@ -1,14 +1,16 @@
+#include "DatasetBuilder.h"
+
 #include <fstream>
 #include <iostream>
-
-#include "DatasetBuilder.h"
 
 #include "Utils.h"
 #include "OnDiskDataset.h"
 
 
-DatasetBuilder::DatasetBuilder() : total_bytes(0) {
-    indices.emplace_back(IndexType::GRAM3);
+DatasetBuilder::DatasetBuilder(const std::vector<IndexType> &index_types) : total_bytes(0) {
+    for (const auto &index_type : index_types) {
+        indices.emplace_back(index_type);
+    }
 }
 
 FileId DatasetBuilder::register_fname(const std::string &fname) {

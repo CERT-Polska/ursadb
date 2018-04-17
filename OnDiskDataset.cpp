@@ -33,22 +33,23 @@ QueryResult OnDiskDataset::query_str(const std::string &str) const {
 }
 
 QueryResult OnDiskDataset::internal_execute(const Query &query) const {
-    if (query.get_type() == QueryType::PRIMITIVE) {
-        return query_str(query.as_value());
-    } else if (query.get_type() == QueryType::OR) {
-        QueryResult result = QueryResult::empty();
-        for (auto &q : query.as_queries()) {
-            result.do_or(internal_execute(q));
+    switch (query.get_type()) {
+        case QueryType::PRIMITIVE:
+            return query_str(query.as_value());
+        case QueryType::OR: {
+            QueryResult result = QueryResult::empty();
+            for (auto &q : query.as_queries()) {
+                result.do_or(internal_execute(q));
+            }
+            return result;
         }
-        return result;
-    } else if (query.get_type() == QueryType::AND) {
-        QueryResult result = QueryResult::everything();
-        for (auto &q : query.as_queries()) {
-            result.do_and(internal_execute(q));
+        case  QueryType::AND: {
+            QueryResult result = QueryResult::everything();
+            for (auto &q : query.as_queries()) {
+                result.do_and(internal_execute(q));
+            }
+            return result;
         }
-        return result;
-    } else {
-        throw std::runtime_error("Unknown query type");
     }
 }
 

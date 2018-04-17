@@ -80,9 +80,9 @@ void Database::save() {
     db_file.close();
 }
 
-void Database::index_path(const std::string &filepath) {
+void Database::index_path(const std::vector<IndexType> types, const std::string &filepath) {
     namespace fs = std::experimental::filesystem;
-    DatasetBuilder builder;
+    DatasetBuilder builder(types);
     fs::recursive_directory_iterator end;
 
     for (fs::recursive_directory_iterator dir(filepath); dir != end; ++dir)
@@ -99,7 +99,7 @@ void Database::index_path(const std::string &filepath) {
             if (builder.processed_bytes() > 1024L*1024*512) {
                 std::cout << "new dataset " << builder.processed_bytes() << std::endl;
                 add_dataset(builder);
-                builder = DatasetBuilder();
+                builder = DatasetBuilder(types);
             }
         }
     }

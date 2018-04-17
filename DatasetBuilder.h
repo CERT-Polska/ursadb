@@ -11,7 +11,7 @@
 
 class DatasetBuilder {
 public:
-    DatasetBuilder();
+    DatasetBuilder(const std::vector<IndexType> &index_types) ;
 
     void index(const std::string &filepath);
     void save(const std::string &fname);
