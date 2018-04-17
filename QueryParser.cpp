@@ -18,119 +18,58 @@
 using namespace tao::TAO_PEGTL_NAMESPACE; // NOLINT
 
 namespace queryparse {
-// clang-format off
 
-    struct op_and : pad< seq < one< '&' >, one < '&' > >, space > {};
-    struct op_or : pad< seq < one< '|' >, one < '|' > >, space > {};
+struct op_and : pad<one<'&'>, space> {};
+struct op_or : pad<one<'|'>, space> {};
 
-    struct open_bracket : seq< one< '(' >, star< space > > {};
-    struct close_bracket : seq< star< space >, one< ')' > > {};
+struct open_bracket : seq<one<'('>, star<space>> {};
+struct close_bracket : seq<star<space>, one<')'>> {};
 
-    struct expression;
-    struct bracketed : if_must< open_bracket, expression, close_bracket > {};
-    struct value : sor< string, bracketed >{};
-    struct product : list_must< value, sor< op_and, op_or > > {};
-    struct expression : product {};
+struct expression;
+struct bracketed : if_must<open_bracket, expression, close_bracket> {};
+struct value : sor<string, bracketed> {};
+struct expression : seq<value, star<sor<op_and, op_or>, expression>> {};
 
-    struct grammar : seq< expression, eof > {};
+struct grammar : seq<expression, eof> {};
 
-    // select which rules in the grammar will produce parse tree nodes:
+template <typename> struct store : std::false_type {};
+template <> struct store<string> : std::true_type {};
 
-    // by default, nodes are not generated/stored
-    template< typename > struct store : std::false_type {};
-
-    // select which rules in the grammar will produce parse tree nodes:
-    template<> struct store< string > : std::true_type {};
-
-    template<> struct store< op_and > : parse_tree::remove_content {};
-    template<> struct store< op_or > : parse_tree::remove_content {};
-
-    // after a node is stored successfully, you can add an optional transformer like this:
-    struct rearrange : std::true_type
-    {
-        // recursively rearrange nodes. the basic principle is:
-        //
-        // from:          PROD/EXPR
-        //                /   |   \          (LHS... may be one or more children, followed by OP,)
-        //             LHS... OP   RHS       (which is one operator, and RHS, which is a single child)
-        //
-        // to:               OP
-        //                  /  \             (OP now has two children, the original PROD/EXPR and RHS)
-        //         PROD/EXPR    RHS          (Note that PROD/EXPR has two fewer children now)
-        //             |
-        //            LHS...
-        //
-        // if only one child is left for LHS..., replace the PROD/EXPR with the child directly.
-        // otherwise, perform the above transformation, then apply it recursively until LHS...
-        // becomes a single child, which then replaces the parent node and the recursion ends.
-        static void transform( std::unique_ptr< parse_tree::node >& n )
-        {
-            if( n->size() == 1 ) {
-                n = std::move( n->back() );
-            }
-            else {
-                auto& c = n->children;
-                auto r = std::move( c.back() );
-                c.pop_back();
-                auto o = std::move( c.back() );
-                c.pop_back();
-                o->children.emplace_back( std::move( n ) );
-                o->children.emplace_back( std::move( r ) );
-                n = std::move( o );
-                transform( n->front() );
-            }
-        }
-    };
-
-    // clang-format off
-    template<> struct store< expression > : rearrange {};
-// clang-format on
-
-// debugging/show result:
+template <> struct store<op_and> : parse_tree::remove_content {};
+template <> struct store<op_or> : parse_tree::remove_content {};
+template <> struct store<expression> : std::true_type {};
 
 void print_node(const parse_tree::node &n, const std::string &s = "") {
-    // detect the root node:
-    if (n.is_root()) {
-        std::cout << "ROOT" << std::endl;
+    if (n.has_content()) {
+        std::cout << s << n.name() << " \"" << n.content() << "\" at " << n.begin() << " to "
+                  << n.end() << std::endl;
     } else {
-        if (n.has_content()) {
-            std::cout << s << n.name() << " \"" << n.content() << "\" at " << n.begin() << " to "
-                      << n.end() << std::endl;
-        } else {
-            std::cout << s << n.name() << " at " << n.begin() << std::endl;
-        }
+        std::cout << s << n.name() << " at " << n.begin() << std::endl;
     }
-    // print all child nodes
     if (!n.children.empty()) {
-        const auto s2 = s + "  ";
         for (auto &up : n.children) {
-            print_node(*up, s2);
+            print_node(*up, s + "  ");
         }
     }
 }
 
 Query transform(const parse_tree::node &n) {
-    if (n.has_content()) {
+    if (n.is<string>()) {
         return Query(unescape_string(n.content()));
+    } else if (n.is<expression>()) {
+        if (n.children.size() == 1) {
+            return transform(*n.children[0]);
+        }
+        auto &expr = n.children[1];
+        if (expr->is<op_or>()) {
+            return Query(QueryType::OR, {transform(*n.children[0]), transform(*n.children[2])});
+        } else if (expr->is<op_and>()) {
+            return Query(QueryType::AND, {transform(*n.children[0]), transform(*n.children[2])});
+        } else {
+            throw std::runtime_error("encountered unexpected expression");
+        }
     }
-
-    std::vector<Query> queries;
-
-    for (auto &up : n.children) {
-        queries.push_back(transform(*up));
-    }
-
-    QueryType qt;
-
-    if (n.name() == "queryparse::op_or") {
-        qt = QueryType::OR;
-    } else if (n.name() == "queryparse::op_and") {
-        qt = QueryType::AND;
-    } else {
-        throw std::runtime_error("encountered unexpected node");
-    }
-
-    return Query(qt, queries);
+    throw std::runtime_error("encountered unexpected node");
 }
 }
 
