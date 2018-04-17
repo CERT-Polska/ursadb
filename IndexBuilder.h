@@ -17,7 +17,7 @@ class IndexBuilder {
 public:
     IndexBuilder(IndexType ntype);
 
-    const IndexType &index_type() { return ntype; }
-    void add_file(FileId fid, const uint8_t *data, const size_t &size);
+    IndexType index_type() { return ntype; }
+    void add_file(FileId fid, const uint8_t *data, size_t size);
     void save(const std::string &fname);
 };

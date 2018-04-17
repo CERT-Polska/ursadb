@@ -41,7 +41,7 @@ void IndexBuilder::save(const std::string &fname) {
     out.close();
 }
 
-void IndexBuilder::add_file(FileId fid, const uint8_t *data, const size_t &size) {
+void IndexBuilder::add_file(FileId fid, const uint8_t *data, size_t size) {
     std::vector<TriGram> out = get_trigrams(data, size);
 
     for (TriGram gram3 : out) {
