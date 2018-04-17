@@ -13,7 +13,6 @@
 
 #include "Parser.h"
 #include "Query.h"
-#include "StringParser.h"
 
 using namespace tao::TAO_PEGTL_NAMESPACE; // NOLINT
 
@@ -29,12 +28,10 @@ struct expression;
 struct bracketed : if_must<open_bracket, expression, close_bracket> {};
 struct value : sor<string, bracketed> {};
 struct expression : seq<value, star<sor<op_and, op_or>, expression>> {};
-
 struct grammar : seq<expression, eof> {};
 
 template <typename> struct store : std::false_type {};
 template <> struct store<string> : std::true_type {};
-
 template <> struct store<op_and> : parse_tree::remove_content {};
 template <> struct store<op_or> : parse_tree::remove_content {};
 template <> struct store<expression> : std::true_type {};
@@ -51,6 +48,23 @@ void print_node(const parse_tree::node &n, const std::string &s = "") {
             print_node(*up, s + "  ");
         }
     }
+}
+
+std::string unescape_string(const std::string &str) {
+    std::string result;
+    for (int i = 0; i < str.size(); i++) {
+        if (str[i] == '\\') {
+            if (str.at(i + 1) != 'x') {
+                return result;
+            }
+            std::string escape = std::string() + str.at(i + 2) + str.at(i + 3);
+            result += stoi(escape, nullptr, 16);
+            i += 3;
+        } else {
+            result += str[i];
+        }
+    }
+    return result;
 }
 
 Query transform(const parse_tree::node &n) {
