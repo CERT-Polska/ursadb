@@ -18,7 +18,7 @@ class OnDiskDataset {
     std::vector<OnDiskIndex> indices;
 
     const std::string &get_file_name(FileId fid) const;
-    std::vector<FileId> query_primitive(TriGram trigram) const;
+    QueryResult query_str(const std::string &str) const;
     QueryResult internal_execute(const Query &query) const;
     const OnDiskIndex &get_index_with_type(IndexType index_type) const;
 

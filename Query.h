@@ -51,17 +51,16 @@ public:
 
 class Query {
 public:
-    explicit Query(const TriGram &trigram);
     explicit Query(const std::string &str);
     explicit Query(const QueryType &type, const std::vector<Query> &queries);
 
     const std::vector<Query> &as_queries() const;
-    const TriGram &as_trigram() const;
+    const std::string &as_value() const;
     const QueryType &get_type() const;
 
 private:
     QueryType type;
-    TriGram trigram;
+    std::string value;
     std::vector<Query> queries;
 };
 

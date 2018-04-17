@@ -31,23 +31,18 @@ void QueryResult::do_and(const QueryResult &&other) {
 }
 
 const std::vector<Query> &Query::as_queries() const {
+    if (type != QueryType::AND && type != QueryType::OR) {
+        throw std::runtime_error("This query doesn\'t contain subqueries.");
+    }
+
     return queries;
 }
-
-Query::Query(const TriGram &trigram)
-        : type(QueryType::PRIMITIVE), trigram(trigram) {}
 
 Query::Query(const QueryType &type, const std::vector<Query> &queries)
         : type(type), queries(queries) {}
 
 Query::Query(const std::string &str)
-        : type(QueryType::AND), queries() {
-    auto trigrams = get_trigrams((uint8_t*)str.data(), str.size());
-
-    for (auto trigram : trigrams) {
-        queries.emplace_back(trigram);
-    }
-}
+        : type(QueryType::PRIMITIVE), queries(), value(str) {}
 
 std::ostream& operator<<(std::ostream& os, const Query& query) {
     QueryType type = query.get_type();
@@ -68,7 +63,7 @@ std::ostream& operator<<(std::ostream& os, const Query& query) {
         }
         os << ")";
     } else if (type == QueryType::PRIMITIVE) {
-        os << std::hex << "'" << query.as_trigram() << "'";
+        os << "'" << query.as_value() << "'";
     }
     return os;
 }
@@ -77,8 +72,12 @@ const QueryType &Query::get_type() const {
     return type;
 }
 
-const TriGram &Query::as_trigram() const {
-    return trigram;
+const std::string &Query::as_value() const {
+    if (type != QueryType::PRIMITIVE) {
+        throw std::runtime_error("This query doesn\'t have any value.");
+    }
+
+    return value;
 }
 
 Query q(const std::string &str) {
