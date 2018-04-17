@@ -23,7 +23,13 @@ const std::string &OnDiskDataset::get_file_name(FileId fid) const {
 }
 
 QueryResult OnDiskDataset::query_str(const std::string &str) const {
-    return indices[0].query_str(str);
+    QueryResult result = QueryResult::everything();
+
+    for (auto &ndx : indices) {
+        result.do_and(ndx.query_str(str));
+    }
+
+    return result;
 }
 
 QueryResult OnDiskDataset::internal_execute(const Query &query) const {

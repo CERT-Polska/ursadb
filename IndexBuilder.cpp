@@ -40,3 +40,11 @@ void IndexBuilder::save(const std::string &fname) {
     out.write((char *) offsets.data(), (NUM_TRIGRAMS + 1) * 4);
     out.close();
 }
+
+void IndexBuilder::add_file(FileId fid, const uint8_t *data, const size_t &size) {
+    std::vector<TriGram> out = get_trigrams(data, size);
+
+    for (TriGram gram3 : out) {
+        add_trigram(fid, gram3);
+    }
+}
