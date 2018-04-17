@@ -10,7 +10,7 @@ OnDiskIndex::OnDiskIndex(const std::string &fname) : disk_map(fname) {
     const uint8_t *data = disk_map.data();
     uint32_t magic = *(uint32_t *) &data[0];
     uint32_t version = *(uint32_t *) &data[4];
-    ntype = static_cast<IndexType>(*(uint32_t *) &data[8]);
+    uint32_t raw_type = *(uint32_t *)&data[8];
     uint32_t reserved = *(uint32_t *) &data[12];
 
     if (magic != DB_MAGIC) {
@@ -21,15 +21,17 @@ OnDiskIndex::OnDiskIndex(const std::string &fname) : disk_map(fname) {
         throw std::runtime_error("unsupported version");
     }
 
-    if (ntype != IndexType::GRAM3) {
+    if (!is_valid_index_type(raw_type)) {
         throw std::runtime_error("invalid index type");
     }
 
+    ntype = static_cast<IndexType>(raw_type);
     run_offsets = (uint32_t*) &data[disk_map.size() - (NUM_TRIGRAMS + 1) * 4];
 }
 
 QueryResult OnDiskIndex::query_str(const std::string &str) const {
-    auto trigrams = get_trigrams((uint8_t*)str.data(), str.size());
+    TrigramGenerator generator = get_generator_for(ntype);
+    auto trigrams = generator((uint8_t*)str.data(), str.size());
     QueryResult result = QueryResult::everything();
 
     for (auto trigram : trigrams) {

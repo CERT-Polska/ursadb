@@ -19,7 +19,7 @@ void IndexBuilder::save(const std::string &fname) {
 
     uint32_t magic = DB_MAGIC;
     uint32_t version = 5;
-    uint32_t ndx_type = 1;
+    uint32_t ndx_type = static_cast<uint32_t>(ntype);
     uint32_t reserved = 0;
 
     out.write((char *) &magic, 4);
@@ -42,7 +42,8 @@ void IndexBuilder::save(const std::string &fname) {
 }
 
 void IndexBuilder::add_file(FileId fid, const uint8_t *data, size_t size) {
-    std::vector<TriGram> out = get_trigrams(data, size);
+    TrigramGenerator generator = get_generator_for(ntype);
+    std::vector<TriGram> out = generator(data, size);
 
     for (TriGram gram3 : out) {
         add_trigram(fid, gram3);
