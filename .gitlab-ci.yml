@@ -9,6 +9,7 @@ make:
       - build/
   script:
     - mkdir build
+    - which clang
     - cd build
     - cmake -D CMAKE_C_COMPILER=/usr/bin/clang -D CMAKE_CXX_COMPILER=/usr/bin/clang++ ..
     - make ursadb_test
