@@ -1,7 +1,7 @@
 #include "Database.h"
 
 #include <cstdio>
-#include <filesystem>
+#include <experimental/filesystem>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -81,12 +81,13 @@ void Database::save() {
 }
 
 void Database::index_path(const std::string &filepath) {
+    namespace fs = std::experimental::filesystem;
     DatasetBuilder builder;
-    std::filesystem::recursive_directory_iterator end;
+    fs::recursive_directory_iterator end;
 
-    for (std::filesystem::recursive_directory_iterator dir(filepath); dir != end; ++dir)
+    for (fs::recursive_directory_iterator dir(filepath); dir != end; ++dir)
     {
-        if (std::filesystem::is_regular_file(dir->path())) {
+        if (fs::is_regular_file(dir->path())) {
             std::cout << dir->path().string() << std::endl;
 
             try {
