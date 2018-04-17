@@ -1,17 +1,16 @@
-#include <iostream>
-#include <utility>
-#include <vector>
-#include <fstream>
 #include <array>
+#include <fstream>
+#include <iostream>
 #include <list>
 #include <stack>
+#include <utility>
+#include <vector>
 #include <zmq.hpp>
 
-#include "OnDiskDataset.h"
-#include "DatasetBuilder.h"
 #include "Database.h"
+#include "DatasetBuilder.h"
+#include "OnDiskDataset.h"
 #include "QueryParser.h"
-
 
 int main(int argc, char *argv[]) {
     if (argc < 3) {
@@ -27,7 +26,6 @@ int main(int argc, char *argv[]) {
     std::string dbpath = argv[2];
     if (argv[1] == std::string("index")) {
         Database db(dbpath);
-
 
         if (argc <= 3) {
             std::cout << "nothing to index" << std::endl;
@@ -61,8 +59,8 @@ int main(int argc, char *argv[]) {
         Database db(argv[2]);
         db.compact();
     } else if (argv[1] == std::string("server")) {
-        zmq::context_t context (1);
-        zmq::socket_t socket (context, ZMQ_REP);
+        zmq::context_t context(1);
+        zmq::socket_t socket(context, ZMQ_REP);
         socket.bind("tcp://*:5555");
 
         while (true) {
@@ -72,9 +70,9 @@ int main(int argc, char *argv[]) {
             socket.recv(&request);
             std::cout << "Received Hello" << std::endl;
 
-            zmq::message_t reply (5);
-            memcpy (reply.data (), "World", 5);
-            socket.send (reply);
+            zmq::message_t reply(5);
+            memcpy(reply.data(), "World", 5);
+            socket.send(reply);
         }
     }
     return 0;

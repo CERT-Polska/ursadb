@@ -3,8 +3,10 @@
 
 TrigramGenerator get_generator_for(IndexType type) {
     switch (type) {
-        case IndexType::GRAM3: return get_trigrams;
-        case IndexType::TEXT4: return get_b64grams;
+        case IndexType::GRAM3:
+            return get_trigrams;
+        case IndexType::TEXT4:
+            return get_b64grams;
     }
 }
 
@@ -74,10 +76,10 @@ void compress_run(const std::vector<FileId> &run, std::ostream &out) {
     for (auto next : run) {
         uint32_t diff = (next + 1U) - prev;
         while (diff >= 0x80U) {
-            out.put((uint8_t) (0x80U | (diff & 0x7FU)));
+            out.put((uint8_t)(0x80U | (diff & 0x7FU)));
             diff >>= 7;
         }
-        out.put((uint8_t) diff);
+        out.put((uint8_t)diff);
         prev = next + 1U;
     }
 }

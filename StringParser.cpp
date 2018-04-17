@@ -6,34 +6,33 @@
 #include <string>
 #include <type_traits>
 
-#include "lib/pegtl.hpp"
-#include "lib/pegtl/contrib/unescape.hpp"
-#include "lib/pegtl/contrib/parse_tree.hpp"
-#include "lib/pegtl/contrib/abnf.hpp"
-#include "Query.h"
 #include "Parser.h"
+#include "Query.h"
+#include "lib/pegtl.hpp"
+#include "lib/pegtl/contrib/abnf.hpp"
+#include "lib/pegtl/contrib/parse_tree.hpp"
+#include "lib/pegtl/contrib/unescape.hpp"
 
-using namespace tao::TAO_PEGTL_NAMESPACE;  // NOLINT
+using namespace tao::TAO_PEGTL_NAMESPACE; // NOLINT
 
-namespace queryparse
-{
-    struct padded : must< string, eof > {};
+namespace queryparse {
+struct padded : must<string, eof> {};
 
-    // Action class that uses the actions from tao/pegtl/contrib/unescape.hpp to
-    // produce a UTF-8 encoded result string where all escape sequences are
-    // replaced with their intended meaning.
+// Action class that uses the actions from tao/pegtl/contrib/unescape.hpp to
+// produce a UTF-8 encoded result string where all escape sequences are
+// replaced with their intended meaning.
 
-    template< typename Rule > struct action : nothing< Rule > {};
+template <typename Rule> struct action : nothing<Rule> {};
 
-    template<> struct action< utf8::range< 0x20, 0x10FFFF > > : unescape::append_all {};
-    template<> struct action< unicode > : unescape::unescape_u {};
-    template<> struct action< escaped_x > : unescape::unescape_x {};
-    // clang-format on
+template <> struct action<utf8::range<0x20, 0x10FFFF>> : unescape::append_all {};
+template <> struct action<unicode> : unescape::unescape_u {};
+template <> struct action<escaped_x> : unescape::unescape_x {};
+// clang-format on
 }
 
 std::string unescape_string(const std::string &str) {
-  unescape::state s;
-  string_input<> in(str, "literal");
-  parse < queryparse::padded, queryparse::action >(in, s);
-  return s.unescaped;
+    unescape::state s;
+    string_input<> in(str, "literal");
+    parse<queryparse::padded, queryparse::action>(in, s);
+    return s.unescaped;
 }

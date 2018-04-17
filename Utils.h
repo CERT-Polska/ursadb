@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vector>
 #include <fstream>
 #include <string>
+#include <vector>
 
 #include "Core.h"
 

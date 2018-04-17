@@ -15,7 +15,7 @@ enum class IndexType {
 
 constexpr bool is_valid_index_type(uint32_t type) {
     // Be very careful here. This looks complex, but avoids undevined behaviour.
-    switch(type) {
+    switch (type) {
         case static_cast<uint32_t>(IndexType::GRAM3):
         case static_cast<uint32_t>(IndexType::TEXT4):
             return true;

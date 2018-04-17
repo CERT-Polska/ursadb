@@ -1,16 +1,15 @@
 #include "MemMap.h"
 
-#include <iostream>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <cstring>
-
+#include <fcntl.h>
+#include <iostream>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 MemMap::MemMap(const std::string &fname) : fname(fname) {
-    fd = open(fname.c_str(), O_RDONLY, (mode_t) 0600);
+    fd = open(fname.c_str(), O_RDONLY, (mode_t)0600);
 
     if (fd == -1) {
         throw std::runtime_error("file open error");
@@ -28,7 +27,7 @@ MemMap::MemMap(const std::string &fname) : fname(fname) {
         throw std::runtime_error("lseek failed");
     }
 
-    mmap_ptr = (uint8_t *) mmap(nullptr, fsize, PROT_READ, MAP_SHARED, fd, 0);
+    mmap_ptr = (uint8_t *)mmap(nullptr, fsize, PROT_READ, MAP_SHARED, fd, 0);
 
     if (mmap_ptr == MAP_FAILED) {
         close(fd);

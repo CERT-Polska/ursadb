@@ -7,19 +7,18 @@
 #include <type_traits>
 
 #include "lib/pegtl.hpp"
-#include "lib/pegtl/contrib/unescape.hpp"
-#include "lib/pegtl/contrib/parse_tree.hpp"
 #include "lib/pegtl/contrib/abnf.hpp"
+#include "lib/pegtl/contrib/parse_tree.hpp"
+#include "lib/pegtl/contrib/unescape.hpp"
 
-#include "Query.h"
 #include "Parser.h"
+#include "Query.h"
 #include "StringParser.h"
 
-using namespace tao::TAO_PEGTL_NAMESPACE;  // NOLINT
+using namespace tao::TAO_PEGTL_NAMESPACE; // NOLINT
 
-namespace queryparse
-{
-    // clang-format off
+namespace queryparse {
+// clang-format off
 
     struct op_and : pad< seq < one< '&' >, one < '&' > >, space > {};
     struct op_or : pad< seq < one< '|' >, one < '|' > >, space > {};
@@ -85,62 +84,60 @@ namespace queryparse
 
     // clang-format off
     template<> struct store< expression > : rearrange {};
-    // clang-format on
+// clang-format on
 
-    // debugging/show result:
+// debugging/show result:
 
-    void print_node( const parse_tree::node& n, const std::string& s = "" )
-    {
-        // detect the root node:
-        if( n.is_root() ) {
-            std::cout << "ROOT" << std::endl;
-        }
-        else {
-            if( n.has_content() ) {
-                std::cout << s << n.name() << " \"" << n.content() << "\" at " << n.begin() << " to " << n.end() << std::endl;
-            }
-            else {
-                std::cout << s << n.name() << " at " << n.begin() << std::endl;
-            }
-        }
-        // print all child nodes
-        if( !n.children.empty() ) {
-            const auto s2 = s + "  ";
-            for( auto& up : n.children ) {
-                print_node( *up, s2 );
-            }
-        }
-    }
-
-    Query transform( const parse_tree::node& n ) {
+void print_node(const parse_tree::node &n, const std::string &s = "") {
+    // detect the root node:
+    if (n.is_root()) {
+        std::cout << "ROOT" << std::endl;
+    } else {
         if (n.has_content()) {
-            return Query(unescape_string(n.content()));
-        }
-
-        std::vector<Query> queries;
-
-        for (auto &up : n.children) {
-            queries.push_back(transform(*up));
-        }
-
-        QueryType qt;
-
-        if (n.name() == "queryparse::op_or") {
-            qt = QueryType::OR;
-        } else if (n.name() == "queryparse::op_and") {
-            qt = QueryType::AND;
+            std::cout << s << n.name() << " \"" << n.content() << "\" at " << n.begin() << " to "
+                      << n.end() << std::endl;
         } else {
-            throw std::runtime_error("encountered unexpected node");
+            std::cout << s << n.name() << " at " << n.begin() << std::endl;
         }
-
-        return Query(qt, queries);
     }
+    // print all child nodes
+    if (!n.children.empty()) {
+        const auto s2 = s + "  ";
+        for (auto &up : n.children) {
+            print_node(*up, s2);
+        }
+    }
+}
+
+Query transform(const parse_tree::node &n) {
+    if (n.has_content()) {
+        return Query(unescape_string(n.content()));
+    }
+
+    std::vector<Query> queries;
+
+    for (auto &up : n.children) {
+        queries.push_back(transform(*up));
+    }
+
+    QueryType qt;
+
+    if (n.name() == "queryparse::op_or") {
+        qt = QueryType::OR;
+    } else if (n.name() == "queryparse::op_and") {
+        qt = QueryType::AND;
+    } else {
+        throw std::runtime_error("encountered unexpected node");
+    }
+
+    return Query(qt, queries);
+}
 }
 
 Query parse_query(const std::string &s) {
     string_input<> in(s, "query");
 
-    if( const auto root = parse_tree::parse< queryparse::grammar, queryparse::store >(in) ) {
+    if (const auto root = parse_tree::parse<queryparse::grammar, queryparse::store>(in)) {
         queryparse::print_node(*root->children[0]);
         return queryparse::transform(*root->children[0]);
     } else {

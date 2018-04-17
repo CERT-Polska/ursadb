@@ -4,7 +4,7 @@
 
 #include "Query.h"
 
-OnDiskDataset::OnDiskDataset(const std::string &fname) :name(fname) {
+OnDiskDataset::OnDiskDataset(const std::string &fname) : name(fname) {
     std::ifstream in(name);
     json j;
     in >> j;
@@ -18,9 +18,7 @@ OnDiskDataset::OnDiskDataset(const std::string &fname) :name(fname) {
     }
 }
 
-const std::string &OnDiskDataset::get_file_name(FileId fid) const {
-    return fnames.at(fid);
-}
+const std::string &OnDiskDataset::get_file_name(FileId fid) const { return fnames.at(fid); }
 
 QueryResult OnDiskDataset::query_str(const std::string &str) const {
     QueryResult result = QueryResult::everything();
@@ -43,7 +41,7 @@ QueryResult OnDiskDataset::internal_execute(const Query &query) const {
             }
             return result;
         }
-        case  QueryType::AND: {
+        case QueryType::AND: {
             QueryResult result = QueryResult::everything();
             for (auto &q : query.as_queries()) {
                 result.do_and(internal_execute(q));
@@ -64,9 +62,7 @@ void OnDiskDataset::execute(const Query &query, std::vector<std::string> *out) c
     }
 }
 
-const std::string &OnDiskDataset::get_name() const {
-    return name;
-}
+const std::string &OnDiskDataset::get_name() const { return name; }
 
 void OnDiskDataset::merge(const std::string &outname, const std::vector<OnDiskDataset> &datasets) {
     std::set<IndexType> index_types;
@@ -86,9 +82,7 @@ void OnDiskDataset::merge(const std::string &outname, const std::vector<OnDiskDa
         std::vector<IndexMergeHelper> indexes;
         for (const OnDiskDataset &dataset : datasets) {
             indexes.push_back(IndexMergeHelper(
-                &dataset.get_index_with_type(index_type),
-                dataset.fnames.size()
-            ));
+                    &dataset.get_index_with_type(index_type), dataset.fnames.size()));
         }
         OnDiskIndex::on_disk_merge(index_name, index_type, indexes);
     }
@@ -127,7 +121,8 @@ void OnDiskDataset::drop() {
         idx_names.push_back((*it).get_fname());
     }
 
-    // deallocate objects to close MemMap, otherwise Windows won't allow us to delete file
+    // deallocate objects to close MemMap, otherwise Windows won't allow us to
+    // delete file
     indices.clear();
 
     for (auto &idx_name : idx_names) {
