@@ -81,8 +81,8 @@ void OnDiskDataset::merge(const std::string &outname, const std::vector<OnDiskDa
         index_names.push_back(index_name);
         std::vector<IndexMergeHelper> indexes;
         for (const OnDiskDataset &dataset : datasets) {
-            indexes.push_back(
-                IndexMergeHelper(&dataset.get_index_with_type(index_type), dataset.fnames.size()));
+            indexes.push_back(IndexMergeHelper(
+                    &dataset.get_index_with_type(index_type), dataset.fnames.size()));
         }
         OnDiskIndex::on_disk_merge(index_name, index_type, indexes);
     }

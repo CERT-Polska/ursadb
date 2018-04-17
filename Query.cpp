@@ -7,8 +7,9 @@ void QueryResult::do_or(const QueryResult &&other) {
     }
 
     std::vector<FileId> new_results;
-    std::set_union(other.results.begin(), other.results.end(), results.begin(), results.end(),
-                   std::back_inserter(new_results));
+    std::set_union(
+            other.results.begin(), other.results.end(), results.begin(), results.end(),
+            std::back_inserter(new_results));
     std::swap(new_results, results);
 }
 
@@ -21,8 +22,9 @@ void QueryResult::do_and(const QueryResult &&other) {
         return;
     }
 
-    auto new_end = std::set_intersection(other.results.begin(), other.results.end(),
-                                         results.begin(), results.end(), results.begin());
+    auto new_end = std::set_intersection(
+            other.results.begin(), other.results.end(), results.begin(), results.end(),
+            results.begin());
     results.erase(new_end, results.end());
 }
 

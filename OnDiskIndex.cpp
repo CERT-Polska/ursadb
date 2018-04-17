@@ -50,8 +50,8 @@ std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram) const {
     return out;
 }
 
-void OnDiskIndex::on_disk_merge(std::string fname, IndexType merge_type,
-                                const std::vector<IndexMergeHelper> &indexes) {
+void OnDiskIndex::on_disk_merge(
+        std::string fname, IndexType merge_type, const std::vector<IndexMergeHelper> &indexes) {
     std::ofstream out(fname, std::ofstream::binary | std::ofstream::out);
 
     if (!std::all_of(indexes.begin(), indexes.end(), [merge_type](const IndexMergeHelper &ndx) {
@@ -78,9 +78,9 @@ void OnDiskIndex::on_disk_merge(std::string fname, IndexType merge_type,
         std::vector<FileId> all_ids;
         FileId baseline = 0;
         for (const IndexMergeHelper &helper : indexes) {
-            std::vector<FileId> new_ids =
-                read_compressed_run(helper.index->data() + helper.index->run_offsets[i],
-                                    helper.index->data() + helper.index->run_offsets[i + 1]);
+            std::vector<FileId> new_ids = read_compressed_run(
+                    helper.index->data() + helper.index->run_offsets[i],
+                    helper.index->data() + helper.index->run_offsets[i + 1]);
             for (FileId id : new_ids) {
                 all_ids.push_back(id + baseline);
             }

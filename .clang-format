@@ -3,3 +3,5 @@ DerivePointerAlignment: false
 PointerAlignment: Right
 IndentCaseLabels: true
 ColumnLimit: 100
+AlignAfterOpenBracket: AlwaysBreak
+ContinuationIndentWidth: 8

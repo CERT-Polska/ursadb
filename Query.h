@@ -19,8 +19,7 @@ class QueryResult {
     QueryResult() : has_everything(true) {}
 
   public:
-    QueryResult(std::vector<FileId> results)
-        : has_everything(false), results(results) {}
+    QueryResult(std::vector<FileId> results) : has_everything(false), results(results) {}
 
     static QueryResult empty() { return QueryResult(std::vector<FileId>()); }
 
