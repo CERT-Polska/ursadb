@@ -1,16 +1,15 @@
 #pragma once
 
-#include <vector>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <vector>
 
 #include "Core.h"
 #include "OnDiskIndex.h"
-#include "lib/Json.h"
 #include "Query.h"
+#include "lib/Json.h"
 
 using json = nlohmann::json;
-
 
 class OnDiskDataset {
     std::string name;
@@ -22,10 +21,11 @@ class OnDiskDataset {
     QueryResult internal_execute(const Query &query) const;
     const OnDiskIndex &get_index_with_type(IndexType index_type) const;
 
-public:
+  public:
     explicit OnDiskDataset(const std::string &fname);
     const std::string &get_name() const;
     void execute(const Query &query, std::vector<std::string> *out) const;
-    static void merge(const std::string &outname, const std::vector<OnDiskDataset> &datasets);
+    static void merge(const std::string &outname,
+                      const std::vector<OnDiskDataset> &datasets);
     void drop();
 };

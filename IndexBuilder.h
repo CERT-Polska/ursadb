@@ -1,12 +1,11 @@
 #pragma once
 
-#include <vector>
-#include <string>
 #include <fstream>
+#include <string>
+#include <vector>
 
 #include "Core.h"
 #include "Utils.h"
-
 
 class IndexBuilder {
     std::vector<std::vector<FileId>> raw_index;
@@ -14,7 +13,7 @@ class IndexBuilder {
 
     void add_trigram(FileId fid, TriGram val);
 
-public:
+  public:
     IndexBuilder(IndexType ntype);
 
     IndexType index_type() { return ntype; }

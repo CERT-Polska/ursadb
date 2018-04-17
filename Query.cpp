@@ -7,10 +7,8 @@ void QueryResult::do_or(const QueryResult &&other) {
     }
 
     std::vector<FileId> new_results;
-    std::set_union(
-        other.results.begin(), other.results.end(),
-        results.begin(), results.end(),
-        std::back_inserter(new_results));
+    std::set_union(other.results.begin(), other.results.end(), results.begin(), results.end(),
+                   std::back_inserter(new_results));
     std::swap(new_results, results);
 }
 
@@ -23,10 +21,8 @@ void QueryResult::do_and(const QueryResult &&other) {
         return;
     }
 
-    auto new_end = std::set_intersection(
-        other.results.begin(), other.results.end(),
-        results.begin(), results.end(),
-        results.begin());
+    auto new_end = std::set_intersection(other.results.begin(), other.results.end(),
+                                         results.begin(), results.end(), results.begin());
     results.erase(new_end, results.end());
 }
 
@@ -39,12 +35,11 @@ const std::vector<Query> &Query::as_queries() const {
 }
 
 Query::Query(const QueryType &type, const std::vector<Query> &queries)
-        : type(type), queries(queries) {}
+    : type(type), queries(queries) {}
 
-Query::Query(const std::string &str)
-        : type(QueryType::PRIMITIVE), queries(), value(str) {}
+Query::Query(const std::string &str) : type(QueryType::PRIMITIVE), queries(), value(str) {}
 
-std::ostream& operator<<(std::ostream& os, const Query& query) {
+std::ostream &operator<<(std::ostream &os, const Query &query) {
     QueryType type = query.get_type();
     if (type == QueryType::AND || type == QueryType::OR) {
         if (type == QueryType::AND) {
@@ -68,9 +63,7 @@ std::ostream& operator<<(std::ostream& os, const Query& query) {
     return os;
 }
 
-const QueryType &Query::get_type() const {
-    return type;
-}
+const QueryType &Query::get_type() const { return type; }
 
 const std::string &Query::as_value() const {
     if (type != QueryType::PRIMITIVE) {
@@ -80,14 +73,8 @@ const std::string &Query::as_value() const {
     return value;
 }
 
-Query q(const std::string &str) {
-    return Query(str);
-}
+Query q(const std::string &str) { return Query(str); }
 
-Query q_and(const std::vector<Query> &queries) {
-    return Query(QueryType::AND, queries);
-}
+Query q_and(const std::vector<Query> &queries) { return Query(QueryType::AND, queries); }
 
-Query q_or(const std::vector<Query> &queries) {
-    return Query(QueryType::OR, queries);
-}
+Query q_or(const std::vector<Query> &queries) { return Query(QueryType::OR, queries); }

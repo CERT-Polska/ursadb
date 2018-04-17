@@ -3,9 +3,8 @@
 #include <cstdio>
 #include <experimental/filesystem>
 
-#include <unistd.h>
 #include <fcntl.h>
-
+#include <unistd.h>
 
 Database::Database(const std::string &fname) : db_fname(fname) {
     std::ifstream db_file(fname);
@@ -60,7 +59,7 @@ void Database::compact() {
 }
 
 void Database::execute(const Query &query, std::vector<std::string> &out) {
-    for (const auto &ds: datasets) {
+    for (const auto &ds : datasets) {
         ds.execute(query, &out);
     }
 }
@@ -85,8 +84,7 @@ void Database::index_path(const std::vector<IndexType> types, const std::string 
     DatasetBuilder builder(types);
     fs::recursive_directory_iterator end;
 
-    for (fs::recursive_directory_iterator dir(filepath); dir != end; ++dir)
-    {
+    for (fs::recursive_directory_iterator dir(filepath); dir != end; ++dir) {
         if (fs::is_regular_file(dir->path())) {
             std::cout << dir->path().string() << std::endl;
 
@@ -96,7 +94,7 @@ void Database::index_path(const std::vector<IndexType> types, const std::string 
                 std::cout << "empty file, skip" << std::endl;
             }
 
-            if (builder.processed_bytes() > 1024L*1024*512) {
+            if (builder.processed_bytes() > 1024L * 1024 * 512) {
                 std::cout << "new dataset " << builder.processed_bytes() << std::endl;
                 add_dataset(builder);
                 builder = DatasetBuilder(types);

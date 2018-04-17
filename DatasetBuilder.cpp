@@ -3,9 +3,8 @@
 #include <fstream>
 #include <iostream>
 
-#include "Utils.h"
 #include "OnDiskDataset.h"
-
+#include "Utils.h"
 
 DatasetBuilder::DatasetBuilder(const std::vector<IndexType> &index_types) : total_bytes(0) {
     for (const auto &index_type : index_types) {
@@ -14,7 +13,7 @@ DatasetBuilder::DatasetBuilder(const std::vector<IndexType> &index_types) : tota
 }
 
 FileId DatasetBuilder::register_fname(const std::string &fname) {
-    auto new_id = (FileId) fids.size();
+    auto new_id = (FileId)fids.size();
     fids.push_back(fname);
     return new_id;
 }
@@ -44,7 +43,7 @@ void DatasetBuilder::save(const std::string &fname) {
 void DatasetBuilder::index(const std::string &filepath) {
     MemMap in(filepath);
 
-    if (in.size() > 1024*1024*128) {
+    if (in.size() > 1024 * 1024 * 128) {
         std::cout << "!!! TEMPORARY HACK, FILE TOO LARGE: " << filepath << std::endl;
         return;
     }
