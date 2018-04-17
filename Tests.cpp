@@ -13,7 +13,7 @@ TEST_CASE("Test query parser", "[queryparser]") {
     }
 
     SECTION("Logical or") {
-        Query q = parse_query("\"test\" || \"lol!\"");
+        Query q = parse_query("\"test\" | \"lol!\"");
         REQUIRE(q.get_type() == QueryType::OR);
         REQUIRE(q.as_queries().size() == 2);
         REQUIRE(q.as_queries()[0].as_value() == "test");
