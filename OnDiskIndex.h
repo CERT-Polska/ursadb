@@ -5,6 +5,7 @@
 #include <fstream>
 #include "Core.h"
 #include "MemMap.h"
+#include "Query.h"
 
 struct IndexMergeHelper;
 
@@ -15,13 +16,14 @@ class OnDiskIndex {
 
     const uint8_t *data() const { return disk_map.data(); }
     static constexpr uint32_t VERSION = 5;
+    std::vector<FileId> query_primitive(TriGram trigram) const;
 
 public:
     explicit OnDiskIndex(const std::string &fname);
 
     const std::string &get_fname() const { return disk_map.name(); }
     IndexType index_type() const { return ntype; }
-    std::vector<FileId> query_primitive(TriGram trigram) const;
+    QueryResult query_str(const std::string &str) const;
     static void on_disk_merge(std::string fname, IndexType merge_type, const std::vector<IndexMergeHelper> &indexes);
 };
 

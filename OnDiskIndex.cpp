@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "Utils.h"
+#include "Query.h"
 
 OnDiskIndex::OnDiskIndex(const std::string &fname) : disk_map(fname) {
     const uint8_t *data = disk_map.data();
@@ -25,6 +26,17 @@ OnDiskIndex::OnDiskIndex(const std::string &fname) : disk_map(fname) {
     }
 
     run_offsets = (uint32_t*) &data[disk_map.size() - (NUM_TRIGRAMS + 1) * 4];
+}
+
+QueryResult OnDiskIndex::query_str(const std::string &str) const {
+    auto trigrams = get_trigrams((uint8_t*)str.data(), str.size());
+    QueryResult result = QueryResult::everything();
+
+    for (auto trigram : trigrams) {
+        result.do_and(query_primitive(trigram));
+    }
+
+    return result;
 }
 
 std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram) const {

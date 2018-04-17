@@ -22,17 +22,13 @@ const std::string &OnDiskDataset::get_file_name(FileId fid) const {
     return fnames.at(fid);
 }
 
-std::vector<FileId> OnDiskDataset::query_primitive(TriGram trigram) const {
-    std::vector<FileId> out;
-    for (const FileId &fid : indices[0].query_primitive(trigram)) {
-        out.push_back(fid);
-    }
-    return out;
+QueryResult OnDiskDataset::query_str(const std::string &str) const {
+    return indices[0].query_str(str);
 }
 
 QueryResult OnDiskDataset::internal_execute(const Query &query) const {
     if (query.get_type() == QueryType::PRIMITIVE) {
-        return query_primitive(query.as_trigram());
+        return query_str(query.as_value());
     } else if (query.get_type() == QueryType::OR) {
         QueryResult result = QueryResult::empty();
         for (auto &q : query.as_queries()) {
