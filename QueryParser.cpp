@@ -24,9 +24,15 @@ struct op_or : pad<one<'|'>, space> {};
 struct open_bracket : seq<one<'('>, star<space>> {};
 struct close_bracket : seq<star<space>, one<')'>> {};
 
+struct open_hex : seq<one<'{'>, star<space>> {};
+struct close_hex : seq<star<space>, one<'}'>> {};
+struct hexbyte : seq<xdigit, xdigit> {};
+struct hexbytes : list<hexbyte, star<space>> {};
+
 struct expression;
 struct bracketed : if_must<open_bracket, expression, close_bracket> {};
-struct value : sor<string, bracketed> {};
+struct hexstring : if_must<open_hex, hexbytes, close_hex> {};
+struct value : sor<string, hexstring, bracketed> {};
 struct expression : seq<value, star<sor<op_and, op_or>, expression>> {};
 struct grammar : seq<expression, eof> {};
 
@@ -35,6 +41,8 @@ template <> struct store<string> : std::true_type {};
 template <> struct store<op_and> : parse_tree::remove_content {};
 template <> struct store<op_or> : parse_tree::remove_content {};
 template <> struct store<expression> : std::true_type {};
+template <> struct store<hexstring> : std::true_type {};
+template <> struct store<hexbyte> : std::true_type {};
 
 void print_node(const parse_tree::node &n, const std::string &s = "") {
     if (n.has_content()) {
@@ -67,9 +75,28 @@ std::string unescape_string(const std::string &str) {
     return result;
 }
 
+constexpr int hex2int(char hexchar) {
+    if (hexchar >= '0' && hexchar <= '9') {
+        return hexchar - '0';
+    } else if (hexchar >= 'a' && hexchar <= 'f') {
+        return 10 + hexchar - 'a';
+    } else if (hexchar >= 'A' && hexchar <= 'F') {
+        return 10 + hexchar - 'A';
+    } else {
+        throw std::runtime_error("invalid hex char");
+    }
+}
+
 Query transform(const parse_tree::node &n) {
     if (n.is<string>()) {
         return Query(unescape_string(n.content()));
+    } if (n.is<hexstring>()) {
+        std::string result;
+        for (auto &hexbyte : n.children) {
+            std::string content = hexbyte->content();
+            result += (char)((hex2int(content[0]) << 4) + hex2int(content[1]));
+        }
+        return Query(result);
     } else if (n.is<expression>()) {
         if (n.children.size() == 1) {
             return transform(*n.children[0]);
