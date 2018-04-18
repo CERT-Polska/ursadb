@@ -20,4 +20,9 @@ class IndexCommand {
     const std::string &get_path() const { return path; }
 };
 
-using Command = std::variant<SelectCommand, IndexCommand>;
+class CompactCommand {
+  public:
+    CompactCommand() {}
+};
+
+using Command = std::variant<SelectCommand, IndexCommand, CompactCommand>;

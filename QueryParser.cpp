@@ -38,11 +38,13 @@ struct expression : seq<value, star<sor<op_and, op_or>, expression>> {};
 
 struct select_token : tao::TAO_PEGTL_NAMESPACE::string<'s', 'e', 'l', 'e', 'c', 't'> {};
 struct index_token : tao::TAO_PEGTL_NAMESPACE::string<'i', 'n', 'd', 'e', 'x'> {};
+struct compact_token : tao::TAO_PEGTL_NAMESPACE::string<'c', 'o', 'm', 'p', 'a', 'c', 't'> {};
 
 struct select : seq<select_token, plus<space>, expression> {};
 struct index : seq<index_token, plus<space>, string> {};
+struct compact : seq<compact_token> {};
 
-struct command : seq<sor<select, index>, one<';'>> {};
+struct command : seq<sor<select, index, compact>, star<space>, one<';'>> {};
 struct grammar : seq<command, star<space>, eof> {};
 
 template <typename> struct store : std::false_type {};
@@ -54,6 +56,7 @@ template <> struct store<hexstring> : std::true_type {};
 template <> struct store<hexbyte> : std::true_type {};
 template <> struct store<select> : std::true_type {};
 template <> struct store<index> : std::true_type {};
+template <> struct store<compact> : std::true_type {};
 
 void print_node(const parse_tree::node &n, const std::string &s = "") {
     if (n.has_content()) {
@@ -131,6 +134,8 @@ Command transform_command(const parse_tree::node &n) {
     } else if (n.is<index>()) {
         auto &expr = n.children[0];
         return Command(IndexCommand(expr->content()));
+    } else if (n.is<compact>()) {
+        return Command(CompactCommand());
     }
 }
 }

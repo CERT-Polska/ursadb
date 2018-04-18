@@ -14,62 +14,70 @@
 #include "OnDiskDataset.h"
 #include "QueryParser.h"
 
-std::string execute_command(const Command &cmd, Database *db) {
+std::string execute_command(const SelectCommand &cmd, Database *db) {
     std::stringstream ss;
 
-    if (std::holds_alternative<SelectCommand>(cmd)) {
-        const Query &select = std::get<SelectCommand>(cmd).get_query();
-        std::cout << select << std::endl;
-        std::vector<std::string> out;
-        db->execute(select, out);
-        ss << "OK" << std::endl;
-        for (std::string &s : out) {
-            ss << s << std::endl;
-        }
-    } else if (std::holds_alternative<IndexCommand>(cmd)) {
-        const std::string &path = std::get<IndexCommand>(cmd).get_path();
-        std::vector<IndexType> types = {IndexType::GRAM3, IndexType::TEXT4};
-        db->index_path(types, path);
-        ss << "OK" << std::endl;
-    } else {
-        throw std::runtime_error("Invalid command type.");
+    const Query &query = cmd.get_query();
+    std::vector<std::string> out;
+    db->execute(query, out);
+    ss << "OK\n";
+    for (std::string &s : out) {
+        ss << s << "\n";
     }
 
     return ss.str();
 }
 
+std::string execute_command(const IndexCommand &cmd, Database *db) {
+    const std::string &path = cmd.get_path();
+    std::vector<IndexType> types = {IndexType::GRAM3, IndexType::TEXT4};
+    db->index_path(types, path);
+
+    return "OK";
+}
+
+std::string execute_command(const CompactCommand &cmd, Database *db) {
+    db->compact();
+
+    return "OK";
+}
+
+std::string dispatch_command(const Command &cmd, Database *db) {
+    if (std::holds_alternative<SelectCommand>(cmd)) {
+        return execute_command(std::get<SelectCommand>(cmd), db);
+    } else if (std::holds_alternative<IndexCommand>(cmd)) {
+        return execute_command(std::get<IndexCommand>(cmd), db);
+    } else if (std::holds_alternative<CompactCommand>(cmd)) {
+        return execute_command(std::get<CompactCommand>(cmd), db);
+    } else {
+        throw std::runtime_error("Invalid command type.");
+    }
+}
+
 int main(int argc, char *argv[]) {
-    if (argc < 3) {
+    if (argc < 2) {
         printf("Usage:\n");
-        printf("    %s command [database] [cmd]\n", argv[0]);
-        printf("    %s compact [database]\n", argv[0]);
-        printf("    %s server", argv[0]);
+        printf("    %s [database]\n", argv[0]);
+        printf("    %s [database] server\n", argv[0]);
         fflush(stdout);
         return 1;
     }
 
-    std::string dbpath = argv[2];
-    if (argv[1] == std::string("index")) {
-    } else if (argv[1] == std::string("command")) {
-        if (argc != 4) {
-            std::cout << "too few or too many arguments" << std::endl;
-            return 1;
-        }
-        Database db(argv[2]);
-        Command cmd = parse_command(argv[3]);
-        std::string res = execute_command(cmd, &db);
-        std::cout << res << std::endl;
-    } else if (argv[1] == std::string("compact")) {
-        if (argc != 3) {
-            std::cout << "too few or too many arguments" << std::endl;
-            return 1;
-        }
+    Database db(argv[1]);
 
-        Database db(argv[2]);
-        db.compact();
+    if (argc == 2) {
+        while (true) {
+            std::string input;
+            std::cout << "> ";
+            std::getline(std::cin, input);
+            try {
+                Command cmd = parse_command(input);
+                std::cout << dispatch_command(cmd, &db) << std::endl;
+            } catch (std::runtime_error &e) {
+                std::cout << "Command failed: " << e.what() << std::endl;
+            }
+        }
     } else if (argv[1] == std::string("server")) {
-        Database db(argv[2]);
-
         zmq::context_t context(1);
         zmq::socket_t socket(context, ZMQ_REP);
         socket.bind("tcp://*:9281");
@@ -83,14 +91,12 @@ int main(int argc, char *argv[]) {
 
             try {
                 Command cmd = parse_command(cmd_str);
-                std::string s = execute_command(cmd, &db);
+                std::string s = dispatch_command(cmd, &db);
                 zmq::message_t reply(s.data(), s.size());
                 socket.send(reply);
             } catch (std::runtime_error &e) {
                 std::cout << "Command failed: " << e.what() << std::endl;
-                std::stringstream ss;
-                ss << "ERR " << e.what() << std::endl;
-                std::string s = ss.str();
+                std::string s = std::string("ERR ") + e.what() + "\n";
                 zmq::message_t reply(s.data(), s.size());
                 socket.send(reply);
             }
