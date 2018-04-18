@@ -4,12 +4,12 @@
 #include <list>
 #include <stack>
 #include <utility>
-#include <vector>
 #include <variant>
+#include <vector>
 #include <zmq.hpp>
 
-#include "Database.h"
 #include "Command.h"
+#include "Database.h"
 #include "DatasetBuilder.h"
 #include "OnDiskDataset.h"
 #include "QueryParser.h"
@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
             zmq::message_t request;
 
             socket.recv(&request);
-            std::string cmd_str = std::string(static_cast<char*>(request.data()), request.size());
+            std::string cmd_str = std::string(static_cast<char *>(request.data()), request.size());
             std::cout << "Received request " << cmd_str << std::endl;
 
             try {

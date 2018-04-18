@@ -11,8 +11,8 @@
 #include "lib/pegtl/contrib/parse_tree.hpp"
 #include "lib/pegtl/contrib/unescape.hpp"
 
-#include "Parser.h"
 #include "Command.h"
+#include "Parser.h"
 #include "Query.h"
 
 using namespace tao::TAO_PEGTL_NAMESPACE; // NOLINT
@@ -36,7 +36,6 @@ struct hexstring : if_must<open_hex, hexbytes, close_hex> {};
 struct value : sor<string, hexstring, bracketed> {};
 struct expression : seq<value, star<sor<op_and, op_or>, expression>> {};
 
-
 struct select_token : tao::TAO_PEGTL_NAMESPACE::string<'s', 'e', 'l', 'e', 'c', 't'> {};
 struct index_token : tao::TAO_PEGTL_NAMESPACE::string<'i', 'n', 'd', 'e', 'x'> {};
 
@@ -55,7 +54,6 @@ template <> struct store<hexstring> : std::true_type {};
 template <> struct store<hexbyte> : std::true_type {};
 template <> struct store<select> : std::true_type {};
 template <> struct store<index> : std::true_type {};
-
 
 void print_node(const parse_tree::node &n, const std::string &s = "") {
     if (n.has_content()) {
@@ -135,7 +133,6 @@ Command transform_command(const parse_tree::node &n) {
         return Command(IndexCommand(expr->content()));
     }
 }
-
 }
 
 Command parse_command(const std::string &s) {
