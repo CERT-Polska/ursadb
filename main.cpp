@@ -43,15 +43,9 @@ std::string execute_command(const CompactCommand &cmd, Database *db) {
 }
 
 std::string dispatch_command(const Command &cmd, Database *db) {
-    if (std::holds_alternative<SelectCommand>(cmd)) {
-        return execute_command(std::get<SelectCommand>(cmd), db);
-    } else if (std::holds_alternative<IndexCommand>(cmd)) {
-        return execute_command(std::get<IndexCommand>(cmd), db);
-    } else if (std::holds_alternative<CompactCommand>(cmd)) {
-        return execute_command(std::get<CompactCommand>(cmd), db);
-    } else {
-        throw std::runtime_error("Invalid command type.");
-    }
+    return std::visit([db](const auto &cmd) {
+        return execute_command(cmd, db);
+    }, cmd);
 }
 
 int main(int argc, char *argv[]) {
