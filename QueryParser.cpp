@@ -58,20 +58,6 @@ template <> struct store<select> : std::true_type {};
 template <> struct store<index> : std::true_type {};
 template <> struct store<compact> : std::true_type {};
 
-void print_node(const parse_tree::node &n, const std::string &s = "") {
-    if (n.has_content()) {
-        std::cout << s << n.name() << " \"" << n.content() << "\" at " << n.begin() << " to "
-                  << n.end() << std::endl;
-    } else {
-        std::cout << s << n.name() << " at " << n.begin() << std::endl;
-    }
-    if (!n.children.empty()) {
-        for (auto &up : n.children) {
-            print_node(*up, s + "  ");
-        }
-    }
-}
-
 constexpr int hex2int(char hexchar) {
     if (hexchar >= '0' && hexchar <= '9') {
         return hexchar - '0';
@@ -144,7 +130,6 @@ Command parse_command(const std::string &s) {
     string_input<> in(s, "query");
 
     if (const auto root = parse_tree::parse<queryparse::grammar, queryparse::store>(in)) {
-        queryparse::print_node(*root->children[0]);
         return queryparse::transform_command(*root->children[0]);
     } else {
         throw std::runtime_error("PARSE FAILED");

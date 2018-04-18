@@ -43,9 +43,7 @@ std::string execute_command(const CompactCommand &cmd, Database *db) {
 }
 
 std::string dispatch_command(const Command &cmd, Database *db) {
-    return std::visit([db](const auto &cmd) {
-        return execute_command(cmd, db);
-    }, cmd);
+    return std::visit([db](const auto &cmd) { return execute_command(cmd, db); }, cmd);
 }
 
 int main(int argc, char *argv[]) {
@@ -53,7 +51,6 @@ int main(int argc, char *argv[]) {
         printf("Usage:\n");
         printf("    %s [database]\n", argv[0]);
         printf("    %s [database] server\n", argv[0]);
-        fflush(stdout);
         return 1;
     }
 
