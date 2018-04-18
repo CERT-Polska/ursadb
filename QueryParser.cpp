@@ -58,23 +58,6 @@ void print_node(const parse_tree::node &n, const std::string &s = "") {
     }
 }
 
-std::string unescape_string(const std::string &str) {
-    std::string result;
-    for (int i = 1; i < str.size() - 1; i++) {
-        if (str[i] == '\\') {
-            if (str.at(i + 1) != 'x') {
-                return result;
-            }
-            std::string escape = std::string() + str.at(i + 2) + str.at(i + 3);
-            result += stoi(escape, nullptr, 16);
-            i += 3;
-        } else {
-            result += str[i];
-        }
-    }
-    return result;
-}
-
 constexpr int hex2int(char hexchar) {
     if (hexchar >= '0' && hexchar <= '9') {
         return hexchar - '0';
@@ -87,10 +70,27 @@ constexpr int hex2int(char hexchar) {
     }
 }
 
+std::string unescape_string(const std::string &str) {
+    std::string result;
+    for (int i = 1; i < str.size() - 1; i++) {
+        if (str[i] == '\\') {
+            if (str.at(i + 1) != 'x') {
+                return result;
+            }
+            result += (hex2int(str.at(i + 2)) << 4) + hex2int(str.at(i + 3));
+            i += 3;
+        } else {
+            result += str[i];
+        }
+    }
+    return result;
+}
+
 Query transform(const parse_tree::node &n) {
     if (n.is<string>()) {
         return Query(unescape_string(n.content()));
-    } if (n.is<hexstring>()) {
+    }
+    if (n.is<hexstring>()) {
         std::string result;
         for (auto &hexbyte : n.children) {
             std::string content = hexbyte->content();
