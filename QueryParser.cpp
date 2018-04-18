@@ -12,6 +12,7 @@
 #include "lib/pegtl/contrib/unescape.hpp"
 
 #include "Parser.h"
+#include "Command.h"
 #include "Query.h"
 
 using namespace tao::TAO_PEGTL_NAMESPACE; // NOLINT
@@ -34,7 +35,16 @@ struct bracketed : if_must<open_bracket, expression, close_bracket> {};
 struct hexstring : if_must<open_hex, hexbytes, close_hex> {};
 struct value : sor<string, hexstring, bracketed> {};
 struct expression : seq<value, star<sor<op_and, op_or>, expression>> {};
-struct grammar : seq<expression, eof> {};
+
+
+struct select_token : tao::TAO_PEGTL_NAMESPACE::string<'s', 'e', 'l', 'e', 'c', 't'> {};
+struct index_token : tao::TAO_PEGTL_NAMESPACE::string<'i', 'n', 'd', 'e', 'x'> {};
+
+struct select : seq<select_token, plus<space>, expression> {};
+struct index : seq<index_token, plus<space>, string> {};
+
+struct command : seq<sor<select, index>, one<';'>> {};
+struct grammar : seq<command, star<space>, eof> {};
 
 template <typename> struct store : std::false_type {};
 template <> struct store<string> : std::true_type {};
@@ -43,6 +53,9 @@ template <> struct store<op_or> : parse_tree::remove_content {};
 template <> struct store<expression> : std::true_type {};
 template <> struct store<hexstring> : std::true_type {};
 template <> struct store<hexbyte> : std::true_type {};
+template <> struct store<select> : std::true_type {};
+template <> struct store<index> : std::true_type {};
+
 
 void print_node(const parse_tree::node &n, const std::string &s = "") {
     if (n.has_content()) {
@@ -89,8 +102,7 @@ std::string unescape_string(const std::string &str) {
 Query transform(const parse_tree::node &n) {
     if (n.is<string>()) {
         return Query(unescape_string(n.content()));
-    }
-    if (n.is<hexstring>()) {
+    } else if (n.is<hexstring>()) {
         std::string result;
         for (auto &hexbyte : n.children) {
             std::string content = hexbyte->content();
@@ -112,14 +124,26 @@ Query transform(const parse_tree::node &n) {
     }
     throw std::runtime_error("encountered unexpected node");
 }
+
+Command transform_command(const parse_tree::node &n) {
+    std::cout << n.name() << std::endl;
+    if (n.is<select>()) {
+        auto &expr = n.children[0];
+        return Command(SelectCommand(transform(*expr)));
+    } else if (n.is<index>()) {
+        auto &expr = n.children[0];
+        return Command(IndexCommand(expr->content()));
+    }
 }
 
-Query parse_query(const std::string &s) {
+}
+
+Command parse_command(const std::string &s) {
     string_input<> in(s, "query");
 
     if (const auto root = parse_tree::parse<queryparse::grammar, queryparse::store>(in)) {
         queryparse::print_node(*root->children[0]);
-        return queryparse::transform(*root->children[0]);
+        return queryparse::transform_command(*root->children[0]);
     } else {
         throw std::runtime_error("PARSE FAILED");
     }
