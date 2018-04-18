@@ -7,3 +7,4 @@ Makefile
 *.cmake
 *.ursa
 *.test
+*.a
