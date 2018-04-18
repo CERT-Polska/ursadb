@@ -1,5 +1,7 @@
 #define CATCH_CONFIG_MAIN
 
+#include <cstdlib>
+
 #include "Query.h"
 #include "QueryParser.h"
 #include "Utils.h"
