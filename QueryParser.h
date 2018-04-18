@@ -1,5 +1,5 @@
 #pragma once
 
-#include "Query.h"
+#include "Command.h"
 
-Query parse_query(const std::string &s);
+Command parse_command(const std::string &s);
