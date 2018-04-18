@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
                 std::cout << "Command failed: " << e.what() << std::endl;
             }
         }
-    } else if (argv[1] == std::string("server")) {
+    } else if (argv[2] == std::string("server")) {
         zmq::context_t context(1);
         zmq::socket_t socket(context, ZMQ_REP);
         socket.bind("tcp://*:9281");
@@ -101,6 +101,8 @@ int main(int argc, char *argv[]) {
                 socket.send(reply);
             }
         }
+    } else {
+        std::cout << "Unknown mode: " << argv[2] << std::endl;
     }
     return 0;
 }
