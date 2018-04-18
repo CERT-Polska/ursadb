@@ -10,23 +10,6 @@ TrigramGenerator get_generator_for(IndexType type) {
     }
 }
 
-constexpr int get_b64_value(uint8_t character) {
-    constexpr int ALPHABET_SIZE = 'Z' - 'A' + 1;
-    if (character >= 'A' && character <= 'Z') {
-        return character - 'A';
-    } else if (character >= 'a' && character <= 'z') {
-        return character - 'a' + ALPHABET_SIZE;
-    } else if (character >= '0' && character <= '9') {
-        return character - '0' + (2 * ALPHABET_SIZE);
-    } else if (character == ' ') {
-        return 2 * ALPHABET_SIZE + 10;
-    } else if (character == '\n') {
-        return 2 * ALPHABET_SIZE + 10 + 1;
-    } else {
-        return -1;
-    }
-}
-
 std::vector<TriGram> get_b64grams(const uint8_t *mem, size_t size) {
     std::vector<TriGram> out;
 
@@ -37,7 +20,7 @@ std::vector<TriGram> get_b64grams(const uint8_t *mem, size_t size) {
     uint32_t gram4 = 0;
     int good_run = 0;
 
-    for (int offset = 3; offset < size; offset++) {
+    for (int offset = 0; offset < size; offset++) {
         int next = get_b64_value(mem[offset]);
         if (next < 0) {
             good_run = 0;

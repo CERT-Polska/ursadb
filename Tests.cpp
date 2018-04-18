@@ -55,6 +55,45 @@ TEST_CASE("Test get_trigrams", "[gram3]") {
     }
 }
 
+TEST_CASE("Test get_b64grams", "[text4]") {
+    std::string str;
+    std::vector<TriGram> gram3;
+
+    str = "";
+    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    REQUIRE(gram3.size() == 0);
+    str = "a";
+    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    REQUIRE(gram3.size() == 0);
+    str = "ab";
+    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    REQUIRE(gram3.size() == 0);
+    str = "abc";
+    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    REQUIRE(gram3.size() == 0);
+    str = "abcd";
+    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    REQUIRE(gram3.size() == 1);
+    REQUIRE(gram3[0] == (
+            (get_b64_value('a') << 18U)
+            | (get_b64_value('b') << 12U)
+            | (get_b64_value('c') << 6U)
+            | (get_b64_value('d') << 0U)));
+    str = "abcde";
+    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    REQUIRE(gram3.size() == 2);
+    REQUIRE(gram3[0] == (
+            (get_b64_value('a') << 18U)
+            | (get_b64_value('b') << 12U)
+            | (get_b64_value('c') << 6U)
+            | (get_b64_value('d') << 0U)));
+    REQUIRE(gram3[1] == (
+            (get_b64_value('b') << 18U)
+            | (get_b64_value('c') << 12U)
+            | (get_b64_value('d') << 6U)
+            | (get_b64_value('e') << 0U)));
+}
+
 TEST_CASE("Compress run symmetry", "[compress_run]") {
     std::stringstream ss;
 
