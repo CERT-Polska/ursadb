@@ -10,6 +10,23 @@
 #include "IndexBuilder.h"
 #include "OnDiskIndex.h"
 
+
+TriGram gram3_pack(const std::string &s) {
+    REQUIRE(s.size() == 3);
+    auto v0 = (TriGram)(uint8_t) s[0];
+    auto v1 = (TriGram)(uint8_t) s[1];
+    auto v2 = (TriGram)(uint8_t) s[2];
+    return (v0 << 16U) | (v1 << 8U) | (v2 << 0U);
+}
+
+TEST_CASE("Test pack", "[pack]") {
+    // pay attention to the input, this covers unexpected sign extension
+    REQUIRE(gram3_pack("\xCC\xBB\xAA") == (TriGram)0xCCBBAAU);
+    REQUIRE(gram3_pack("\xAA\xBB\xCC") == (TriGram)0xAABBCCU);
+    REQUIRE(gram3_pack("abc") == (TriGram)0x616263);
+}
+
+
 TEST_CASE("Test select simple", "[queryparser]") {
     Command cmd = parse_command("select \"test\";");
     REQUIRE(std::holds_alternative<SelectCommand>(cmd));
@@ -91,16 +108,16 @@ TEST_CASE("Test get_b64grams", "[text4]") {
 
     str = "";
     gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
-    REQUIRE(gram3.size() == 0);
+    REQUIRE(gram3.empty());
     str = "a";
     gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
-    REQUIRE(gram3.size() == 0);
+    REQUIRE(gram3.empty());
     str = "ab";
     gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
-    REQUIRE(gram3.size() == 0);
+    REQUIRE(gram3.empty());
     str = "abc";
     gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
-    REQUIRE(gram3.size() == 0);
+    REQUIRE(gram3.empty());
     str = "abcd";
     gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.size() == 1);
@@ -122,6 +139,51 @@ TEST_CASE("Test get_b64grams", "[text4]") {
             | (get_b64_value('c') << 12U)
             | (get_b64_value('d') << 6U)
             | (get_b64_value('e') << 0U)));
+    str = "abcde""\xAA""fghi";
+    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    REQUIRE(gram3.size() == 3);
+    REQUIRE(gram3[0] == (
+            (get_b64_value('a') << 18U)
+            | (get_b64_value('b') << 12U)
+            | (get_b64_value('c') << 6U)
+            | (get_b64_value('d') << 0U)));
+    REQUIRE(gram3[1] == (
+            (get_b64_value('b') << 18U)
+            | (get_b64_value('c') << 12U)
+            | (get_b64_value('d') << 6U)
+            | (get_b64_value('e') << 0U)));
+    REQUIRE(gram3[2] == (
+            (get_b64_value('f') << 18U)
+            | (get_b64_value('g') << 12U)
+            | (get_b64_value('h') << 6U)
+            | (get_b64_value('i') << 0U)));
+}
+
+TEST_CASE("Test get_h4grams", "[hash4]") {
+    std::string str;
+    std::vector<TriGram> gram3;
+
+    str = "";
+    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    REQUIRE(gram3.empty());
+    str = "a";
+    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    REQUIRE(gram3.empty());
+    str = "ab";
+    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    REQUIRE(gram3.empty());
+    str = "abc";
+    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    REQUIRE(gram3.empty());
+    str = "abcd";
+    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    REQUIRE(gram3.size() == 1);
+    REQUIRE(gram3[0] == (gram3_pack("abc") ^ gram3_pack("bcd")));
+    str = "abcde";
+    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    REQUIRE(gram3.size() == 2);
+    REQUIRE(gram3[0] == (gram3_pack("abc") ^ gram3_pack("bcd")));
+    REQUIRE(gram3[1] == (gram3_pack("bcd") ^ gram3_pack("cde")));
 }
 
 TEST_CASE("Compress run symmetry", "[compress_run]") {

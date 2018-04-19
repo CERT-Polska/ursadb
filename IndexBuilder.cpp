@@ -3,12 +3,13 @@
 #include <algorithm>
 #include <iostream>
 
-IndexBuilder::IndexBuilder(IndexType ntype) : raw_index(NUM_TRIGRAMS), ntype(ntype) {}
+IndexBuilder::IndexBuilder(IndexType ntype) : raw_index(NUM_TRIGRAMS), ntype(ntype), consumed_bytes(0) {}
 
 void IndexBuilder::add_trigram(FileId fid, TriGram val) {
     if (raw_index[val].empty() || raw_index[val].back() != fid) {
         // guard against indexing same (file, trigram) pair twice
         raw_index[val].push_back(fid);
+        consumed_bytes += sizeof(TriGram);
     }
 }
 

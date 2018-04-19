@@ -6,16 +6,18 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-Database::Database(const std::string &fname) : db_fname(fname) {
+Database::Database(const std::string &fname) : db_fname(fname), max_memory_size(0) {
     std::ifstream db_file(fname);
 
     if (db_file.fail()) {
         num_datasets = 0;
+        max_memory_size = DEFAULT_MAX_MEM_SIZE;
     } else {
         json db_json;
         db_file >> db_json;
 
         num_datasets = db_json["num_datasets"];
+        max_memory_size = db_json["max_mem_size"];
 
         for (std::string dataset_fname : db_json["datasets"]) {
             datasets.emplace_back(dataset_fname);
@@ -68,6 +70,7 @@ void Database::save() {
     std::ofstream db_file(db_fname, std::ofstream::out);
     json db_json;
     db_json["num_datasets"] = num_datasets;
+    db_json["max_mem_size"] = max_memory_size;
     std::vector<std::string> dataset_names;
 
     for (const auto &ds : datasets) {
@@ -94,8 +97,8 @@ void Database::index_path(const std::vector<IndexType> types, const std::string 
                 std::cout << "empty file, skip" << std::endl;
             }
 
-            if (builder.processed_bytes() > 1024L * 1024 * 512) {
-                std::cout << "new dataset " << builder.processed_bytes() << std::endl;
+            if (builder.estimated_size() > max_memory_size) {
+                std::cout << "new dataset " << builder.estimated_size() << std::endl;
                 add_dataset(builder);
                 builder = DatasetBuilder(types);
             }

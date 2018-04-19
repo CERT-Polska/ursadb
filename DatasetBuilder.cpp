@@ -55,3 +55,13 @@ void DatasetBuilder::index(const std::string &filepath) {
         ndx.add_file(fid, in.data(), in.size());
     }
 }
+
+size_t DatasetBuilder::estimated_size() {
+    size_t out = sizeof(std::vector<TriGram>) * NUM_TRIGRAMS;
+
+    for (const auto &ndx : indices) {
+        out += ndx.estimated_size() * 2;
+    }
+
+    return out;
+}
