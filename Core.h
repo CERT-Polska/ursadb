@@ -1,12 +1,14 @@
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
+#include <cstddef>
 
 using FileId = uint32_t;
 using TriGram = uint32_t;
 
 constexpr uint32_t NUM_TRIGRAMS = 16777216;
 constexpr uint32_t DB_MAGIC = 0xCA7DA7A;
+constexpr size_t DEFAULT_MAX_MEM_SIZE = 1024L * 1024L * 1024L * 2L; // 2 GB
 
 enum class IndexType {
     GRAM3 = 1,
