@@ -3,7 +3,8 @@
 #include <algorithm>
 #include <iostream>
 
-IndexBuilder::IndexBuilder(IndexType ntype) : raw_index(NUM_TRIGRAMS), ntype(ntype), consumed_bytes(0) {}
+IndexBuilder::IndexBuilder(IndexType ntype)
+    : raw_index(NUM_TRIGRAMS), ntype(ntype), consumed_bytes(0) {}
 
 void IndexBuilder::add_trigram(FileId fid, TriGram val) {
     if (raw_index[val].empty() || raw_index[val].back() != fid) {

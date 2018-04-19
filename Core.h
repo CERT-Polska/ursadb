@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 
 using FileId = uint32_t;
 using TriGram = uint32_t;

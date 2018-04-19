@@ -3,17 +3,17 @@
 #include <cstdlib>
 #include <variant>
 
+#include "IndexBuilder.h"
+#include "OnDiskIndex.h"
 #include "Query.h"
 #include "QueryParser.h"
 #include "Utils.h"
 #include "lib/Catch.h"
-#include "IndexBuilder.h"
-#include "OnDiskIndex.h"
 
 TriGram gram3_pack(const char (&s)[4]) {
-    TriGram v0 = (uint8_t) s[0];
-    TriGram v1 = (uint8_t) s[1];
-    TriGram v2 = (uint8_t) s[2];
+    TriGram v0 = (uint8_t)s[0];
+    TriGram v1 = (uint8_t)s[1];
+    TriGram v2 = (uint8_t)s[2];
     return (v0 << 16U) | (v1 << 8U) | (v2 << 0U);
 }
 
@@ -25,14 +25,12 @@ TriGram text4_pack(const char (&s)[5]) {
     return (v0 << 18U) | (v1 << 12U) | (v2 << 6U) | (v3 << 0U);
 }
 
-
 TEST_CASE("Test pack", "[pack]") {
     // pay attention to the input, this covers unexpected sign extension
     REQUIRE(gram3_pack("\xCC\xBB\xAA") == (TriGram)0xCCBBAAU);
     REQUIRE(gram3_pack("\xAA\xBB\xCC") == (TriGram)0xAABBCCU);
     REQUIRE(gram3_pack("abc") == (TriGram)0x616263);
 }
-
 
 TEST_CASE("Test select simple", "[queryparser]") {
     Command cmd = parse_command("select \"test\";");
@@ -57,13 +55,7 @@ TEST_CASE("Test select AND", "[queryparser]") {
 TEST_CASE("Test select operator order", "[queryparser]") {
     Command cmd = parse_command("select \"cat\" | \"dog\" & \"msm\" | \"monk\";");
     Query query = std::get<SelectCommand>(cmd).get_query();
-    REQUIRE(query == q_or({
-        q("cat"),
-        q_and({
-            q("dog"),
-            q_or({q("msm"), q("monk")})
-        })
-    }));
+    REQUIRE(query == q_or({q("cat"), q_and({q("dog"), q_or({q("msm"), q("monk")})})}));
 }
 
 TEST_CASE("Test compact command", "[queryparser]") {
@@ -134,12 +126,12 @@ TEST_CASE("Test get_b64grams", "[text4]") {
     REQUIRE(gram3.size() == 2);
     REQUIRE(gram3[0] == text4_pack("abcd"));
     REQUIRE(gram3[1] == text4_pack("bcde"));
-    str = "abcde""\xAA""fghi";
+    str = "abcde\xAAXghi";
     gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.size() == 3);
     REQUIRE(gram3[0] == text4_pack("abcd"));
     REQUIRE(gram3[1] == text4_pack("bcde"));
-    REQUIRE(gram3[2] == text4_pack("fghi"));
+    REQUIRE(gram3[2] == text4_pack("Xghi"));
 }
 
 TEST_CASE("Test get_h4grams", "[hash4]") {
@@ -205,19 +197,19 @@ void add_test_payload(IndexBuilder &builder) {
     std::string contents;
 
     contents = "kjhg";
-    builder.add_file(1, (const uint8_t*)contents.data(), contents.size());
+    builder.add_file(1, (const uint8_t *)contents.data(), contents.size());
 
     contents = "\xA1\xA2\xA3\xA4\xA5\xA6\xA7\xA8";
-    builder.add_file(2, (const uint8_t*)contents.data(), contents.size());
+    builder.add_file(2, (const uint8_t *)contents.data(), contents.size());
 
     contents = "";
-    builder.add_file(3, (const uint8_t*)contents.data(), contents.size());
+    builder.add_file(3, (const uint8_t *)contents.data(), contents.size());
 
     contents = "\xA1\xA2Xbcde\xA3\xA4\xA5\xA6\xA7systXm32\xA5Xcdef\xA6\xA7";
-    builder.add_file(4, (const uint8_t*)contents.data(), contents.size());
+    builder.add_file(4, (const uint8_t *)contents.data(), contents.size());
 
     contents = "\xAA\xAA\xAA\xAA\xAA\xAAXm32\xA5Xd\xAA\xAA\xAA\xAA\xAA\xAA";
-    builder.add_file(5, (const uint8_t*)contents.data(), contents.size());
+    builder.add_file(5, (const uint8_t *)contents.data(), contents.size());
 }
 
 TEST_CASE("Test IndexBuilder for gram3", "[index_builder_gram3]") {
