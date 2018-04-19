@@ -193,6 +193,15 @@ TEST_CASE("Compress run symmetry", "[compress_run]") {
     }
 }
 
+TEST_CASE("Compress run sanity", "[compress_run]") {
+    std::stringstream ss;
+    std::vector<FileId> fids = {1, 2, 5, 8, 256+8+1};
+    compress_run(fids, ss);
+    std::string s = ss.str();
+
+    REQUIRE(s == "\x02\x01\x03\x03\x81\x02");
+}
+
 void add_test_payload(IndexBuilder &builder) {
     std::string contents;
 
