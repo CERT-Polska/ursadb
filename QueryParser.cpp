@@ -119,10 +119,12 @@ Command transform_command(const parse_tree::node &n) {
         return Command(SelectCommand(transform(*expr)));
     } else if (n.is<index>()) {
         auto &expr = n.children[0];
-        return Command(IndexCommand(expr->content()));
+        return Command(IndexCommand(unescape_string(expr->content())));
     } else if (n.is<compact>()) {
         return Command(CompactCommand());
     }
+
+    throw std::runtime_error("Unknown parse_tree node, can not create Command.");
 }
 }
 

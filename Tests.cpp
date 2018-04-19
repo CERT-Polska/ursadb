@@ -6,6 +6,8 @@
 #include "QueryParser.h"
 #include "Utils.h"
 #include "lib/Catch.h"
+#include "IndexBuilder.h"
+#include "OnDiskIndex.h"
 
 TEST_CASE("Test query parser", "[queryparser]") {
     // It's 3 am :( I'll fix it tommorow
@@ -126,4 +128,113 @@ TEST_CASE("Compress run symmetry", "[compress_run]") {
     for (int i = 0; i < fids.size(); i++) {
         REQUIRE(fids[i] == read_fids[i]);
     }
+}
+
+void add_test_payload(IndexBuilder &builder) {
+    std::string contents;
+
+    contents = "kjhg";
+    builder.add_file(1, (const uint8_t*)contents.data(), contents.size());
+
+    contents = "\xA1\xA2\xA3\xA4\xA5\xA6\xA7\xA8";
+    builder.add_file(2, (const uint8_t*)contents.data(), contents.size());
+
+    contents = "";
+    builder.add_file(3, (const uint8_t*)contents.data(), contents.size());
+
+    contents = "\xA1""\xA2""abcde""\xA3""\xA4\xA5\xA6\xA7""system32""\xA5""cdefg""\xA6""\xA7";
+    builder.add_file(4, (const uint8_t*)contents.data(), contents.size());
+
+    contents = "\xAA\xAA\xAA\xAA\xAA\xAA""em32""\xA5""cd""\xAA\xAA\xAA\xAA\xAA\xAA";
+    builder.add_file(5, (const uint8_t*)contents.data(), contents.size());
+}
+
+TEST_CASE("Test IndexBuilder for gram3", "[index_builder_gram3]") {
+    std::string index_fname = "_test_idx_gram3.ursa";
+
+    IndexBuilder builder(IndexType::GRAM3);
+    add_test_payload(builder);
+    builder.save(index_fname);
+
+    OnDiskIndex ndx(index_fname);
+    std::vector<FileId> res;
+
+    REQUIRE(ndx.query_str("").is_everything());
+    REQUIRE(ndx.query_str("a").is_everything());
+    REQUIRE(ndx.query_str("ab").is_everything());
+
+    res = ndx.query_str("kjhg").vector();
+    REQUIRE(res.size() == 1);
+    REQUIRE(res[0] == 1);
+
+    res = ndx.query_str("\xA1\xA2\xA3").vector();
+    REQUIRE(res.size() == 1);
+    REQUIRE(res[0] == 2);
+
+    res = ndx.query_str("m32""\xA5""c").vector();
+    REQUIRE(res.size() == 2);
+    REQUIRE(res[0] == 4);
+    REQUIRE(res[1] == 5);
+
+    res = ndx.query_str("em32""\xA5""c").vector();
+    REQUIRE(res.size() == 2);
+    REQUIRE(res[0] == 4);
+    REQUIRE(res[1] == 5);
+
+    res = ndx.query_str("em32""\xA5""x").vector();
+    REQUIRE(res.size() == 0);
+
+    res = ndx.query_str("abcdef").vector();
+    REQUIRE(res.size() == 1);
+    REQUIRE(res[0] == 4);
+
+    res = ndx.query_str("\xA4\xA5\xA6\xA7").vector();
+    REQUIRE(res.size() == 2);
+    REQUIRE(res[0] == 2);
+    REQUIRE(res[1] == 4);
+
+    std::remove(index_fname.c_str());
+}
+
+TEST_CASE("Test IndexBuilder for text4", "[index_builder_text4]") {
+    std::string index_fname = "_test_idx_text4.ursa";
+
+    IndexBuilder builder(IndexType::TEXT4);
+    add_test_payload(builder);
+    builder.save(index_fname);
+
+    OnDiskIndex ndx(index_fname);
+    std::vector<FileId> res;
+
+    REQUIRE(ndx.query_str("").is_everything());
+    REQUIRE(ndx.query_str("a").is_everything());
+    REQUIRE(ndx.query_str("ab").is_everything());
+    REQUIRE(ndx.query_str("abc").is_everything());
+
+    res = ndx.query_str("abcd").vector();
+    REQUIRE(res.size() == 1);
+    REQUIRE(res[0] == 4);
+
+    res = ndx.query_str("abcdef").vector();
+    REQUIRE(res.size() == 1);
+    REQUIRE(res[0] == 4);
+
+    res = ndx.query_str("m32""\xA5""c").vector();
+    REQUIRE(res.size() == 0);
+
+    res = ndx.query_str("em32""\xA5""c").vector();
+    REQUIRE(res.size() == 2);
+    REQUIRE(res[0] == 4);
+    REQUIRE(res[1] == 5);
+
+    res = ndx.query_str("em32""\xA5""x").vector();
+    REQUIRE(res.size() == 2);
+    REQUIRE(res[0] == 4);
+    REQUIRE(res[1] == 5);
+
+    REQUIRE(ndx.query_str("\xA1\xA2\xA3").is_everything());
+    REQUIRE(ndx.query_str("d\xA6\xA7").is_everything());
+    REQUIRE(ndx.query_str("\xA4\xA5\xA6\xA7").is_everything());
+
+    std::remove(index_fname.c_str());
 }
