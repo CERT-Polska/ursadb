@@ -14,7 +14,7 @@ class DatasetBuilder {
 
     void index(const std::string &filepath);
     void save(const std::string &fname);
-    size_t real_size() const;
+    size_t estimated_size();
 
   private:
     std::vector<std::string> fids;

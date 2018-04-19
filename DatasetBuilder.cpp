@@ -56,11 +56,11 @@ void DatasetBuilder::index(const std::string &filepath) {
     }
 }
 
-size_t DatasetBuilder::real_size() const {
-    size_t out = 0;
+size_t DatasetBuilder::estimated_size() {
+    size_t out = sizeof(std::vector<TriGram>) * NUM_TRIGRAMS;
 
     for (const auto &ndx : indices) {
-        out += ndx.real_size();
+        out += ndx.estimated_size() * 2;
     }
 
     return out;

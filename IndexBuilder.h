@@ -20,5 +20,5 @@ class IndexBuilder {
     IndexType index_type() const { return ntype; }
     void add_file(FileId fid, const uint8_t *data, size_t size);
     void save(const std::string &fname);
-    size_t real_size() const { return consumed_bytes; }
+    size_t estimated_size() const { return consumed_bytes; }
 };
