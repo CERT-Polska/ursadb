@@ -42,14 +42,15 @@ TEST_CASE("Test select operator order", "[queryparser]") {
     }));
 }
 
-TEST_CASE("Test logical OR", "[queryparser]") {
-    Command cmd = parse_command("select \"test\" | \"lol!\";");
-    REQUIRE(std::holds_alternative<SelectCommand>(cmd));
-    Query q = std::get<SelectCommand>(cmd).get_query();
-    REQUIRE(q.get_type() == QueryType::OR);
-    REQUIRE(q.as_queries().size() == 2);
-    REQUIRE(q.as_queries()[0].as_value() == "test");
-    REQUIRE(q.as_queries()[1].as_value() == "lol!");
+TEST_CASE("Test compact command", "[queryparser]") {
+    Command cmd = parse_command("compact;");
+    REQUIRE(std::holds_alternative<CompactCommand>(cmd));
+}
+
+TEST_CASE("Test index command", "[queryparser]") {
+    Command cmd = parse_command("index \"cat\";");
+    IndexCommand index_cmd = std::get<IndexCommand>(cmd);
+    REQUIRE(index_cmd.get_path() == "cat");
 }
 
 TEST_CASE("Test get_trigrams", "[gram3]") {
