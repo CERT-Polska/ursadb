@@ -34,13 +34,13 @@ TEST_CASE("Test get_trigrams", "[gram3]") {
     SECTION("String len < 3") {
         str = "";
         gram3 = get_trigrams((const uint8_t *)str.c_str(), str.length());
-        REQUIRE(gram3.size() == 0);
+        REQUIRE(gram3.empty());
         str = "a";
         gram3 = get_trigrams((const uint8_t *)str.c_str(), str.length());
-        REQUIRE(gram3.size() == 0);
+        REQUIRE(gram3.empty());
         str = "aa";
         gram3 = get_trigrams((const uint8_t *)str.c_str(), str.length());
-        REQUIRE(gram3.size() == 0);
+        REQUIRE(gram3.empty());
     }
 
     SECTION("String len 3") {
@@ -65,16 +65,16 @@ TEST_CASE("Test get_b64grams", "[text4]") {
 
     str = "";
     gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
-    REQUIRE(gram3.size() == 0);
+    REQUIRE(gram3.empty());
     str = "a";
     gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
-    REQUIRE(gram3.size() == 0);
+    REQUIRE(gram3.empty());
     str = "ab";
     gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
-    REQUIRE(gram3.size() == 0);
+    REQUIRE(gram3.empty());
     str = "abc";
     gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
-    REQUIRE(gram3.size() == 0);
+    REQUIRE(gram3.empty());
     str = "abcd";
     gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.size() == 1);
@@ -96,6 +96,38 @@ TEST_CASE("Test get_b64grams", "[text4]") {
             | (get_b64_value('c') << 12U)
             | (get_b64_value('d') << 6U)
             | (get_b64_value('e') << 0U)));
+}
+
+TriGram mk_g3(const std::string &s) {
+    REQUIRE(s.size() == 3);
+    return ((TriGram)s[0] << 16U) | ((TriGram)s[1] << 8U) | ((TriGram)s[2] << 0U);
+}
+
+TEST_CASE("Test get_h4grams", "[hash4]") {
+    std::string str;
+    std::vector<TriGram> gram3;
+
+    str = "";
+    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    REQUIRE(gram3.empty());
+    str = "a";
+    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    REQUIRE(gram3.empty());
+    str = "ab";
+    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    REQUIRE(gram3.empty());
+    str = "abc";
+    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    REQUIRE(gram3.empty());
+    str = "abcd";
+    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    REQUIRE(gram3.size() == 1);
+    REQUIRE(gram3[0] == (mk_g3("abc") ^ mk_g3("bcd")));
+    str = "abcde";
+    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    REQUIRE(gram3.size() == 2);
+    REQUIRE(gram3[0] == (mk_g3("abc") ^ mk_g3("bcd")));
+    REQUIRE(gram3[1] == (mk_g3("bcd") ^ mk_g3("cde")));
 }
 
 TEST_CASE("Compress run symmetry", "[compress_run]") {

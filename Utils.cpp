@@ -65,10 +65,10 @@ std::vector<TriGram> get_h4grams(const uint8_t *mem, size_t size) {
     uint32_t gram4 = 0;
 
     for (int offset = 0; offset < size; offset++) {
-        gram4 = (mem[offset] >> 8U) ^ (mem[offset] & 0xFFFFFFU);
+        gram4 = ((gram4 & 0xFFFFFFU) << 8U) | mem[offset];
 
         if (offset >= 3) {
-            out.push_back(gram4);
+            out.push_back(((gram4 >> 8U) & 0xFFFFFFU) ^ (gram4 & 0xFFFFFFU));
         }
     }
 
