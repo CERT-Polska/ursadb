@@ -9,7 +9,7 @@
 #include "IndexBuilder.h"
 #include "OnDiskIndex.h"
 
-TriGram pack(const std::string &s) {
+TriGram gram3_pack(const std::string &s) {
     REQUIRE(s.size() == 3);
     auto v0 = (TriGram)(uint8_t) s[0];
     auto v1 = (TriGram)(uint8_t) s[1];
@@ -19,9 +19,9 @@ TriGram pack(const std::string &s) {
 
 TEST_CASE("Test pack", "[pack]") {
     // pay attention to the input, this covers unexpected sign extension
-    REQUIRE(pack("\xCC\xBB\xAA") == (TriGram)0xCCBBAAU);
-    REQUIRE(pack("\xAA\xBB\xCC") == (TriGram)0xAABBCCU);
-    REQUIRE(pack("abc") == (TriGram)0x616263);
+    REQUIRE(gram3_pack("\xCC\xBB\xAA") == (TriGram)0xCCBBAAU);
+    REQUIRE(gram3_pack("\xAA\xBB\xCC") == (TriGram)0xAABBCCU);
+    REQUIRE(gram3_pack("abc") == (TriGram)0x616263);
 }
 
 TEST_CASE("Test query parser", "[queryparser]") {
@@ -58,20 +58,20 @@ TEST_CASE("Test get_trigrams", "[gram3]") {
 
     str = "abc";
     gram3 = get_trigrams((const uint8_t *) str.c_str(), str.length());
-    REQUIRE(gram3[0] == pack("abc"));
+    REQUIRE(gram3[0] == gram3_pack("abc"));
     REQUIRE(gram3.size() == 1);
 
     str = "abcd";
     gram3 = get_trigrams((const uint8_t *) str.c_str(), str.length());
-    REQUIRE(gram3[0] == pack("abc"));
-    REQUIRE(gram3[1] == pack("bcd"));
+    REQUIRE(gram3[0] == gram3_pack("abc"));
+    REQUIRE(gram3[1] == gram3_pack("bcd"));
     REQUIRE(gram3.size() == 2);
 
     // test for sign extension problems
     str = "\xAA\xBB\xCC\xDD";
     gram3 = get_trigrams((const uint8_t *) str.c_str(), str.length());
-    REQUIRE(gram3[0] == pack("\xAA\xBB\xCC"));
-    REQUIRE(gram3[1] == pack("\xBB\xCC\xDD"));
+    REQUIRE(gram3[0] == gram3_pack("\xAA\xBB\xCC"));
+    REQUIRE(gram3[1] == gram3_pack("\xBB\xCC\xDD"));
     REQUIRE(gram3.size() == 2);
 }
 
@@ -151,12 +151,12 @@ TEST_CASE("Test get_h4grams", "[hash4]") {
     str = "abcd";
     gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.size() == 1);
-    REQUIRE(gram3[0] == (pack("abc") ^ pack("bcd")));
+    REQUIRE(gram3[0] == (gram3_pack("abc") ^ gram3_pack("bcd")));
     str = "abcde";
     gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.size() == 2);
-    REQUIRE(gram3[0] == (pack("abc") ^ pack("bcd")));
-    REQUIRE(gram3[1] == (pack("bcd") ^ pack("cde")));
+    REQUIRE(gram3[0] == (gram3_pack("abc") ^ gram3_pack("bcd")));
+    REQUIRE(gram3[1] == (gram3_pack("bcd") ^ gram3_pack("cde")));
 }
 
 TEST_CASE("Compress run symmetry", "[compress_run]") {
