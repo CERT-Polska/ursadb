@@ -41,6 +41,11 @@ Query::Query(const QueryType &type, const std::vector<Query> &queries)
 
 Query::Query(const std::string &str) : type(QueryType::PRIMITIVE), queries(), value(str) {}
 
+const bool Query::operator==(Query other) const {
+    return type == other.type && value == other.value && queries == other.queries;
+}
+
+
 std::ostream &operator<<(std::ostream &os, const Query &query) {
     QueryType type = query.get_type();
     if (type == QueryType::AND || type == QueryType::OR) {

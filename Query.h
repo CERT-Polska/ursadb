@@ -44,6 +44,7 @@ class Query {
     const std::vector<Query> &as_queries() const;
     const std::string &as_value() const;
     const QueryType &get_type() const;
+    const bool operator==(Query other) const;
 
   private:
     QueryType type;

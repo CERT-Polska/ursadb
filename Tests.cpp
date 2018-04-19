@@ -1,6 +1,7 @@
 #define CATCH_CONFIG_MAIN
 
 #include <cstdlib>
+#include <variant>
 
 #include "Query.h"
 #include "QueryParser.h"
@@ -9,22 +10,46 @@
 #include "IndexBuilder.h"
 #include "OnDiskIndex.h"
 
-TEST_CASE("Test query parser", "[queryparser]") {
-    // It's 3 am :( I'll fix it tommorow
+TEST_CASE("Test select simple", "[queryparser]") {
+    Command cmd = parse_command("select \"test\";");
+    REQUIRE(std::holds_alternative<SelectCommand>(cmd));
+    Query q = std::get<SelectCommand>(cmd).get_query();
+    REQUIRE(q.get_type() == QueryType::PRIMITIVE);
+    REQUIRE(q.as_value() == "test");
+}
 
-    // SECTION("Simple atomic") {
-    //     Query q = parse_query("\"test\"");
-    //     REQUIRE(q.get_type() == QueryType::PRIMITIVE);
-    //     REQUIRE(q.as_value() == "test");
-    // }
+TEST_CASE("Test select OR", "[queryparser]") {
+    Command cmd = parse_command("select \"test\" | \"cat\";");
+    Query query = std::get<SelectCommand>(cmd).get_query();
+    REQUIRE(query == q_or({q("test"), q("cat")}));
+}
 
-    // SECTION("Logical or") {
-    //     Query q = parse_query("\"test\" | \"lol!\"");
-    //     REQUIRE(q.get_type() == QueryType::OR);
-    //     REQUIRE(q.as_queries().size() == 2);
-    //     REQUIRE(q.as_queries()[0].as_value() == "test");
-    //     REQUIRE(q.as_queries()[1].as_value() == "lol!");
-    // }
+TEST_CASE("Test select AND", "[queryparser]") {
+    Command cmd = parse_command("select \"test\" & \"cat\";");
+    Query query = std::get<SelectCommand>(cmd).get_query();
+    REQUIRE(query == q_and({q("test"), q("cat")}));
+}
+
+TEST_CASE("Test select operator order", "[queryparser]") {
+    Command cmd = parse_command("select \"cat\" | \"dog\" & \"msm\" | \"monk\";");
+    Query query = std::get<SelectCommand>(cmd).get_query();
+    REQUIRE(query == q_or({
+        q("cat"),
+        q_and({
+            q("dog"),
+            q_or({q("msm"), q("monk")})
+        })
+    }));
+}
+
+TEST_CASE("Test logical OR", "[queryparser]") {
+    Command cmd = parse_command("select \"test\" | \"lol!\";");
+    REQUIRE(std::holds_alternative<SelectCommand>(cmd));
+    Query q = std::get<SelectCommand>(cmd).get_query();
+    REQUIRE(q.get_type() == QueryType::OR);
+    REQUIRE(q.as_queries().size() == 2);
+    REQUIRE(q.as_queries()[0].as_value() == "test");
+    REQUIRE(q.as_queries()[1].as_value() == "lol!");
 }
 
 TEST_CASE("Test get_trigrams", "[gram3]") {
