@@ -14,7 +14,7 @@ class DatasetBuilder {
 
     void index(const std::string &filepath);
     void save(const std::string &fname);
-    const long &processed_bytes() { return total_bytes; }
+    size_t real_size() const;
 
   private:
     std::vector<std::string> fids;

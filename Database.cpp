@@ -94,8 +94,9 @@ void Database::index_path(const std::vector<IndexType> types, const std::string 
                 std::cout << "empty file, skip" << std::endl;
             }
 
-            if (builder.processed_bytes() > 1024L * 1024 * 512) {
-                std::cout << "new dataset " << builder.processed_bytes() << std::endl;
+            // TODO implement command line option/config option to specify mem limit
+            if (builder.real_size() > 1024L * 1024 * 1024 * 2) {
+                std::cout << "new dataset " << builder.real_size() << std::endl;
                 add_dataset(builder);
                 builder = DatasetBuilder(types);
             }
