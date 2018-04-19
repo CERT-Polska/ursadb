@@ -7,6 +7,8 @@ TrigramGenerator get_generator_for(IndexType type) {
             return get_trigrams;
         case IndexType::TEXT4:
             return get_b64grams;
+        case IndexType::HASH4:
+            return get_h4grams;
     }
 }
 
@@ -48,6 +50,26 @@ std::vector<TriGram> get_trigrams(const uint8_t *mem, size_t size) {
     for (int offset = 2; offset < size; offset++) {
         gram3 = ((gram3 & 0xFFFFU) << 8U) | mem[offset];
         out.push_back(gram3);
+    }
+
+    return out;
+}
+
+std::vector<TriGram> get_h4grams(const uint8_t *mem, size_t size) {
+    std::vector<TriGram> out;
+
+    if (size < 4) {
+        return out;
+    }
+
+    uint32_t gram4 = 0;
+
+    for (int offset = 0; offset < size; offset++) {
+        gram4 = ((gram4 & 0xFFFFFFU) << 8U) | mem[offset];
+
+        if (offset >= 3) {
+            out.push_back(((gram4 >> 8U) & 0xFFFFFFU) ^ (gram4 & 0xFFFFFFU));
+        }
     }
 
     return out;
@@ -95,5 +117,7 @@ std::string get_index_type_name(IndexType type) {
             return "gram3";
         case IndexType::TEXT4:
             return "text4";
+        case IndexType::HASH4:
+            return "hash4";
     }
 }
