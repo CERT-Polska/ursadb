@@ -77,13 +77,13 @@ TEST_CASE("Test get_trigrams", "[gram3]") {
     SECTION("String len < 3") {
         str = "";
         gram3 = get_trigrams((const uint8_t *)str.c_str(), str.length());
-        REQUIRE(gram3.size() == 0);
+        REQUIRE(gram3.empty());
         str = "a";
         gram3 = get_trigrams((const uint8_t *)str.c_str(), str.length());
-        REQUIRE(gram3.size() == 0);
+        REQUIRE(gram3.empty());
         str = "aa";
         gram3 = get_trigrams((const uint8_t *)str.c_str(), str.length());
-        REQUIRE(gram3.size() == 0);
+        REQUIRE(gram3.empty());
     }
 
     SECTION("String len 3") {
@@ -230,10 +230,10 @@ void add_test_payload(IndexBuilder &builder) {
     contents = "";
     builder.add_file(3, (const uint8_t*)contents.data(), contents.size());
 
-    contents = "\xA1""\xA2""abcde""\xA3""\xA4\xA5\xA6\xA7""system32""\xA5""cdefg""\xA6""\xA7";
+    contents = "\xA1\xA2Xbcde\xA3\xA4\xA5\xA6\xA7systXm32\xA5Xcdef\xA6\xA7";
     builder.add_file(4, (const uint8_t*)contents.data(), contents.size());
 
-    contents = "\xAA\xAA\xAA\xAA\xAA\xAA""em32""\xA5""cd""\xAA\xAA\xAA\xAA\xAA\xAA";
+    contents = "\xAA\xAA\xAA\xAA\xAA\xAAXm32\xA5Xd\xAA\xAA\xAA\xAA\xAA\xAA";
     builder.add_file(5, (const uint8_t*)contents.data(), contents.size());
 }
 
@@ -259,20 +259,20 @@ TEST_CASE("Test IndexBuilder for gram3", "[index_builder_gram3]") {
     REQUIRE(res.size() == 1);
     REQUIRE(res[0] == 2);
 
-    res = ndx.query_str("m32""\xA5""c").vector();
+    res = ndx.query_str("m32\xA5X").vector();
     REQUIRE(res.size() == 2);
     REQUIRE(res[0] == 4);
     REQUIRE(res[1] == 5);
 
-    res = ndx.query_str("em32""\xA5""c").vector();
+    res = ndx.query_str("Xm32\xA5X").vector();
     REQUIRE(res.size() == 2);
     REQUIRE(res[0] == 4);
     REQUIRE(res[1] == 5);
 
-    res = ndx.query_str("em32""\xA5""x").vector();
+    res = ndx.query_str("Xm32\xA5s").vector();
     REQUIRE(res.size() == 0);
 
-    res = ndx.query_str("abcdef").vector();
+    res = ndx.query_str("Xbcdef").vector();
     REQUIRE(res.size() == 1);
     REQUIRE(res[0] == 4);
 
@@ -299,23 +299,23 @@ TEST_CASE("Test IndexBuilder for text4", "[index_builder_text4]") {
     REQUIRE(ndx.query_str("ab").is_everything());
     REQUIRE(ndx.query_str("abc").is_everything());
 
-    res = ndx.query_str("abcd").vector();
+    res = ndx.query_str("Xbcd").vector();
     REQUIRE(res.size() == 1);
     REQUIRE(res[0] == 4);
 
-    res = ndx.query_str("abcdef").vector();
+    res = ndx.query_str("Xbcdef").vector();
     REQUIRE(res.size() == 1);
     REQUIRE(res[0] == 4);
 
-    res = ndx.query_str("m32""\xA5""c").vector();
+    res = ndx.query_str("m32\xA5X").vector();
     REQUIRE(res.size() == 0);
 
-    res = ndx.query_str("em32""\xA5""c").vector();
+    res = ndx.query_str("Xm32\xA5X").vector();
     REQUIRE(res.size() == 2);
     REQUIRE(res[0] == 4);
     REQUIRE(res[1] == 5);
 
-    res = ndx.query_str("em32""\xA5""x").vector();
+    res = ndx.query_str("Xm32\xA5X").vector();
     REQUIRE(res.size() == 2);
     REQUIRE(res[0] == 4);
     REQUIRE(res[1] == 5);

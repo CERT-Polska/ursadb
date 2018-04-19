@@ -113,7 +113,6 @@ Query transform(const parse_tree::node &n) {
 }
 
 Command transform_command(const parse_tree::node &n) {
-    std::cout << n.name() << std::endl;
     if (n.is<select>()) {
         auto &expr = n.children[0];
         return Command(SelectCommand(transform(*expr)));
