@@ -10,14 +10,21 @@
 #include "IndexBuilder.h"
 #include "OnDiskIndex.h"
 
-
-TriGram gram3_pack(const std::string &s) {
-    REQUIRE(s.size() == 3);
-    auto v0 = (TriGram)(uint8_t) s[0];
-    auto v1 = (TriGram)(uint8_t) s[1];
-    auto v2 = (TriGram)(uint8_t) s[2];
+TriGram gram3_pack(const char (&s)[4]) {
+    TriGram v0 = (uint8_t) s[0];
+    TriGram v1 = (uint8_t) s[1];
+    TriGram v2 = (uint8_t) s[2];
     return (v0 << 16U) | (v1 << 8U) | (v2 << 0U);
 }
+
+TriGram text4_pack(const char (&s)[5]) {
+    TriGram v0 = get_b64_value(s[0]);
+    TriGram v1 = get_b64_value(s[1]);
+    TriGram v2 = get_b64_value(s[2]);
+    TriGram v3 = get_b64_value(s[3]);
+    return (v0 << 18U) | (v1 << 12U) | (v2 << 6U) | (v3 << 0U);
+}
+
 
 TEST_CASE("Test pack", "[pack]") {
     // pay attention to the input, this covers unexpected sign extension
@@ -89,15 +96,15 @@ TEST_CASE("Test get_trigrams", "[gram3]") {
     SECTION("String len 3") {
         str = "abc";
         gram3 = get_trigrams((const uint8_t *)str.c_str(), str.length());
-        REQUIRE(gram3[0] == (('a' << 16U) | ('b' << 8U) | 'c'));
+        REQUIRE(gram3[0] == gram3_pack("abc"));
         REQUIRE(gram3.size() == 1);
     }
 
     SECTION("String len 4") {
         str = "abcd";
         gram3 = get_trigrams((const uint8_t *)str.c_str(), str.length());
-        REQUIRE(gram3[0] == (('a' << 16U) | ('b' << 8U) | 'c'));
-        REQUIRE(gram3[1] == (('b' << 16U) | ('c' << 8U) | 'd'));
+        REQUIRE(gram3[0] == gram3_pack("abc"));
+        REQUIRE(gram3[1] == gram3_pack("bcd"));
         REQUIRE(gram3.size() == 2);
     }
 }
@@ -121,42 +128,18 @@ TEST_CASE("Test get_b64grams", "[text4]") {
     str = "abcd";
     gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.size() == 1);
-    REQUIRE(gram3[0] == (
-            (get_b64_value('a') << 18U)
-            | (get_b64_value('b') << 12U)
-            | (get_b64_value('c') << 6U)
-            | (get_b64_value('d') << 0U)));
+    REQUIRE(gram3[0] == text4_pack("abcd"));
     str = "abcde";
     gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.size() == 2);
-    REQUIRE(gram3[0] == (
-            (get_b64_value('a') << 18U)
-            | (get_b64_value('b') << 12U)
-            | (get_b64_value('c') << 6U)
-            | (get_b64_value('d') << 0U)));
-    REQUIRE(gram3[1] == (
-            (get_b64_value('b') << 18U)
-            | (get_b64_value('c') << 12U)
-            | (get_b64_value('d') << 6U)
-            | (get_b64_value('e') << 0U)));
+    REQUIRE(gram3[0] == text4_pack("abcd"));
+    REQUIRE(gram3[1] == text4_pack("bcde"));
     str = "abcde""\xAA""fghi";
     gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.size() == 3);
-    REQUIRE(gram3[0] == (
-            (get_b64_value('a') << 18U)
-            | (get_b64_value('b') << 12U)
-            | (get_b64_value('c') << 6U)
-            | (get_b64_value('d') << 0U)));
-    REQUIRE(gram3[1] == (
-            (get_b64_value('b') << 18U)
-            | (get_b64_value('c') << 12U)
-            | (get_b64_value('d') << 6U)
-            | (get_b64_value('e') << 0U)));
-    REQUIRE(gram3[2] == (
-            (get_b64_value('f') << 18U)
-            | (get_b64_value('g') << 12U)
-            | (get_b64_value('h') << 6U)
-            | (get_b64_value('i') << 0U)));
+    REQUIRE(gram3[0] == text4_pack("abcd"));
+    REQUIRE(gram3[1] == text4_pack("bcde"));
+    REQUIRE(gram3[2] == text4_pack("fghi"));
 }
 
 TEST_CASE("Test get_h4grams", "[hash4]") {
