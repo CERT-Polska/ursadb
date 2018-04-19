@@ -192,6 +192,8 @@ TEST_CASE("Test IndexBuilder for gram3", "[index_builder_gram3]") {
     REQUIRE(res.size() == 2);
     REQUIRE(res[0] == 2);
     REQUIRE(res[1] == 4);
+
+    std::remove(index_fname.c_str());
 }
 
 TEST_CASE("Test IndexBuilder for text4", "[index_builder_text4]") {
@@ -233,4 +235,6 @@ TEST_CASE("Test IndexBuilder for text4", "[index_builder_text4]") {
     REQUIRE(ndx.query_str("\xA1\xA2\xA3").is_everything());
     REQUIRE(ndx.query_str("d\xA6\xA7").is_everything());
     REQUIRE(ndx.query_str("\xA4\xA5\xA6\xA7").is_everything());
+
+    std::remove(index_fname.c_str());
 }
