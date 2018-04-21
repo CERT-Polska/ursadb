@@ -14,12 +14,12 @@ class DatasetBuilder {
 
     void index(const std::string &filepath);
     void save(const std::string &fname);
-    size_t estimated_size();
+    uint64_t estimated_size();
 
   private:
     std::vector<std::string> fids;
     std::vector<IndexBuilder> indices;
-    long total_bytes;
+    uint64_t total_bytes;
 
     FileId register_fname(const std::string &fname);
 };
