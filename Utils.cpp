@@ -76,24 +76,24 @@ std::vector<TriGram> get_h4grams(const uint8_t *mem, size_t size) {
 }
 
 void compress_run(const std::vector<FileId> &run, std::ostream &out) {
-    uint32_t prev = 0;
+    int64_t prev = -1;
 
-    for (auto next : run) {
-        uint32_t diff = (next + 1U) - prev;
+    for (FileId next : run) {
+        int64_t diff = (next - prev) - 1;
         while (diff >= 0x80U) {
             out.put((uint8_t)(0x80U | (diff & 0x7FU)));
             diff >>= 7;
         }
         out.put((uint8_t)diff);
-        prev = next + 1U;
+        prev = next;
     }
 }
 
 std::vector<FileId> read_compressed_run(const uint8_t *start, const uint8_t *end) {
     std::vector<FileId> res;
-    uint32_t acc = 0;
+    uint64_t acc = 0;
     uint32_t shift = 0;
-    uint32_t base = 0;
+    int64_t prev = -1;
 
     for (const uint8_t *ptr = start; ptr < end; ++ptr) {
         uint32_t next = *ptr;
@@ -101,8 +101,8 @@ std::vector<FileId> read_compressed_run(const uint8_t *start, const uint8_t *end
         acc += (next & 0x7FU) << shift;
         shift += 7U;
         if ((next & 0x80U) == 0) {
-            base += acc;
-            res.push_back(base - 1U);
+            prev += acc + 1;
+            res.push_back(prev);
             acc = 0;
             shift = 0;
         }

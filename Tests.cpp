@@ -171,9 +171,9 @@ TEST_CASE("Compress run symmetry", "[compress_run]") {
 
     for (int i = 0; i < 1000; i++) {
         if (rand() % 100 < 80) {
-            last_fid += rand() % 120;
+            last_fid += 1 + rand() % 120;
         } else {
-            last_fid += rand() % 100000;
+            last_fid += 1 + rand() % 100000;
         }
 
         fids.push_back(last_fid);
@@ -199,7 +199,7 @@ TEST_CASE("Compress run sanity", "[compress_run]") {
     compress_run(fids, ss);
     std::string s = ss.str();
 
-    REQUIRE(s == "\x02\x01\x03\x03\x81\x02");
+    REQUIRE(s == std::string("\x01\x00\x02\x02\x80\x02", 6));
 }
 
 void add_test_payload(IndexBuilder &builder) {
