@@ -18,7 +18,7 @@ void IndexBuilder::save(const std::string &fname) {
     std::ofstream out(fname, std::ofstream::binary | std::ofstream::out);
 
     uint32_t magic = DB_MAGIC;
-    uint32_t version = 5;
+    uint32_t version = 6;
     uint32_t ndx_type = static_cast<uint32_t>(ntype);
     uint32_t reserved = 0;
 
@@ -27,17 +27,17 @@ void IndexBuilder::save(const std::string &fname) {
     out.write((char *)&ndx_type, 4);
     out.write((char *)&reserved, 4);
 
-    std::vector<uint32_t> offsets(NUM_TRIGRAMS + 1);
+    std::vector<uint64_t> offsets(NUM_TRIGRAMS + 1);
 
     for (int i = 0; i < NUM_TRIGRAMS; i++) {
-        offsets[i] = (uint32_t)out.tellp();
+        offsets[i] = (uint64_t)out.tellp();
         std::sort(raw_index[i].begin(), raw_index[i].end());
         raw_index[i].erase(unique(raw_index[i].begin(), raw_index[i].end()), raw_index[i].end());
         compress_run(raw_index[i], out);
     }
-    offsets[NUM_TRIGRAMS] = (uint32_t)out.tellp();
+    offsets[NUM_TRIGRAMS] = (uint64_t)out.tellp();
 
-    out.write((char *)offsets.data(), (NUM_TRIGRAMS + 1) * 4);
+    out.write((char *)offsets.data(), (NUM_TRIGRAMS + 1) * sizeof(uint64_t));
     out.close();
 }
 

@@ -10,12 +10,12 @@
 struct IndexMergeHelper;
 
 class OnDiskIndex {
-    const uint32_t *run_offsets;
+    const uint64_t *run_offsets;
     MemMap disk_map;
     IndexType ntype;
 
     const uint8_t *data() const { return disk_map.data(); }
-    static constexpr uint32_t VERSION = 5;
+    static constexpr uint32_t VERSION = 6;
     std::vector<FileId> query_primitive(TriGram trigram) const;
 
   public:

@@ -26,7 +26,7 @@ OnDiskIndex::OnDiskIndex(const std::string &fname) : disk_map(fname) {
     }
 
     ntype = static_cast<IndexType>(raw_type);
-    run_offsets = (uint32_t *)&data[disk_map.size() - (NUM_TRIGRAMS + 1) * 4];
+    run_offsets = (uint64_t *)&data[disk_map.size() - (NUM_TRIGRAMS + 1) * sizeof(uint64_t)];
 }
 
 QueryResult OnDiskIndex::query_str(const std::string &str) const {
@@ -42,8 +42,8 @@ QueryResult OnDiskIndex::query_str(const std::string &str) const {
 }
 
 std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram) const {
-    uint32_t ptr = run_offsets[trigram];
-    uint32_t next_ptr = run_offsets[trigram + 1];
+    uint64_t ptr = run_offsets[trigram];
+    uint64_t next_ptr = run_offsets[trigram + 1];
 
     const uint8_t *data = disk_map.data();
     std::vector<FileId> out = read_compressed_run(&data[ptr], &data[next_ptr]);
@@ -57,7 +57,7 @@ void OnDiskIndex::on_disk_merge(
     if (!std::all_of(indexes.begin(), indexes.end(), [merge_type](const IndexMergeHelper &ndx) {
             return ndx.index->ntype == merge_type;
         })) {
-        throw new std::runtime_error("Unexpected index type during merge");
+        throw std::runtime_error("Unexpected index type during merge");
     }
 
     uint32_t magic = DB_MAGIC;
@@ -70,11 +70,11 @@ void OnDiskIndex::on_disk_merge(
     out.write((char *)&ndx_type, 4);
     out.write((char *)&reserved, 4);
 
-    std::vector<uint32_t> out_offsets(NUM_TRIGRAMS + 1);
-    std::vector<uint32_t> in_offsets(indexes.size());
+    std::vector<uint64_t> out_offsets(NUM_TRIGRAMS + 1);
+    std::vector<uint64_t> in_offsets(indexes.size());
 
     for (int i = 0; i < NUM_TRIGRAMS; i++) {
-        out_offsets[i] = (uint32_t)out.tellp();
+        out_offsets[i] = (uint64_t)out.tellp();
         std::vector<FileId> all_ids;
         FileId baseline = 0;
         for (const IndexMergeHelper &helper : indexes) {
@@ -88,8 +88,8 @@ void OnDiskIndex::on_disk_merge(
         }
         compress_run(all_ids, out);
     }
-    out_offsets[NUM_TRIGRAMS] = (uint32_t)out.tellp();
+    out_offsets[NUM_TRIGRAMS] = (uint64_t)out.tellp();
 
-    out.write((char *)out_offsets.data(), (NUM_TRIGRAMS + 1) * 4);
+    out.write((char *)out_offsets.data(), (NUM_TRIGRAMS + 1) * sizeof(uint64_t));
     out.close();
 }

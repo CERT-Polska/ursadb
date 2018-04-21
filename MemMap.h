@@ -9,7 +9,7 @@ class MemMap {
     int fd;
     std::string fname;
     uint8_t *mmap_ptr;
-    size_t fsize;
+    uint64_t fsize;
 
   public:
     explicit MemMap(const std::string &fname);
