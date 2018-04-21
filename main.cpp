@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
     Database db(argv[1]);
 
     if (argc == 2) {
-        while (true) {
+        while (!std::cin.eof()) {
             std::string input;
             std::cout << "> ";
             std::getline(std::cin, input);
