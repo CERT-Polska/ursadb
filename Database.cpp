@@ -1,11 +1,13 @@
 #include "Database.h"
 
-#include <cstdio>
 #include <experimental/filesystem>
-#include <fcntl.h>
-#include <unistd.h>
+#include <fstream>
+#include <iostream>
 
 #include "ExclusiveFile.h"
+#include "lib/Json.h"
+
+using json = nlohmann::json;
 
 Database::Database() : max_memory_size(DEFAULT_MAX_MEM_SIZE), num_datasets(0) {}
 
@@ -64,6 +66,8 @@ void Database::compact() {
     }
 
     datasets.clear();
+
+    using json = nlohmann::json;
     datasets.emplace_back(dataset_name);
     save();
 }

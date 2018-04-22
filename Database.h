@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include "DatasetBuilder.h"
 #include "OnDiskDataset.h"
 #include "Query.h"

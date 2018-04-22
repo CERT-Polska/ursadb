@@ -1,6 +1,5 @@
 #pragma once
 
-#include <fstream>
 #include <string>
 #include <vector>
 
@@ -15,6 +14,7 @@ std::vector<TriGram> get_h4grams(const uint8_t *mem, size_t size);
 void compress_run(const std::vector<FileId> &run, std::ostream &out);
 std::vector<FileId> read_compressed_run(const uint8_t *start, const uint8_t *end);
 std::string get_index_type_name(IndexType type);
+
 constexpr int get_b64_value(uint8_t character) {
     constexpr int ALPHABET_SIZE = 'Z' - 'A' + 1;
     if (character >= 'A' && character <= 'Z') {

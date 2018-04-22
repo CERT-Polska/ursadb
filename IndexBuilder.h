@@ -1,11 +1,9 @@
 #pragma once
 
-#include <fstream>
 #include <string>
 #include <vector>
 
 #include "Core.h"
-#include "Utils.h"
 
 class IndexBuilder {
     std::vector<std::vector<FileId>> raw_index;

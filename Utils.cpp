@@ -1,5 +1,7 @@
-#include "Utils.h"
+#include <fstream>
+
 #include "MemMap.h"
+#include "Utils.h"
 
 TrigramGenerator get_generator_for(IndexType type) {
     switch (type) {

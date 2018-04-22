@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <list>
+#include <sstream>
 #include <stack>
 #include <utility>
 #include <variant>

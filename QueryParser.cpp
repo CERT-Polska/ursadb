@@ -12,12 +12,23 @@
 #include "lib/pegtl/contrib/unescape.hpp"
 
 #include "Command.h"
-#include "Parser.h"
 #include "Query.h"
 
 using namespace tao::TAO_PEGTL_NAMESPACE; // NOLINT
 
 namespace queryparse {
+
+struct xdigit : abnf::HEXDIG {};
+struct unicode : list<seq<one<'u'>, rep<4, must<xdigit>>>, one<'\\'>> {};
+struct escaped_x : seq<one<'x'>, rep<2, must<xdigit>>> {};
+
+struct escaped : sor<escaped_x, unicode> {};
+struct character : if_must_else<one<'\\'>, escaped, utf8::range<0x20, 0x10FFFF>> {};
+
+struct string_content : until<at<one<'"'>>, must<character>> {};
+struct string : seq<one<'"'>, must<string_content>, any> {
+    using content = string_content;
+};
 
 struct op_and : pad<one<'&'>, space> {};
 struct op_or : pad<one<'|'>, space> {};

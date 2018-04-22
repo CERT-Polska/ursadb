@@ -1,7 +1,10 @@
 #include "IndexBuilder.h"
 
 #include <algorithm>
+#include <fstream>
 #include <iostream>
+
+#include "Utils.h"
 
 IndexBuilder::IndexBuilder(IndexType ntype)
     : raw_index(NUM_TRIGRAMS), ntype(ntype), consumed_bytes(0) {}
