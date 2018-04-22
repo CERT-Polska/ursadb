@@ -13,9 +13,12 @@ class Database {
 
   public:
     explicit Database(const std::string &fname);
+    explicit Database();
     void index_path(const std::vector<IndexType> types, const std::string &filepath);
     void execute(const Query &query, std::vector<std::string> &out);
     void add_dataset(DatasetBuilder &builder);
     void compact();
     void save();
+
+    static void create(const std::string &path);
 };

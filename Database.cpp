@@ -2,40 +2,48 @@
 
 #include <cstdio>
 #include <experimental/filesystem>
-
 #include <fcntl.h>
 #include <unistd.h>
 
-Database::Database(const std::string &fname) : db_fname(fname), max_memory_size(0) {
-    std::ifstream db_file(fname);
+#include "ExclusiveFile.h"
 
-    if (db_file.fail()) {
-        num_datasets = 0;
-        max_memory_size = DEFAULT_MAX_MEM_SIZE;
-    } else {
-        json db_json;
-        db_file >> db_json;
+Database::Database() : max_memory_size(DEFAULT_MAX_MEM_SIZE), num_datasets(0) {}
 
-        num_datasets = db_json["num_datasets"];
-        max_memory_size = db_json["max_mem_size"];
+Database::Database(const std::string &fname) : db_fname(fname) {
+    std::ifstream db_file(db_fname);
+    json db_json;
+    db_file >> db_json;
 
-        for (std::string dataset_fname : db_json["datasets"]) {
-            datasets.emplace_back(dataset_fname);
-        }
+    num_datasets = db_json["num_datasets"];
+    max_memory_size = db_json["max_mem_size"];
 
-        db_file.close();
+    for (std::string dataset_fname : db_json["datasets"]) {
+        datasets.emplace_back(dataset_fname);
     }
+}
+
+void Database::create(const std::string &fname) {
+    ExclusiveFile lock(fname);
+    if (!lock.is_ok()) {
+        // TODO() implement either-type error class
+        throw std::runtime_error("File already exists");
+    }
+    Database empty;
+    empty.db_fname = fname;
+    empty.save();
 }
 
 std::string Database::allocate_name() {
     while (true) {
+        // TODO limit this to some sane value (like 10000 etc),
+        // to avoid infinite loop in exceptional cases.
+
         std::stringstream ss;
         ss << "set." << num_datasets << "." << db_fname;
         num_datasets++;
         std::string fname = ss.str();
-        int fd = open(fname.c_str(), O_CREAT | O_EXCL, 0777);
-        if (fd != -1) {
-            close(fd);
+        ExclusiveFile lock(fname);
+        if (lock.is_ok()) {
             return fname;
         }
     }
