@@ -15,7 +15,7 @@ MemMap::MemMap(const std::string &fname) : fname(fname) {
         throw std::runtime_error("file open error");
     }
 
-    fsize = static_cast<size_t>(lseek(fd, 0, SEEK_END));
+    fsize = static_cast<uint64_t>(lseek(fd, 0, SEEK_END));
 
     if (fsize == 0) {
         close(fd);
