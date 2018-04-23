@@ -111,7 +111,7 @@ std::string unescape_string(const std::string &str) {
                 return result;
             }
 
-            result += (hex2int(str.at(i + 2U)) << 4) + hex2int(str.at(i + 3U));
+            result += (hex2int(str.at(i + 2U)) << 4U) + hex2int(str.at(i + 3U));
             i += 3;
         } else {
             result += str[i];
