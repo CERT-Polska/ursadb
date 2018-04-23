@@ -33,7 +33,7 @@ OnDiskIndex::OnDiskIndex(const std::string &fname) : disk_map(fname) {
     run_offsets = (uint64_t *)&data[disk_map.size() - (NUM_TRIGRAMS + 1) * sizeof(uint64_t)];
 
     for (int i = 0; i < NUM_TRIGRAMS; i++) {
-        if (!disk_map.in_bounds((uint8_t *)run_offsets[i])) {
+        if (!disk_map.in_bounds((uint8_t *)&data[run_offsets[i]])) {
             throw std::runtime_error("run offset out of index bounds");
         }
     }
