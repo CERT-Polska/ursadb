@@ -25,6 +25,11 @@ class MemMap {
     const uint8_t *data() const { return mmap_ptr; }
 
     const size_t &size() const { return fsize; }
+
+    template <typename T>
+    bool in_bounds(const T *ptr) {
+        return (uint8_t *)ptr >= mmap_ptr && (uint8_t *)ptr + sizeof(T) <= mmap_ptr + size();
+    }
 };
 
 class empty_file_error : public std::runtime_error {
