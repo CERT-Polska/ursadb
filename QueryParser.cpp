@@ -90,7 +90,10 @@ std::map<char, char> char_escape = {
 };
 
 std::string unescape_string(const std::string &str) {
+    // at this point, we know that str conforms with the grammar,
+    // so no extraordinary checks are needed
     std::string result;
+    // string is provided with it's defining quotes
     assert(str[0] == '"');
     assert(str[str.size() - 1] == '"');
 
