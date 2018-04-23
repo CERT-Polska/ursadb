@@ -7,6 +7,11 @@
 #include "Utils.h"
 
 OnDiskIndex::OnDiskIndex(const std::string &fname) : disk_map(fname) {
+    constexpr uint64_t RUN_OFFSET_ARRAY_SIZE = (NUM_TRIGRAMS + 1) * sizeof(uint64_t);
+    if (disk_map.size() < 16 + RUN_OFFSET_ARRAY_SIZE) {
+        throw std::runtime_error("corrupted index, file is too small");
+    }
+
     const uint8_t *data = disk_map.data();
     uint32_t magic = *(uint32_t *)&data[0];
     uint32_t version = *(uint32_t *)&data[4];
@@ -25,18 +30,8 @@ OnDiskIndex::OnDiskIndex(const std::string &fname) : disk_map(fname) {
         throw std::runtime_error("invalid index type");
     }
 
-    if (disk_map.size() < 16 + (NUM_TRIGRAMS + 1) * sizeof(uint64_t)) {
-        throw std::runtime_error("corrupted index, such small file can not be valid");
-    }
-
     ntype = static_cast<IndexType>(raw_type);
-    run_offsets = (uint64_t *)&data[disk_map.size() - (NUM_TRIGRAMS + 1) * sizeof(uint64_t)];
-
-    for (int i = 0; i < NUM_TRIGRAMS; i++) {
-        if (!disk_map.in_bounds((uint8_t *)&data[run_offsets[i]])) {
-            throw std::runtime_error("run offset out of index bounds");
-        }
-    }
+    run_offsets = (uint64_t *)&data[disk_map.size() - RUN_OFFSET_ARRAY_SIZE];
 }
 
 QueryResult OnDiskIndex::query_str(const std::string &str) const {
@@ -54,10 +49,14 @@ QueryResult OnDiskIndex::query_str(const std::string &str) const {
 std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram) const {
     uint64_t ptr = run_offsets[trigram];
     uint64_t next_ptr = run_offsets[trigram + 1];
-
     const uint8_t *data = disk_map.data();
-    std::vector<FileId> out = read_compressed_run(&data[ptr], &data[next_ptr]);
-    return out;
+
+    if (ptr > next_ptr || next_ptr > disk_map.size()) {
+        // TODO() - Which index? Which run?
+        throw std::runtime_error("internal error: index is corrupted, invalid run");
+    }
+
+    return read_compressed_run(&data[ptr], &data[next_ptr]);
 }
 
 void OnDiskIndex::on_disk_merge(
@@ -83,14 +82,12 @@ void OnDiskIndex::on_disk_merge(
     std::vector<uint64_t> out_offsets(NUM_TRIGRAMS + 1);
     std::vector<uint64_t> in_offsets(indexes.size());
 
-    for (int i = 0; i < NUM_TRIGRAMS; i++) {
-        out_offsets[i] = (uint64_t)out.tellp();
+    for (int trigram = 0; trigram < NUM_TRIGRAMS; trigram++) {
+        out_offsets[trigram] = (uint64_t)out.tellp();
         std::vector<FileId> all_ids;
         FileId baseline = 0;
         for (const IndexMergeHelper &helper : indexes) {
-            std::vector<FileId> new_ids = read_compressed_run(
-                    helper.index->data() + helper.index->run_offsets[i],
-                    helper.index->data() + helper.index->run_offsets[i + 1]);
+            std::vector<FileId> new_ids = helper.index->query_primitive(trigram);
             for (FileId id : new_ids) {
                 all_ids.push_back(id + baseline);
             }
