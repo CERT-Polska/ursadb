@@ -2,6 +2,8 @@
 // Copyright (c) 2017-2018 Dr. Colin Hirsch and Daniel Frey
 // Please see LICENSE for license or visit https://github.com/taocpp/PEGTL/
 
+#include "QueryParser.h"
+
 #include <iostream>
 #include <string>
 #include <type_traits>
@@ -12,12 +14,24 @@
 #include "lib/pegtl/contrib/unescape.hpp"
 
 #include "Command.h"
-#include "Parser.h"
 #include "Query.h"
 
 using namespace tao::TAO_PEGTL_NAMESPACE; // NOLINT
 
 namespace queryparse {
+
+struct xdigit : abnf::HEXDIG {};
+struct unicode : list<seq<one<'u'>, rep<4, must<xdigit>>>, one<'\\'>> {};
+struct escaped_x : seq<one<'x'>, rep<2, must<xdigit>>> {};
+struct escaped_char : one<'"', '\\', '/', 'b', 'f', 'n', 'r', 't'> {};
+
+struct escaped : sor<escaped_char, escaped_x, unicode> {};
+struct character : if_must_else<one<'\\'>, escaped, utf8::range<0x20, 0x10FFFF>> {};
+
+struct string_content : until<at<one<'"'>>, must<character>> {};
+struct string : seq<one<'"'>, must<string_content>, any> {
+    using content = string_content;
+};
 
 struct op_and : pad<one<'&'>, space> {};
 struct op_or : pad<one<'|'>, space> {};
@@ -70,14 +84,31 @@ constexpr int hex2int(char hexchar) {
     }
 }
 
+std::map<char, char> char_escape = {
+        {'"', '\"'}, {'\\', '\\'}, {'/', '/'}, {'b', '\b'},
+        {'f', '\f'}, {'n', '\n'}, {'r', '\r'}, {'t', '\t'}
+};
+
 std::string unescape_string(const std::string &str) {
     std::string result;
+    assert(str[0] == '"');
+    assert(str[str.size() - 1] == '"');
+
     for (int i = 1; i < str.size() - 1; i++) {
         if (str[i] == '\\') {
-            if (str.at(i + 1) != 'x') {
+            auto it = char_escape.find(str.at(i + 1U));
+
+            if (it != char_escape.end()) {
+                result += (*it).second;
+                i += 1;
+                continue;
+            }
+
+            if (str.at(i + 1U) != 'x') {
                 return result;
             }
-            result += (hex2int(str.at(i + 2)) << 4) + hex2int(str.at(i + 3));
+
+            result += (hex2int(str.at(i + 2U)) << 4) + hex2int(str.at(i + 3U));
             i += 3;
         } else {
             result += str[i];
