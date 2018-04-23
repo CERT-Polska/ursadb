@@ -2,9 +2,13 @@
 
 #include <fstream>
 #include <iostream>
+#include <set>
 
 #include "OnDiskDataset.h"
 #include "Utils.h"
+#include "lib/Json.h"
+
+using json = nlohmann::json;
 
 DatasetBuilder::DatasetBuilder(const std::vector<IndexType> &index_types) : total_bytes(0) {
     for (const auto &index_type : index_types) {

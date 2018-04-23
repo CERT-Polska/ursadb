@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <list>
+#include <sstream>
 #include <stack>
 #include <utility>
 #include <variant>
@@ -56,7 +57,7 @@ int main(int argc, char *argv[]) {
 
     Database db(argv[1]);
 
-    if (argc == 2) {
+    if (argc == 2 || argv[2] == std::string("repl")) {
         while (!std::cin.eof()) {
             std::string input;
             std::cout << "> ";

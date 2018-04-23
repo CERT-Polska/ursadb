@@ -1,8 +1,12 @@
 #include "OnDiskDataset.h"
 
+#include <fstream>
 #include <set>
 
 #include "Query.h"
+#include "lib/Json.h"
+
+using json = nlohmann::json;
 
 OnDiskDataset::OnDiskDataset(const std::string &fname) : name(fname) {
     std::ifstream in(name);

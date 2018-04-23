@@ -195,7 +195,7 @@ TEST_CASE("Compress run symmetry", "[compress_run]") {
 
 TEST_CASE("Compress run sanity", "[compress_run]") {
     std::stringstream ss;
-    std::vector<FileId> fids = {1, 2, 5, 8, 256+8+1};
+    std::vector<FileId> fids = {1, 2, 5, 8, 256 + 8 + 1};
     compress_run(fids, ss);
     std::string s = ss.str();
 

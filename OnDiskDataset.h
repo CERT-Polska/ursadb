@@ -1,15 +1,11 @@
 #pragma once
 
-#include <fstream>
-#include <iostream>
+#include <string>
 #include <vector>
 
 #include "Core.h"
 #include "OnDiskIndex.h"
 #include "Query.h"
-#include "lib/Json.h"
-
-using json = nlohmann::json;
 
 class OnDiskDataset {
     std::string name;
