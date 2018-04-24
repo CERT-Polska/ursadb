@@ -2,6 +2,8 @@
 // Copyright (c) 2017-2018 Dr. Colin Hirsch and Daniel Frey
 // Please see LICENSE for license or visit https://github.com/taocpp/PEGTL/
 
+#include "QueryParser.h"
+
 #include <iostream>
 #include <string>
 #include <type_traits>
@@ -18,53 +20,48 @@ using namespace tao::TAO_PEGTL_NAMESPACE; // NOLINT
 
 namespace queryparse {
 
-struct xdigit : abnf::HEXDIG {};
-struct unicode : list<seq<one<'u'>, rep<4, must<xdigit>>>, one<'\\'>> {};
-struct escaped_x : seq<one<'x'>, rep<2, must<xdigit>>> {};
-
-struct escaped : sor<escaped_x, unicode> {};
-struct character : if_must_else<one<'\\'>, escaped, utf8::range<0x20, 0x10FFFF>> {};
-
+struct hexdigit : abnf::HEXDIG {};
+struct hexbyte : seq<hexdigit, hexdigit> {};
+struct escaped_x : seq<one<'x'>, hexbyte> {};
+struct escaped_char : one<'"', '\\', 'b', 'f', 'n', 'r', 't'> {};
+struct escaped : sor<escaped_char, escaped_x> {};
+struct ascii_char : utf8::range<0x20, 0x7e> {};
+struct character : if_must_else<one<'\\'>, escaped, ascii_char> {};
 struct string_content : until<at<one<'"'>>, must<character>> {};
-struct string : seq<one<'"'>, must<string_content>, any> {
+struct plaintext : seq<one<'"'>, must<string_content>, any> {
     using content = string_content;
 };
-
 struct op_and : pad<one<'&'>, space> {};
 struct op_or : pad<one<'|'>, space> {};
-
 struct open_bracket : seq<one<'('>, star<space>> {};
 struct close_bracket : seq<star<space>, one<')'>> {};
-
 struct open_hex : seq<one<'{'>, star<space>> {};
 struct close_hex : seq<star<space>, one<'}'>> {};
-struct hexbyte : seq<xdigit, xdigit> {};
 struct hexbytes : list<hexbyte, star<space>> {};
-
+struct hexstring : if_must<open_hex, hexbytes, close_hex> {};
+struct string_like : sor<plaintext, hexstring> {};
 struct expression;
 struct bracketed : if_must<open_bracket, expression, close_bracket> {};
-struct hexstring : if_must<open_hex, hexbytes, close_hex> {};
-struct value : sor<string, hexstring, bracketed> {};
+struct value : sor<string_like, bracketed> {};
 struct expression : seq<value, star<sor<op_and, op_or>, expression>> {};
-
 struct select_token : tao::TAO_PEGTL_NAMESPACE::string<'s', 'e', 'l', 'e', 'c', 't'> {};
 struct index_token : tao::TAO_PEGTL_NAMESPACE::string<'i', 'n', 'd', 'e', 'x'> {};
 struct compact_token : tao::TAO_PEGTL_NAMESPACE::string<'c', 'o', 'm', 'p', 'a', 'c', 't'> {};
-
 struct select : seq<select_token, plus<space>, expression> {};
-struct index : seq<index_token, plus<space>, string> {};
+struct index : seq<index_token, plus<space>, string_like> {};
 struct compact : seq<compact_token> {};
-
 struct command : seq<sor<select, index, compact>, star<space>, one<';'>> {};
 struct grammar : seq<command, star<space>, eof> {};
 
 template <typename> struct store : std::false_type {};
-template <> struct store<string> : std::true_type {};
+template <> struct store<plaintext> : std::true_type {};
 template <> struct store<op_and> : parse_tree::remove_content {};
 template <> struct store<op_or> : parse_tree::remove_content {};
 template <> struct store<expression> : std::true_type {};
 template <> struct store<hexstring> : std::true_type {};
+template <> struct store<escaped_char> : std::true_type {};
 template <> struct store<hexbyte> : std::true_type {};
+template <> struct store<ascii_char> : std::true_type {};
 template <> struct store<select> : std::true_type {};
 template <> struct store<index> : std::true_type {};
 template <> struct store<compact> : std::true_type {};
@@ -81,32 +78,51 @@ constexpr int hex2int(char hexchar) {
     }
 }
 
-std::string unescape_string(const std::string &str) {
+constexpr char unescape_char(char escaped) {
+    switch (escaped) {
+        case '"':
+            return '\"';
+        case '\\':
+            return '\\';
+        case 'b':
+            return '\b';
+        case 'f':
+            return '\f';
+        case 'n':
+            return '\n';
+        case 'r':
+            return '\r';
+        case 't':
+            return '\t';
+        default:
+            throw std::runtime_error("unexpected escaped char");
+    }
+}
+
+char transform_char(const parse_tree::node &n) {
+    const std::string &content = n.content();
+    if (n.is<hexbyte>()) {
+        return (char)((hex2int(content[0]) << 4) + hex2int(content[1]));
+    } else if (n.is<ascii_char>()) {
+        return content[0];
+    } else if (n.is<escaped_char>()) {
+        return unescape_char(content[0]);
+    } else {
+        throw new std::runtime_error("unknown character parse");
+    }
+}
+
+std::string transform_string(const parse_tree::node &n) {
     std::string result;
-    for (int i = 1; i < str.size() - 1; i++) {
-        if (str[i] == '\\') {
-            if (str.at(i + 1) != 'x') {
-                return result;
-            }
-            result += (hex2int(str.at(i + 2)) << 4) + hex2int(str.at(i + 3));
-            i += 3;
-        } else {
-            result += str[i];
-        }
+    for (auto &atom : n.children) {
+        result += transform_char(*atom);
     }
     return result;
 }
 
 Query transform(const parse_tree::node &n) {
-    if (n.is<string>()) {
-        return Query(unescape_string(n.content()));
-    } else if (n.is<hexstring>()) {
-        std::string result;
-        for (auto &hexbyte : n.children) {
-            std::string content = hexbyte->content();
-            result += (char)((hex2int(content[0]) << 4) + hex2int(content[1]));
-        }
-        return Query(result);
+    if (n.is<plaintext>() || n.is<hexstring>()) {
+        return Query(transform_string(n));
     } else if (n.is<expression>()) {
         if (n.children.size() == 1) {
             return transform(*n.children[0]);
@@ -129,7 +145,7 @@ Command transform_command(const parse_tree::node &n) {
         return Command(SelectCommand(transform(*expr)));
     } else if (n.is<index>()) {
         auto &expr = n.children[0];
-        return Command(IndexCommand(unescape_string(expr->content())));
+        return Command(IndexCommand(transform_string(*expr)));
     } else if (n.is<compact>()) {
         return Command(CompactCommand());
     }

@@ -25,51 +25,94 @@ TriGram text4_pack(const char (&s)[5]) {
     return (v0 << 18U) | (v1 << 12U) | (v2 << 6U) | (v3 << 0U);
 }
 
-TEST_CASE("Test pack", "[pack]") {
+Query do_select(std::string query_text) {
+    Command cmd = parse_command(query_text);
+    REQUIRE(std::holds_alternative<SelectCommand>(cmd));
+    return std::get<SelectCommand>(cmd).get_query();
+}
+
+TEST_CASE("pack", "[pack]") {
     // pay attention to the input, this covers unexpected sign extension
     REQUIRE(gram3_pack("\xCC\xBB\xAA") == (TriGram)0xCCBBAAU);
     REQUIRE(gram3_pack("\xAA\xBB\xCC") == (TriGram)0xAABBCCU);
     REQUIRE(gram3_pack("abc") == (TriGram)0x616263);
 }
 
-TEST_CASE("Test select simple", "[queryparser]") {
-    Command cmd = parse_command("select \"test\";");
-    REQUIRE(std::holds_alternative<SelectCommand>(cmd));
-    Query q = std::get<SelectCommand>(cmd).get_query();
+TEST_CASE("select simple", "[queryparser]") {
+    Query q = do_select("select \"test\";");
     REQUIRE(q.get_type() == QueryType::PRIMITIVE);
     REQUIRE(q.as_value() == "test");
 }
 
-TEST_CASE("Test select OR", "[queryparser]") {
-    Command cmd = parse_command("select \"test\" | \"cat\";");
-    Query query = std::get<SelectCommand>(cmd).get_query();
+TEST_CASE("select hex lowercase", "[queryparser]") {
+    Query query = do_select("select {4d534d};");
+    REQUIRE(query == q("MSM"));
+}
+
+TEST_CASE("select hex uppercase", "[queryparser]") {
+    Query query = do_select("select {4D534D};");
+    REQUIRE(query == q("MSM"));
+}
+
+TEST_CASE("select hex spaces", "[queryparser]") {
+    Query query = do_select("select {4d 53 4d};");
+    REQUIRE(query == q("MSM"));
+}
+
+TEST_CASE("select hex string escapses lowercase", "[queryparser]") {
+    Query query = do_select("select \"\\x4d\\x53\\x4d\";");
+    REQUIRE(query == q("MSM"));
+}
+
+TEST_CASE("select hex string escapses uppercase", "[queryparser]") {
+    Query query = do_select("select \"\\x4D\\x53\\x4D\";");
+    REQUIRE(query == q("MSM"));
+}
+
+TEST_CASE("select char escapses", "[queryparser]") {
+    Query query = do_select("select \"\\n\\t\\r\\f\\b\\\\\\\"\";");
+    REQUIRE(query == q("\n\t\r\f\b\\\""));
+}
+
+TEST_CASE("select OR", "[queryparser]") {
+    Query query = do_select("select \"test\" | \"cat\";");
     REQUIRE(query == q_or({q("test"), q("cat")}));
 }
 
-TEST_CASE("Test select AND", "[queryparser]") {
-    Command cmd = parse_command("select \"test\" & \"cat\";");
-    Query query = std::get<SelectCommand>(cmd).get_query();
+TEST_CASE("select AND", "[queryparser]") {
+    Query query = do_select("select \"test\" & \"cat\";");
     REQUIRE(query == q_and({q("test"), q("cat")}));
 }
 
-TEST_CASE("Test select operator order", "[queryparser]") {
-    Command cmd = parse_command("select \"cat\" | \"dog\" & \"msm\" | \"monk\";");
-    Query query = std::get<SelectCommand>(cmd).get_query();
+TEST_CASE("select operator order", "[queryparser]") {
+    Query query = do_select("select \"cat\" | \"dog\" & \"msm\" | \"monk\";");
     REQUIRE(query == q_or({q("cat"), q_and({q("dog"), q_or({q("msm"), q("monk")})})}));
 }
 
-TEST_CASE("Test compact command", "[queryparser]") {
+TEST_CASE("compact command", "[queryparser]") {
     Command cmd = parse_command("compact;");
     REQUIRE(std::holds_alternative<CompactCommand>(cmd));
 }
 
-TEST_CASE("Test index command", "[queryparser]") {
+TEST_CASE("index command", "[queryparser]") {
     Command cmd = parse_command("index \"cat\";");
     IndexCommand index_cmd = std::get<IndexCommand>(cmd);
     REQUIRE(index_cmd.get_path() == "cat");
 }
 
-TEST_CASE("Test get_trigrams", "[gram3]") {
+TEST_CASE("index command with escapes", "[queryparser]") {
+    Command cmd = parse_command("index \"\\x63\\x61\\x74\";");
+    IndexCommand index_cmd = std::get<IndexCommand>(cmd);
+    REQUIRE(index_cmd.get_path() == "cat");
+}
+
+TEST_CASE("index command with hexstring", "[queryparser]") {
+    Command cmd = parse_command("index {63 61 74};");
+    IndexCommand index_cmd = std::get<IndexCommand>(cmd);
+    REQUIRE(index_cmd.get_path() == "cat");
+}
+
+TEST_CASE("get_trigrams", "[gram3]") {
     std::string str;
     std::vector<TriGram> gram3;
 
@@ -101,7 +144,7 @@ TEST_CASE("Test get_trigrams", "[gram3]") {
     }
 }
 
-TEST_CASE("Test get_b64grams", "[text4]") {
+TEST_CASE("get_b64grams", "[text4]") {
     std::string str;
     std::vector<TriGram> gram3;
 
@@ -134,7 +177,7 @@ TEST_CASE("Test get_b64grams", "[text4]") {
     REQUIRE(gram3[2] == text4_pack("Xghi"));
 }
 
-TEST_CASE("Test get_h4grams", "[hash4]") {
+TEST_CASE("get_h4grams", "[hash4]") {
     std::string str;
     std::vector<TriGram> gram3;
 
@@ -221,7 +264,7 @@ void add_test_payload(IndexBuilder &builder) {
     builder.add_file(5, (const uint8_t *)contents.data(), contents.size());
 }
 
-TEST_CASE("Test IndexBuilder for gram3", "[index_builder_gram3]") {
+TEST_CASE("IndexBuilder for gram3", "[index_builder_gram3]") {
     std::string index_fname = "_test_idx_gram3.ursa";
 
     IndexBuilder builder(IndexType::GRAM3);
@@ -268,7 +311,7 @@ TEST_CASE("Test IndexBuilder for gram3", "[index_builder_gram3]") {
     std::remove(index_fname.c_str());
 }
 
-TEST_CASE("Test IndexBuilder for text4", "[index_builder_text4]") {
+TEST_CASE("IndexBuilder for text4", "[index_builder_text4]") {
     std::string index_fname = "_test_idx_text4.ursa";
 
     IndexBuilder builder(IndexType::TEXT4);
