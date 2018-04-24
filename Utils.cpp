@@ -15,6 +15,8 @@ TrigramGenerator get_generator_for(IndexType type) {
             return get_b64grams;
         case IndexType::HASH4:
             return get_h4grams;
+        case IndexType::WIDE8:
+            return get_wide_b64grams;
     }
 }
 
@@ -38,6 +40,41 @@ std::vector<TriGram> get_b64grams(const uint8_t *mem, size_t size) {
         }
         if (good_run >= 4) {
             out.push_back(gram4);
+        }
+    }
+
+    return out;
+}
+
+std::vector<TriGram> get_wide_b64grams(const uint8_t *mem, size_t size) {
+    std::vector<TriGram> out;
+
+    if (size < 8) {
+        return out;
+    }
+
+    uint32_t gram4 = 0;
+    int good_run = 0;
+
+    for (int offset = 0; offset < size; offset++) {
+        if (good_run % 2 == 1) {
+            if (mem[offset] == 0) {
+                good_run += 1;
+            } else {
+                good_run = 0;
+            }
+
+            if (good_run >= 8) {
+                out.push_back(gram4);
+            }
+        } else {
+            int next = get_b64_value(mem[offset]);
+            if (next < 0) {
+                good_run = 0;
+            } else {
+                gram4 = ((gram4 << 6) + next) & 0xFFFFFF;
+                good_run += 1;
+            }
         }
     }
 
@@ -125,6 +162,8 @@ std::string get_index_type_name(IndexType type) {
             return "text4";
         case IndexType::HASH4:
             return "hash4";
+        case IndexType::WIDE8:
+            return "wide8";
     }
 }
 
