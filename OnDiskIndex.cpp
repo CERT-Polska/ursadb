@@ -99,5 +99,4 @@ void OnDiskIndex::on_disk_merge(
     out_offsets[NUM_TRIGRAMS] = (uint64_t)out.tellp();
 
     out.write((char *)out_offsets.data(), (NUM_TRIGRAMS + 1) * sizeof(uint64_t));
-    out.close();
 }
