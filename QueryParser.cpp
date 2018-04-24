@@ -31,6 +31,7 @@ struct string_content : until<at<one<'"'>>, must<character>> {};
 struct plaintext : seq<one<'"'>, must<string_content>, any> {
     using content = string_content;
 };
+struct wide_plaintext : seq<one<'w'>, plaintext> {};
 struct op_and : pad<one<'&'>, space> {};
 struct op_or : pad<one<'|'>, space> {};
 struct open_bracket : seq<one<'('>, star<space>> {};
@@ -39,7 +40,7 @@ struct open_hex : seq<one<'{'>, star<space>> {};
 struct close_hex : seq<star<space>, one<'}'>> {};
 struct hexbytes : list<hexbyte, star<space>> {};
 struct hexstring : if_must<open_hex, hexbytes, close_hex> {};
-struct string_like : sor<plaintext, hexstring> {};
+struct string_like : sor<wide_plaintext, plaintext, hexstring> {};
 struct expression;
 struct bracketed : if_must<open_bracket, expression, close_bracket> {};
 struct value : sor<string_like, bracketed> {};
@@ -55,6 +56,7 @@ struct grammar : seq<command, star<space>, eof> {};
 
 template <typename> struct store : std::false_type {};
 template <> struct store<plaintext> : std::true_type {};
+template <> struct store<wide_plaintext> : std::true_type {};
 template <> struct store<op_and> : parse_tree::remove_content {};
 template <> struct store<op_or> : parse_tree::remove_content {};
 template <> struct store<expression> : std::true_type {};
@@ -108,20 +110,31 @@ char transform_char(const parse_tree::node &n) {
     } else if (n.is<escaped_char>()) {
         return unescape_char(content[0]);
     } else {
-        throw new std::runtime_error("unknown character parse");
+        throw std::runtime_error("unknown character parse");
     }
 }
 
 std::string transform_string(const parse_tree::node &n) {
+    auto *root = &n;
+
+    if (n.is<wide_plaintext>()) {
+        // unpack plaintext from inside wide_plaintext
+        root = n.children[0].get();
+    }
+
     std::string result;
-    for (auto &atom : n.children) {
+    for (auto &atom : (*root).children) {
         result += transform_char(*atom);
+
+        if (n.is<wide_plaintext>()) {
+            result += (char)0;
+        }
     }
     return result;
 }
 
 Query transform(const parse_tree::node &n) {
-    if (n.is<plaintext>() || n.is<hexstring>()) {
+    if (n.is<plaintext>() || n.is<wide_plaintext>() || n.is<hexstring>()) {
         return Query(transform_string(n));
     } else if (n.is<expression>()) {
         if (n.children.size() == 1) {

@@ -31,7 +31,7 @@ std::string execute_command(const SelectCommand &cmd, Database *db) {
 
 std::string execute_command(const IndexCommand &cmd, Database *db) {
     const std::string &path = cmd.get_path();
-    std::vector<IndexType> types = {IndexType::GRAM3, IndexType::TEXT4, IndexType::HASH4};
+    std::vector<IndexType> types = {IndexType::WIDE4};
     db->index_path(types, path);
 
     return "OK";
