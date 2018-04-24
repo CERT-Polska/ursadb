@@ -20,7 +20,7 @@ bool ExclusiveFile::is_ok() { return fd != -1; }
 
 int ExclusiveFile::get_fd() {
     if (fd == -1) {
-        throw new std::runtime_error("Trying to extract descriptor from failed open()");
+        throw std::runtime_error("Trying to extract descriptor from failed open()");
     }
     return fd;
 }
