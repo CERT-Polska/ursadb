@@ -91,7 +91,6 @@ void Database::save() {
 
     db_json["datasets"] = dataset_names;
     db_file << std::setw(4) << db_json << std::endl;
-    db_file.close();
 }
 
 void Database::index_path(const std::vector<IndexType> types, const std::string &filepath) {

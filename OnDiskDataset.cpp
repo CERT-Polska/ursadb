@@ -19,7 +19,7 @@ OnDiskDataset::OnDiskDataset(const std::string &fname) : name(fname) {
 
     filename_list = j["filename_list"];
     std::string filename;
-    std::ifstream inf(filename_list);
+    std::ifstream inf(filename_list, std::ifstream::binary);
 
     while (!inf.eof()) {
         std::getline(inf, filename);
@@ -28,8 +28,6 @@ OnDiskDataset::OnDiskDataset(const std::string &fname) : name(fname) {
             fnames.push_back(filename);
         }
     }
-
-    inf.close();
 }
 
 const std::string &OnDiskDataset::get_file_name(FileId fid) const { return fnames.at(fid); }

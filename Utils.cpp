@@ -130,11 +130,10 @@ std::string get_index_type_name(IndexType type) {
 
 void store_dataset(const std::string &fname, std::set<std::string> index_names, std::vector<std::string> &fids) {
     std::string fname_list = "files." + fname;
-    std::ofstream of(fname_list, std::ofstream::out);
+    std::ofstream of(fname_list, std::ofstream::out | std::ofstream::binary);
     for (auto &fn : fids) {
-        of << fn << std::endl;
+        of << fn << "\n";
     }
-    of.close();
 
     json dataset;
     json j_indices(index_names);
@@ -144,5 +143,4 @@ void store_dataset(const std::string &fname, std::set<std::string> index_names, 
 
     std::ofstream o(fname, std::ofstream::out);
     o << std::setw(4) << dataset << std::endl;
-    o.close();
 }
