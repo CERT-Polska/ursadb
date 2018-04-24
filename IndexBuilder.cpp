@@ -41,7 +41,6 @@ void IndexBuilder::save(const std::string &fname) {
     offsets[NUM_TRIGRAMS] = (uint64_t)out.tellp();
 
     out.write((char *)offsets.data(), (NUM_TRIGRAMS + 1) * sizeof(uint64_t));
-    out.close();
 }
 
 void IndexBuilder::add_file(FileId fid, const uint8_t *data, size_t size) {

@@ -17,8 +17,16 @@ OnDiskDataset::OnDiskDataset(const std::string &fname) : name(fname) {
         indices.emplace_back(index_fname);
     }
 
-    for (std::string filename : j["filenames"]) {
-        fnames.push_back(filename);
+    filename_list = j["filename_list"];
+    std::string filename;
+    std::ifstream inf(filename_list, std::ifstream::binary);
+
+    while (!inf.eof()) {
+        std::getline(inf, filename);
+
+        if (!filename.empty()) {
+            fnames.push_back(filename);
+        }
     }
 }
 
@@ -79,10 +87,10 @@ void OnDiskDataset::merge(const std::string &outname, const std::vector<OnDiskDa
 
     json dataset;
 
-    std::vector<std::string> index_names;
+    std::set<std::string> index_names;
     for (IndexType index_type : index_types) {
         std::string index_name = get_index_type_name(index_type) + "." + outname;
-        index_names.push_back(index_name);
+        index_names.insert(index_name);
         std::vector<IndexMergeHelper> indexes;
         for (const OnDiskDataset &dataset : datasets) {
             indexes.push_back(IndexMergeHelper(
@@ -98,15 +106,7 @@ void OnDiskDataset::merge(const std::string &outname, const std::vector<OnDiskDa
         }
     }
 
-    json j_indices(index_names);
-    json j_fids(file_names);
-
-    dataset["indices"] = j_indices;
-    dataset["filenames"] = j_fids;
-
-    std::ofstream o(outname, std::ofstream::out);
-    o << std::setw(4) << dataset << std::endl;
-    o.close();
+    store_dataset(outname, index_names, file_names);
 }
 
 const OnDiskIndex &OnDiskDataset::get_index_with_type(IndexType index_type) const {
@@ -135,6 +135,11 @@ void OnDiskDataset::drop() {
             std::perror("Failed to delete file");
             throw std::runtime_error("Failed to delete " + idx_name);
         }
+    }
+
+    if (std::remove(filename_list.c_str()) != 0) {
+        std::perror("Failed to delete file");
+        throw std::runtime_error("Failed to delete " + filename_list);
     }
 
     if (std::remove(get_name().c_str()) != 0) {

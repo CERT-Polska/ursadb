@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <set>
 
 #include "Core.h"
 
@@ -31,3 +32,5 @@ constexpr int get_b64_value(uint8_t character) {
         return -1;
     }
 }
+
+void store_dataset(const std::string &fname, std::set<std::string> index_names, std::vector<std::string> &fids);

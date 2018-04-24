@@ -9,6 +9,7 @@
 
 class OnDiskDataset {
     std::string name;
+    std::string filename_list;
     std::vector<std::string> fnames;
     std::vector<OnDiskIndex> indices;
 
