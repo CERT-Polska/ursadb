@@ -17,6 +17,10 @@ DatasetBuilder::DatasetBuilder(const std::vector<IndexType> &index_types) : tota
 }
 
 FileId DatasetBuilder::register_fname(const std::string &fname) {
+    if (fname.find('\n') != std::string::npos || fname.find('\r') != std::string::npos) {
+        throw std::runtime_error("file name contains invalid character (either \\r or \\n)");
+    }
+
     auto new_id = (FileId)fids.size();
     fids.push_back(fname);
     return new_id;
@@ -31,24 +35,14 @@ void DatasetBuilder::save(const std::string &fname) {
         c_set.emplace(ndx_name);
     }
 
-    json dataset;
-
-    json j_indices(c_set);
-    json j_fids(fids);
-
-    dataset["indices"] = j_indices;
-    dataset["filenames"] = j_fids;
-
-    std::ofstream o(fname, std::ofstream::out);
-    o << std::setw(4) << dataset << std::endl;
-    o.close();
+    store_dataset(fname, c_set, fids);
 }
 
 void DatasetBuilder::index(const std::string &filepath) {
     MemMap in(filepath);
 
     if (in.size() > 1024 * 1024 * 128) {
-        std::cout << "!!! TEMPORARY HACK, FILE TOO LARGE: " << filepath << std::endl;
+        std::cout << "refusing to index file larger than 128MB: " << filepath << std::endl;
         return;
     }
 

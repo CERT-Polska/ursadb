@@ -1,7 +1,11 @@
 #include <fstream>
+#include <set>
 
 #include "MemMap.h"
 #include "Utils.h"
+#include "lib/Json.h"
+
+using json = nlohmann::json;
 
 TrigramGenerator get_generator_for(IndexType type) {
     switch (type) {
@@ -122,4 +126,23 @@ std::string get_index_type_name(IndexType type) {
         case IndexType::HASH4:
             return "hash4";
     }
+}
+
+void store_dataset(const std::string &fname, std::set<std::string> index_names, std::vector<std::string> &fids) {
+    std::string fname_list = "files." + fname;
+    std::ofstream of(fname_list, std::ofstream::out);
+    for (auto &fn : fids) {
+        of << fn << std::endl;
+    }
+    of.close();
+
+    json dataset;
+    json j_indices(index_names);
+
+    dataset["indices"] = j_indices;
+    dataset["filename_list"] = fname_list;
+
+    std::ofstream o(fname, std::ofstream::out);
+    o << std::setw(4) << dataset << std::endl;
+    o.close();
 }
