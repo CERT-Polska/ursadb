@@ -12,7 +12,7 @@ TrigramGenerator get_generator_for(IndexType type) {
             return get_b64grams;
         case IndexType::HASH4:
             return get_h4grams;
-        case IndexType::WIDE4:
+        case IndexType::WIDE8:
             return get_wide_b64grams;
     }
 }
@@ -159,7 +159,7 @@ std::string get_index_type_name(IndexType type) {
             return "text4";
         case IndexType::HASH4:
             return "hash4";
-        case IndexType::WIDE4:
-            return "wide4";
+        case IndexType::WIDE8:
+            return "wide8";
     }
 }

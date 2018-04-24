@@ -14,7 +14,7 @@ enum class IndexType {
     GRAM3 = 1,
     TEXT4 = 2,
     HASH4 = 3,
-    WIDE4 = 4
+    WIDE8 = 4
 };
 
 constexpr bool is_valid_index_type(uint32_t type) {
@@ -23,7 +23,7 @@ constexpr bool is_valid_index_type(uint32_t type) {
         case static_cast<uint32_t>(IndexType::GRAM3):
         case static_cast<uint32_t>(IndexType::TEXT4):
         case static_cast<uint32_t>(IndexType::HASH4):
-        case static_cast<uint32_t>(IndexType::WIDE4):
+        case static_cast<uint32_t>(IndexType::WIDE8):
             return true;
     }
     return false;

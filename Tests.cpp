@@ -177,7 +177,7 @@ TEST_CASE("get_b64grams", "[text4]") {
     REQUIRE(gram3[2] == text4_pack("Xghi"));
 }
 
-TEST_CASE("get_wide_b64grams", "[wide4]") {
+TEST_CASE("get_wide_b64grams", "[wide8]") {
     std::string str;
     std::vector<TriGram> gram3;
 
