@@ -167,6 +167,6 @@ void store_dataset(const fs::path &db_base, const std::string &fname,
     dataset["indices"] = j_indices;
     dataset["files"] = fname_list;
 
-    std::ofstream o(db_base / fname, std::ofstream::out);
+    std::ofstream o(db_base / fname, std::ofstream::out | std::ofstream::binary);
     o << std::setw(4) << dataset << std::endl;
 }
