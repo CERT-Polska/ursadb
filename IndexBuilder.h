@@ -10,7 +10,7 @@ class IndexBuilder {
     IndexType ntype;
     uint64_t consumed_bytes;
 
-    inline void add_trigram(FileId fid, TriGram val);
+    void add_trigram(FileId fid, TriGram val);
 
   public:
     IndexBuilder(IndexType ntype);

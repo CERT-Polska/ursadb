@@ -102,46 +102,6 @@ void gen_h4grams(const uint8_t *mem, size_t size, TrigramCallback cb) {
     }
 }
 
-std::vector<TriGram> get_trigrams(const uint8_t *mem, size_t size) {
-    std::vector<TriGram> out;
-
-    gen_trigrams(mem, size, [&](auto val) {
-        out.push_back(val);
-    });
-
-    return out;
-}
-
-std::vector<TriGram> get_b64grams(const uint8_t *mem, size_t size) {
-    std::vector<TriGram> out;
-
-    gen_b64grams(mem, size, [&](auto val) {
-        out.push_back(val);
-    });
-
-    return out;
-}
-
-std::vector<TriGram> get_wide_b64grams(const uint8_t *mem, size_t size) {
-    std::vector<TriGram> out;
-
-    gen_wide_b64grams(mem, size, [&](auto val) {
-        out.push_back(val);
-    });
-
-    return out;
-}
-
-std::vector<TriGram> get_h4grams(const uint8_t *mem, size_t size) {
-    std::vector<TriGram> out;
-
-    gen_h4grams(mem, size, [&](auto val) {
-        out.push_back(val);
-    });
-
-    return out;
-}
-
 void compress_run(const std::vector<FileId> &run, std::ostream &out) {
     int64_t prev = -1;
 

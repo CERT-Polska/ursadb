@@ -118,26 +118,26 @@ TEST_CASE("get_trigrams", "[gram3]") {
 
     SECTION("String len < 3") {
         str = "";
-        gram3 = get_trigrams((const uint8_t *)str.c_str(), str.length());
+        gram3 = get_trigrams_eager<gen_trigrams>((const uint8_t *)str.c_str(), str.length());
         REQUIRE(gram3.empty());
         str = "a";
-        gram3 = get_trigrams((const uint8_t *)str.c_str(), str.length());
+        gram3 = get_trigrams_eager<gen_trigrams>((const uint8_t *)str.c_str(), str.length());
         REQUIRE(gram3.empty());
         str = "aa";
-        gram3 = get_trigrams((const uint8_t *)str.c_str(), str.length());
+        gram3 = get_trigrams_eager<gen_trigrams>((const uint8_t *)str.c_str(), str.length());
         REQUIRE(gram3.empty());
     }
 
     SECTION("String len 3") {
         str = "abc";
-        gram3 = get_trigrams((const uint8_t *)str.c_str(), str.length());
+        gram3 = get_trigrams_eager<gen_trigrams>((const uint8_t *)str.c_str(), str.length());
         REQUIRE(gram3[0] == gram3_pack("abc"));
         REQUIRE(gram3.size() == 1);
     }
 
     SECTION("String len 4") {
         str = "abcd";
-        gram3 = get_trigrams((const uint8_t *)str.c_str(), str.length());
+        gram3 = get_trigrams_eager<gen_trigrams>((const uint8_t *)str.c_str(), str.length());
         REQUIRE(gram3[0] == gram3_pack("abc"));
         REQUIRE(gram3[1] == gram3_pack("bcd"));
         REQUIRE(gram3.size() == 2);
@@ -149,28 +149,28 @@ TEST_CASE("get_b64grams", "[text4]") {
     std::vector<TriGram> gram3;
 
     str = "";
-    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_b64grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.empty());
     str = "a";
-    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_b64grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.empty());
     str = "ab";
-    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_b64grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.empty());
     str = "abc";
-    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_b64grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.empty());
     str = "abcd";
-    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_b64grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.size() == 1);
     REQUIRE(gram3[0] == text4_pack("abcd"));
     str = "abcde";
-    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_b64grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.size() == 2);
     REQUIRE(gram3[0] == text4_pack("abcd"));
     REQUIRE(gram3[1] == text4_pack("bcde"));
     str = "abcde\xAAXghi";
-    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_b64grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.size() == 3);
     REQUIRE(gram3[0] == text4_pack("abcd"));
     REQUIRE(gram3[1] == text4_pack("bcde"));
@@ -182,34 +182,34 @@ TEST_CASE("get_wide_b64grams", "[wide8]") {
     std::vector<TriGram> gram3;
 
     str = "";
-    gram3 = get_wide_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_wide_b64grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.empty());
     str = "a";
-    gram3 = get_wide_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_wide_b64grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.empty());
     str = "ab";
-    gram3 = get_wide_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_wide_b64grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.empty());
     str = "abcdefg";
-    gram3 = get_wide_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_wide_b64grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.empty());
     str = std::string("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 10);
-    gram3 = get_wide_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_wide_b64grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.empty());
     str = std::string("a\0b\0c\0d\0", 8);
-    gram3 = get_wide_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_wide_b64grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.size() == 1);
     REQUIRE(gram3[0] == text4_pack("abcd"));
     str = std::string("a\0b\0c\0d\0e\0", 10);
-    gram3 = get_wide_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_wide_b64grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.size() == 2);
     REQUIRE(gram3[0] == text4_pack("abcd"));
     REQUIRE(gram3[1] == text4_pack("bcde"));
     str = std::string("\0a\0b\0c\0d", 8);
-    gram3 = get_wide_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_wide_b64grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.empty());
     str = std::string("\0a\0b\0c\0d\0", 9);
-    gram3 = get_wide_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_wide_b64grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.size() == 1);
     REQUIRE(gram3[0] == text4_pack("abcd"));
 }
@@ -219,23 +219,23 @@ TEST_CASE("get_h4grams", "[hash4]") {
     std::vector<TriGram> gram3;
 
     str = "";
-    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_h4grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.empty());
     str = "a";
-    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_h4grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.empty());
     str = "ab";
-    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_h4grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.empty());
     str = "abc";
-    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_h4grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.empty());
     str = "abcd";
-    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_h4grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.size() == 1);
     REQUIRE(gram3[0] == (gram3_pack("abc") ^ gram3_pack("bcd")));
     str = "abcde";
-    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_trigrams_eager<gen_h4grams>((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.size() == 2);
     REQUIRE(gram3[0] == (gram3_pack("abc") ^ gram3_pack("bcd")));
     REQUIRE(gram3[1] == (gram3_pack("bcd") ^ gram3_pack("cde")));

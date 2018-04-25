@@ -16,10 +16,16 @@ void gen_b64grams(const uint8_t *mem, size_t size, TrigramCallback callback);
 void gen_wide_b64grams(const uint8_t *mem, size_t size, TrigramCallback callback);
 void gen_h4grams(const uint8_t *mem, size_t size, TrigramCallback callback);
 
-std::vector<TriGram> get_trigrams(const uint8_t *mem, size_t size);
-std::vector<TriGram> get_b64grams(const uint8_t *mem, size_t size);
-std::vector<TriGram> get_wide_b64grams(const uint8_t *mem, size_t size);
-std::vector<TriGram> get_h4grams(const uint8_t *mem, size_t size);
+template <TrigramGenerator gen>
+std::vector<TriGram> get_trigrams_eager(const uint8_t *mem, size_t size) {
+    std::vector<TriGram> out;
+
+    gen(mem, size, [&](auto val) {
+        out.push_back(val);
+    });
+
+    return out;
+}
 
 void compress_run(const std::vector<FileId> &run, std::ostream &out);
 std::vector<FileId> read_compressed_run(const uint8_t *start, const uint8_t *end);

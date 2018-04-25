@@ -10,7 +10,7 @@
 IndexBuilder::IndexBuilder(IndexType ntype)
     : raw_index(NUM_TRIGRAMS), ntype(ntype), consumed_bytes(0) {}
 
-inline void IndexBuilder::add_trigram(FileId fid, TriGram val) {
+void IndexBuilder::add_trigram(FileId fid, TriGram val) {
     if (raw_index[val].empty() || raw_index[val].back() != fid) {
         // guard against indexing same (file, trigram) pair twice
         raw_index[val].push_back(fid);
@@ -46,5 +46,7 @@ void IndexBuilder::save(const std::string &fname) {
 
 void IndexBuilder::add_file(FileId fid, const uint8_t *data, size_t size) {
     TrigramGenerator generator = get_generator_for(ntype);
-    generator(data, size, std::bind(&IndexBuilder::add_trigram, this, fid, std::placeholders::_1));
+    generator(data, size, [&](TriGram val) {
+        add_trigram(fid, val);
+    });
 }
