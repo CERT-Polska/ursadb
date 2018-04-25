@@ -18,7 +18,7 @@ class OnDiskIndex {
     std::vector<FileId> query_primitive(TriGram trigram) const;
 
   public:
-    OnDiskIndex(const std::string &fname);
+    explicit OnDiskIndex(const std::string &fname);
 
     const std::string &get_fname() const { return disk_map.name(); }
     IndexType index_type() const { return ntype; }

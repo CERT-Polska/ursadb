@@ -119,7 +119,7 @@ const OnDiskIndex &OnDiskDataset::get_index_with_type(IndexType index_type) cons
     throw std::runtime_error("Requested index type doesn't exist in dataset");
 }
 
-void OnDiskDataset::drop_file(const std::string &fname) {
+void OnDiskDataset::drop_file(const std::string &fname) const {
     if (std::remove(fname.c_str()) != 0) {
         std::perror("Failed to delete file");
         throw std::runtime_error("Failed to delete " + fname);

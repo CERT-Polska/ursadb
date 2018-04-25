@@ -18,13 +18,13 @@ class OnDiskDataset {
     QueryResult query_str(const std::string &str) const;
     QueryResult internal_execute(const Query &query) const;
     const OnDiskIndex &get_index_with_type(IndexType index_type) const;
+    void drop_file(const std::string &fname) const;
 
   public:
-    OnDiskDataset(const fs::path &db_base, const std::string &fname);
+    explicit OnDiskDataset(const fs::path &db_base, const std::string &fname);
     const std::string &get_name() const;
     void execute(const Query &query, std::vector<std::string> *out) const;
     static void merge(const fs::path &db_base, const std::string &outname,
                       const std::vector<OnDiskDataset> &datasets);
     void drop();
-    void drop_file(const std::string &fname);
 };

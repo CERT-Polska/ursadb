@@ -15,9 +15,19 @@ Database::Database() : max_memory_size(DEFAULT_MAX_MEM_SIZE), num_datasets(0) {}
 Database::Database(const std::string &fname) {
     set_filename(fname);
 
-    std::ifstream db_file(db_base / db_name);
+    std::ifstream db_file(db_base / db_name, std::ifstream::binary);
+
+    if (db_file.fail()) {
+        throw std::runtime_error("Failed to open database file");
+    }
+
     json db_json;
-    db_file >> db_json;
+
+    try {
+        db_file >> db_json;
+    } catch (json::parse_error &e) {
+        throw std::runtime_error("Failed to parse JSON");
+    }
 
     num_datasets = db_json["num_datasets"];
     max_memory_size = db_json["max_mem_size"];
