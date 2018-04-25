@@ -18,14 +18,12 @@ DatasetBuilder::DatasetBuilder(const std::vector<IndexType> &index_types) : tota
 }
 
 FileId DatasetBuilder::register_fname(const std::string &fname) {
-    namespace fs = std::experimental::filesystem;
-
     if (fname.find('\n') != std::string::npos || fname.find('\r') != std::string::npos) {
         throw std::runtime_error("file name contains invalid character (either \\r or \\n)");
     }
 
     auto new_id = (FileId)fids.size();
-    fids.push_back(fs::absolute(fname).string());
+    fids.push_back(fname);
     return new_id;
 }
 

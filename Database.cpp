@@ -72,7 +72,11 @@ std::string Database::allocate_name() {
 void Database::add_dataset(DatasetBuilder &builder) {
     auto dataset_name = allocate_name();
     builder.save(db_base, dataset_name);
-    datasets.emplace_back(db_base, dataset_name);
+    OnDiskDataset &ds = datasets.emplace_back(db_base, dataset_name);
+
+    for (auto &fn : ds.indexed_files()) {
+        all_files.insert(fn);
+    }
 }
 
 void Database::compact() {
@@ -116,12 +120,27 @@ void Database::index_path(const std::vector<IndexType> types, const std::string 
     DatasetBuilder builder(types);
     fs::recursive_directory_iterator end;
 
+    if (all_files.empty()) {
+        for (auto &dataset : datasets) {
+            for (auto &fn : dataset.indexed_files()) {
+                all_files.insert(fn);
+            }
+        }
+    }
+
     for (fs::recursive_directory_iterator dir(filepath); dir != end; ++dir) {
         if (fs::is_regular_file(dir->path())) {
-            std::cout << dir->path().string() << std::endl;
+            fs::path absfn = fs::absolute(dir->path());
+
+            if (all_files.find(absfn.string()) != all_files.end()) {
+                std::cout << "skip existing " << absfn.string() << std::endl;
+                continue;
+            }
+
+            std::cout << "indexing " << absfn.string() << std::endl;
 
             try {
-                builder.index(dir->path().string());
+                builder.index(absfn.string());
             } catch (empty_file_error &e) {
                 std::cout << "empty file, skip" << std::endl;
             }
@@ -134,6 +153,8 @@ void Database::index_path(const std::vector<IndexType> types, const std::string 
         }
     }
 
-    add_dataset(builder);
-    save();
+    if (!builder.empty()) {
+        add_dataset(builder);
+        save();
+    }
 }

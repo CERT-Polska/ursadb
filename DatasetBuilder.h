@@ -15,6 +15,7 @@ class DatasetBuilder {
     void index(const std::string &filepath);
     void save(const fs::path &db_base, const std::string &fname);
     uint64_t estimated_size();
+    bool empty() const { return fids.empty(); }
 
   private:
     std::vector<std::string> fids;
