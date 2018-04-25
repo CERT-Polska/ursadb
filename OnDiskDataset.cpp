@@ -8,18 +8,18 @@
 
 using json = nlohmann::json;
 
-OnDiskDataset::OnDiskDataset(const std::string &fname) : name(fname) {
-    std::ifstream in(name);
+OnDiskDataset::OnDiskDataset(const fs::path &db_base, const std::string &fname) : name(fname), db_base(db_base) {
+    std::ifstream in(db_base / name, std::ifstream::binary);
     json j;
     in >> j;
 
     for (std::string index_fname : j["indices"]) {
-        indices.emplace_back(index_fname);
+        indices.emplace_back(db_base / index_fname);
     }
 
     files_fname = j["files"];
     std::string filename;
-    std::ifstream inf(files_fname, std::ifstream::binary);
+    std::ifstream inf(db_base / files_fname, std::ifstream::binary);
 
     while (!inf.eof()) {
         std::getline(inf, filename);
@@ -76,7 +76,8 @@ void OnDiskDataset::execute(const Query &query, std::vector<std::string> *out) c
 
 const std::string &OnDiskDataset::get_name() const { return name; }
 
-void OnDiskDataset::merge(const std::string &outname, const std::vector<OnDiskDataset> &datasets) {
+void OnDiskDataset::merge(const fs::path &db_base, const std::string &outname,
+                          const std::vector<OnDiskDataset> &datasets) {
     std::set<IndexType> index_types;
 
     for (const OnDiskDataset &dataset : datasets) {
@@ -96,7 +97,7 @@ void OnDiskDataset::merge(const std::string &outname, const std::vector<OnDiskDa
             indexes.push_back(IndexMergeHelper(
                     &dataset.get_index_with_type(index_type), dataset.fnames.size()));
         }
-        OnDiskIndex::on_disk_merge(index_name, index_type, indexes);
+        OnDiskIndex::on_disk_merge(db_base, index_name, index_type, indexes);
     }
 
     std::vector<std::string> file_names;
@@ -106,7 +107,7 @@ void OnDiskDataset::merge(const std::string &outname, const std::vector<OnDiskDa
         }
     }
 
-    store_dataset(outname, index_names, file_names);
+    store_dataset(db_base, outname, index_names, file_names);
 }
 
 const OnDiskIndex &OnDiskDataset::get_index_with_type(IndexType index_type) const {
@@ -116,6 +117,13 @@ const OnDiskIndex &OnDiskDataset::get_index_with_type(IndexType index_type) cons
         }
     }
     throw std::runtime_error("Requested index type doesn't exist in dataset");
+}
+
+void OnDiskDataset::drop_file(const std::string &fname) const {
+    if (std::remove(fname.c_str()) != 0) {
+        std::perror("Failed to delete file");
+        throw std::runtime_error("Failed to delete " + fname);
+    }
 }
 
 void OnDiskDataset::drop() {
@@ -130,20 +138,9 @@ void OnDiskDataset::drop() {
     indices.clear();
 
     for (auto &idx_name : idx_names) {
-        if (std::remove(idx_name.c_str()) != 0) {
-            // FIXME this may leave object in undesired state
-            std::perror("Failed to delete file");
-            throw std::runtime_error("Failed to delete " + idx_name);
-        }
+        drop_file(idx_name);
     }
 
-    if (std::remove(files_fname.c_str()) != 0) {
-        std::perror("Failed to delete file");
-        throw std::runtime_error("Failed to delete " + files_fname);
-    }
-
-    if (std::remove(get_name().c_str()) != 0) {
-        std::perror("Failed to delete file");
-        throw std::runtime_error("Failed to delete " + get_name());
-    }
+    drop_file(db_base / files_fname);
+    drop_file(db_base / get_name());
 }

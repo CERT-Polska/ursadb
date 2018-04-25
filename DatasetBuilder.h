@@ -1,16 +1,19 @@
 #pragma once
 
 #include <vector>
+#include <experimental/filesystem>
 
 #include "Core.h"
 #include "IndexBuilder.h"
+
+namespace fs = std::experimental::filesystem;
 
 class DatasetBuilder {
   public:
     DatasetBuilder(const std::vector<IndexType> &index_types);
 
     void index(const std::string &filepath);
-    void save(const std::string &fname);
+    void save(const fs::path &db_base, const std::string &fname);
     uint64_t estimated_size();
 
   private:

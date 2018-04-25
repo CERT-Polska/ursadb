@@ -1,11 +1,13 @@
+#include "Utils.h"
+
 #include <fstream>
 #include <set>
 
 #include "MemMap.h"
-#include "Utils.h"
 #include "lib/Json.h"
 
 using json = nlohmann::json;
+namespace fs = std::experimental::filesystem;
 
 TrigramGenerator get_generator_for(IndexType type) {
     switch (type) {
@@ -151,9 +153,10 @@ std::string get_index_type_name(IndexType type) {
     }
 }
 
-void store_dataset(const std::string &fname, std::set<std::string> index_names, std::vector<std::string> &fids) {
+void store_dataset(const fs::path &db_base, const std::string &fname,
+                   const std::set<std::string> &index_names, const std::vector<std::string> &fids) {
     std::string fname_list = "files." + fname;
-    std::ofstream of(fname_list, std::ofstream::out | std::ofstream::binary);
+    std::ofstream of(db_base / fname_list, std::ofstream::out | std::ofstream::binary);
     for (auto &fn : fids) {
         of << fn << "\n";
     }
@@ -164,6 +167,6 @@ void store_dataset(const std::string &fname, std::set<std::string> index_names, 
     dataset["indices"] = j_indices;
     dataset["files"] = fname_list;
 
-    std::ofstream o(fname, std::ofstream::out);
+    std::ofstream o(db_base / fname, std::ofstream::out);
     o << std::setw(4) << dataset << std::endl;
 }
