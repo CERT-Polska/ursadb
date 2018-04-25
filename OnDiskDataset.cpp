@@ -8,7 +8,8 @@
 
 using json = nlohmann::json;
 
-OnDiskDataset::OnDiskDataset(const fs::path &db_base, const std::string &fname) : name(fname), db_base(db_base) {
+OnDiskDataset::OnDiskDataset(const fs::path &db_base, const std::string &fname)
+    : name(fname), db_base(db_base) {
     std::ifstream in(db_base / name, std::ifstream::binary);
     json j;
     in >> j;
@@ -76,8 +77,9 @@ void OnDiskDataset::execute(const Query &query, std::vector<std::string> *out) c
 
 const std::string &OnDiskDataset::get_name() const { return name; }
 
-void OnDiskDataset::merge(const fs::path &db_base, const std::string &outname,
-                          const std::vector<OnDiskDataset> &datasets) {
+void OnDiskDataset::merge(
+        const fs::path &db_base, const std::string &outname,
+        const std::vector<OnDiskDataset> &datasets) {
     std::set<IndexType> index_types;
 
     for (const OnDiskDataset &dataset : datasets) {

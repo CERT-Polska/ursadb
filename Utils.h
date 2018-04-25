@@ -1,14 +1,14 @@
 #pragma once
 
+#include <experimental/filesystem>
+#include <functional>
+#include <set>
 #include <string>
 #include <vector>
-#include <set>
-#include <functional>
-#include <experimental/filesystem>
 
 #include "Core.h"
 
-using TrigramCallback = std::function<void (TriGram)>;
+using TrigramCallback = std::function<void(TriGram)>;
 using TrigramGenerator = void (*)(const uint8_t *mem, size_t size, TrigramCallback callback);
 namespace fs = std::experimental::filesystem;
 
@@ -22,14 +22,12 @@ template <TrigramGenerator gen>
 std::vector<TriGram> get_trigrams_eager(const uint8_t *mem, size_t size) {
     std::vector<TriGram> out;
 
-    gen(mem, size, [&](auto val) {
-        out.push_back(val);
-    });
+    gen(mem, size, [&](auto val) { out.push_back(val); });
 
     return out;
 }
 
-using TrigramGetter = std::vector<TriGram>(*)(const uint8_t *, size_t);
+using TrigramGetter = std::vector<TriGram> (*)(const uint8_t *, size_t);
 constexpr TrigramGetter get_trigrams = get_trigrams_eager<gen_trigrams>;
 constexpr TrigramGetter get_b64grams = get_trigrams_eager<gen_b64grams>;
 constexpr TrigramGetter get_wide_b64grams = get_trigrams_eager<gen_wide_b64grams>;
@@ -56,5 +54,6 @@ constexpr int get_b64_value(uint8_t character) {
     }
 }
 
-void store_dataset(const fs::path &db_base, const std::string &fname,
-                   const std::set<std::string> &index_names, const std::vector<std::string> &fids);
+void store_dataset(
+        const fs::path &db_base, const std::string &fname, const std::set<std::string> &index_names,
+        const std::vector<std::string> &fids);

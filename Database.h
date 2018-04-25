@@ -1,15 +1,14 @@
 #pragma once
 
+#include <experimental/filesystem>
 #include <string>
 #include <vector>
-#include <experimental/filesystem>
 
 #include "DatasetBuilder.h"
 #include "OnDiskDataset.h"
 #include "Query.h"
 
 namespace fs = std::experimental::filesystem;
-
 
 class Database {
     fs::path db_name;
