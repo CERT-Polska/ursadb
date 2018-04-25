@@ -97,7 +97,7 @@ void Database::execute(const Query &query, std::vector<std::string> &out) {
 }
 
 void Database::save() {
-    std::ofstream db_file(db_base / db_name, std::ofstream::out);
+    std::ofstream db_file(db_base / db_name, std::ofstream::out | std::ofstream::binary);
     json db_json;
     db_json["num_datasets"] = num_datasets;
     db_json["max_mem_size"] = max_memory_size;
