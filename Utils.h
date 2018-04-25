@@ -51,4 +51,4 @@ constexpr int get_b64_value(uint8_t character) {
 }
 
 void store_dataset(const fs::path &db_base, const std::string &fname,
-                   std::set<std::string> index_names, std::vector<std::string> &fids);
+                   const std::set<std::string> &index_names, std::vector<std::string> &fids);

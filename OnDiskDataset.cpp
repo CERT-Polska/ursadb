@@ -9,7 +9,7 @@
 using json = nlohmann::json;
 
 OnDiskDataset::OnDiskDataset(const fs::path &db_base, const std::string &fname) : name(fname), db_base(db_base) {
-    std::ifstream in(db_base / name);
+    std::ifstream in(db_base / name, std::ifstream::binary);
     json j;
     in >> j;
 
