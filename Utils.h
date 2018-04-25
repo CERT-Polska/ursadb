@@ -3,10 +3,12 @@
 #include <string>
 #include <vector>
 #include <set>
+#include <experimental/filesystem>
 
 #include "Core.h"
 
 using TrigramGenerator = std::vector<TriGram> (*)(const uint8_t *mem, size_t size);
+namespace fs = std::experimental::filesystem;
 
 TrigramGenerator get_generator_for(IndexType type);
 std::vector<TriGram> get_trigrams(const uint8_t *mem, size_t size);
@@ -34,4 +36,5 @@ constexpr int get_b64_value(uint8_t character) {
     }
 }
 
-void store_dataset(const std::string &fname, std::set<std::string> index_names, std::vector<std::string> &fids);
+void store_dataset(const fs::path &db_base, const std::string &fname,
+                   std::set<std::string> index_names, std::vector<std::string> &fids);

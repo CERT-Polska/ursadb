@@ -29,16 +29,16 @@ FileId DatasetBuilder::register_fname(const std::string &fname) {
     return new_id;
 }
 
-void DatasetBuilder::save(const std::string &fname) {
+void DatasetBuilder::save(const fs::path &db_base, const std::string &fname) {
     std::set<std::string> index_names;
 
     for (auto &ndx : indices) {
         std::string ndx_name = get_index_type_name(ndx.index_type()) + "." + fname;
-        ndx.save(ndx_name);
+        ndx.save(db_base / ndx_name);
         index_names.emplace(ndx_name);
     }
 
-    store_dataset(fname, index_names, fids);
+    store_dataset(db_base, fname, index_names, fids);
 }
 
 void DatasetBuilder::index(const std::string &filepath) {

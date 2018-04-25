@@ -9,6 +9,7 @@
 
 class OnDiskDataset {
     std::string name;
+    fs::path db_base;
     std::string filename_list;
     std::vector<std::string> fnames;
     std::vector<OnDiskIndex> indices;
@@ -19,9 +20,11 @@ class OnDiskDataset {
     const OnDiskIndex &get_index_with_type(IndexType index_type) const;
 
   public:
-    explicit OnDiskDataset(const std::string &fname);
+    OnDiskDataset(const fs::path &db_base, const std::string &fname);
     const std::string &get_name() const;
     void execute(const Query &query, std::vector<std::string> *out) const;
-    static void merge(const std::string &outname, const std::vector<OnDiskDataset> &datasets);
+    static void merge(const fs::path &db_base, const std::string &outname,
+                      const std::vector<OnDiskDataset> &datasets);
     void drop();
+    void drop_file(const std::string &fname);
 };

@@ -2,17 +2,24 @@
 
 #include <string>
 #include <vector>
+#include <experimental/filesystem>
 
 #include "DatasetBuilder.h"
 #include "OnDiskDataset.h"
 #include "Query.h"
 
+namespace fs = std::experimental::filesystem;
+
+
 class Database {
-    std::string db_fname;
+    fs::path db_name;
+    fs::path db_base;
     int num_datasets;
     std::vector<OnDiskDataset> datasets;
     std::string allocate_name();
     size_t max_memory_size;
+
+    void set_filename(const std::string &fname);
 
   public:
     explicit Database(const std::string &fname);

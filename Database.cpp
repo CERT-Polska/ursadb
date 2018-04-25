@@ -8,11 +8,14 @@
 #include "lib/Json.h"
 
 using json = nlohmann::json;
+namespace fs = std::experimental::filesystem;
 
 Database::Database() : max_memory_size(DEFAULT_MAX_MEM_SIZE), num_datasets(0) {}
 
-Database::Database(const std::string &fname) : db_fname(fname) {
-    std::ifstream db_file(db_fname);
+Database::Database(const std::string &fname) {
+    set_filename(fname);
+
+    std::ifstream db_file(db_base / db_name);
     json db_json;
     db_file >> db_json;
 
@@ -20,8 +23,13 @@ Database::Database(const std::string &fname) : db_fname(fname) {
     max_memory_size = db_json["max_mem_size"];
 
     for (std::string dataset_fname : db_json["datasets"]) {
-        datasets.emplace_back(dataset_fname);
+        datasets.emplace_back(db_base, dataset_fname);
     }
+}
+
+void Database::set_filename(const std::string &fname) {
+    db_name = fs::path(fname).filename();
+    db_base = fs::path(fname).parent_path();
 }
 
 void Database::create(const std::string &fname) {
@@ -31,7 +39,7 @@ void Database::create(const std::string &fname) {
         throw std::runtime_error("File already exists");
     }
     Database empty;
-    empty.db_fname = fname;
+    empty.set_filename(fname);
     empty.save();
 }
 
@@ -41,10 +49,10 @@ std::string Database::allocate_name() {
         // to avoid infinite loop in exceptional cases.
 
         std::stringstream ss;
-        ss << "set." << num_datasets << "." << db_fname;
+        ss << "set." << num_datasets << "." << db_name.string();
         num_datasets++;
         std::string fname = ss.str();
-        ExclusiveFile lock(fname);
+        ExclusiveFile lock(db_base / fname);
         if (lock.is_ok()) {
             return fname;
         }
@@ -53,13 +61,13 @@ std::string Database::allocate_name() {
 
 void Database::add_dataset(DatasetBuilder &builder) {
     auto dataset_name = allocate_name();
-    builder.save(dataset_name);
-    datasets.emplace_back(dataset_name);
+    builder.save(db_base, dataset_name);
+    datasets.emplace_back(db_base, dataset_name);
 }
 
 void Database::compact() {
     std::string dataset_name = allocate_name();
-    OnDiskDataset::merge(dataset_name, datasets);
+    OnDiskDataset::merge(db_base, dataset_name, datasets);
 
     for (auto &dataset : datasets) {
         dataset.drop();
@@ -68,7 +76,7 @@ void Database::compact() {
     datasets.clear();
 
     using json = nlohmann::json;
-    datasets.emplace_back(dataset_name);
+    datasets.emplace_back(db_base, dataset_name);
     save();
 }
 
@@ -79,7 +87,7 @@ void Database::execute(const Query &query, std::vector<std::string> &out) {
 }
 
 void Database::save() {
-    std::ofstream db_file(db_fname, std::ofstream::out);
+    std::ofstream db_file(db_base / db_name, std::ofstream::out);
     json db_json;
     db_json["num_datasets"] = num_datasets;
     db_json["max_mem_size"] = max_memory_size;
