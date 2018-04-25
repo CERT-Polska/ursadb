@@ -6,7 +6,6 @@
 
 #include "ExclusiveFile.h"
 #include "lib/Json.h"
-#include "ProgressBar.h"
 
 using json = nlohmann::json;
 namespace fs = std::experimental::filesystem;
@@ -129,48 +128,33 @@ void Database::index_path(const std::vector<IndexType> types, const std::string 
         }
     }
 
-    int total_files = 0;
-    int processed_files = 0;
-
-    std::vector<std::string> target_files;
-
     for (fs::recursive_directory_iterator dir(filepath); dir != end; ++dir) {
         if (fs::is_regular_file(dir->path())) {
-            std::string absfn = fs::absolute(dir->path()).string();
+            fs::path absfn = fs::absolute(dir->path());
 
-            if (all_files.find(absfn) == all_files.end()) {
-                total_files += 1;
-                target_files.push_back(absfn);
+            if (all_files.find(absfn.string()) != all_files.end()) {
+                std::cout << "skip existing " << absfn.string() << std::endl;
+                continue;
+            }
+
+            std::cout << "indexing " << absfn.string() << std::endl;
+
+            try {
+                builder.index(absfn.string());
+            } catch (empty_file_error &e) {
+                std::cout << "empty file, skip" << std::endl;
+            }
+
+            if (builder.estimated_size() > max_memory_size) {
+                std::cout << "new dataset " << builder.estimated_size() << std::endl;
+                add_dataset(builder);
+                builder = DatasetBuilder(types);
             }
         }
     }
-
-    ProgressBar bar(total_files, "indexing");
-
-    for (const auto &target : target_files) {
-        bar.update(processed_files);
-        processed_files += 1;
-
-        try {
-            builder.index(target);
-        } catch (empty_file_error &e) {
-            // skip empty file
-        }
-
-        if (builder.estimated_size() > max_memory_size) {
-            bar.update("saving");
-            add_dataset(builder);
-            builder = DatasetBuilder(types);
-            bar.update("indexing");
-        }
-    }
-
-    bar.update(total_files, "saving");
 
     if (!builder.empty()) {
         add_dataset(builder);
         save();
     }
-
-    std::cout << std::endl;
 }
