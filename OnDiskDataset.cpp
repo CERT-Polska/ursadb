@@ -141,6 +141,6 @@ void OnDiskDataset::drop() {
         drop_file(idx_name);
     }
 
-    drop_file(db_base / filename_list);
+    drop_file(db_base / files_fname);
     drop_file(db_base / get_name());
 }
