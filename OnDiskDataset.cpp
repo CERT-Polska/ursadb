@@ -17,9 +17,9 @@ OnDiskDataset::OnDiskDataset(const std::string &fname) : name(fname) {
         indices.emplace_back(index_fname);
     }
 
-    filename_list = j["filename_list"];
+    files_fname = j["files"];
     std::string filename;
-    std::ifstream inf(filename_list, std::ifstream::binary);
+    std::ifstream inf(files_fname, std::ifstream::binary);
 
     while (!inf.eof()) {
         std::getline(inf, filename);
@@ -137,9 +137,9 @@ void OnDiskDataset::drop() {
         }
     }
 
-    if (std::remove(filename_list.c_str()) != 0) {
+    if (std::remove(files_fname.c_str()) != 0) {
         std::perror("Failed to delete file");
-        throw std::runtime_error("Failed to delete " + filename_list);
+        throw std::runtime_error("Failed to delete " + files_fname);
     }
 
     if (std::remove(get_name().c_str()) != 0) {

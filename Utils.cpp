@@ -10,21 +10,19 @@ using json = nlohmann::json;
 TrigramGenerator get_generator_for(IndexType type) {
     switch (type) {
         case IndexType::GRAM3:
-            return get_trigrams;
+            return gen_trigrams;
         case IndexType::TEXT4:
-            return get_b64grams;
+            return gen_b64grams;
         case IndexType::HASH4:
-            return get_h4grams;
+            return gen_h4grams;
         case IndexType::WIDE8:
-            return get_wide_b64grams;
+            return gen_wide_b64grams;
     }
 }
 
-std::vector<TriGram> get_b64grams(const uint8_t *mem, size_t size) {
-    std::vector<TriGram> out;
-
+void gen_b64grams(const uint8_t *mem, size_t size, TrigramCallback cb) {
     if (size < 4) {
-        return out;
+        return;
     }
 
     uint32_t gram4 = 0;
@@ -35,22 +33,18 @@ std::vector<TriGram> get_b64grams(const uint8_t *mem, size_t size) {
         if (next < 0) {
             good_run = 0;
         } else {
-            gram4 = ((gram4 << 6) + next) & 0xFFFFFF;
+            gram4 = ((gram4 << 6U) + next) & 0xFFFFFF;
             good_run += 1;
         }
         if (good_run >= 4) {
-            out.push_back(gram4);
+            cb(gram4);
         }
     }
-
-    return out;
 }
 
-std::vector<TriGram> get_wide_b64grams(const uint8_t *mem, size_t size) {
-    std::vector<TriGram> out;
-
+void gen_wide_b64grams(const uint8_t *mem, size_t size, TrigramCallback cb) {
     if (size < 8) {
-        return out;
+        return;
     }
 
     uint32_t gram4 = 0;
@@ -65,7 +59,7 @@ std::vector<TriGram> get_wide_b64grams(const uint8_t *mem, size_t size) {
             }
 
             if (good_run >= 8) {
-                out.push_back(gram4);
+                cb(gram4);
             }
         } else {
             int next = get_b64_value(mem[offset]);
@@ -77,32 +71,24 @@ std::vector<TriGram> get_wide_b64grams(const uint8_t *mem, size_t size) {
             }
         }
     }
-
-    return out;
 }
 
-std::vector<TriGram> get_trigrams(const uint8_t *mem, size_t size) {
-    std::vector<TriGram> out;
-
+void gen_trigrams(const uint8_t *mem, size_t size, TrigramCallback cb) {
     if (size < 3) {
-        return out;
+        return;
     }
 
     uint32_t gram3 = (mem[0] << 8U) | mem[1];
 
     for (int offset = 2; offset < size; offset++) {
         gram3 = ((gram3 & 0xFFFFU) << 8U) | mem[offset];
-        out.push_back(gram3);
+        cb(gram3);
     }
-
-    return out;
 }
 
-std::vector<TriGram> get_h4grams(const uint8_t *mem, size_t size) {
-    std::vector<TriGram> out;
-
+void gen_h4grams(const uint8_t *mem, size_t size, TrigramCallback cb) {
     if (size < 4) {
-        return out;
+        return;
     }
 
     uint32_t gram4 = 0;
@@ -111,11 +97,9 @@ std::vector<TriGram> get_h4grams(const uint8_t *mem, size_t size) {
         gram4 = ((gram4 & 0xFFFFFFU) << 8U) | mem[offset];
 
         if (offset >= 3) {
-            out.push_back(((gram4 >> 8U) & 0xFFFFFFU) ^ (gram4 & 0xFFFFFFU));
+            cb(((gram4 >> 8U) & 0xFFFFFFU) ^ (gram4 & 0xFFFFFFU));
         }
     }
-
-    return out;
 }
 
 void compress_run(const std::vector<FileId> &run, std::ostream &out) {
@@ -178,7 +162,7 @@ void store_dataset(const std::string &fname, std::set<std::string> index_names, 
     json j_indices(index_names);
 
     dataset["indices"] = j_indices;
-    dataset["filename_list"] = fname_list;
+    dataset["files"] = fname_list;
 
     std::ofstream o(fname, std::ofstream::out);
     o << std::setw(4) << dataset << std::endl;
