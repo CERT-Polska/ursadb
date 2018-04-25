@@ -72,7 +72,11 @@ std::string Database::allocate_name() {
 void Database::add_dataset(DatasetBuilder &builder) {
     auto dataset_name = allocate_name();
     builder.save(db_base, dataset_name);
-    datasets.emplace_back(db_base, dataset_name);
+    OnDiskDataset &ds = datasets.emplace_back(db_base, dataset_name);
+
+    for (auto &fn : ds.indexed_files()) {
+        all_files.insert(fn);
+    }
 }
 
 void Database::compact() {
@@ -116,11 +120,11 @@ void Database::index_path(const std::vector<IndexType> types, const std::string 
     DatasetBuilder builder(types);
     fs::recursive_directory_iterator end;
 
-    std::set<std::string> all_files;
-
-    for (auto &dataset : datasets) {
-        for (auto &fn : dataset.indexed_files()) {
-            all_files.insert(fn);
+    if (all_files.empty()) {
+        for (auto &dataset : datasets) {
+            for (auto &fn : dataset.indexed_files()) {
+                all_files.insert(fn);
+            }
         }
     }
 
