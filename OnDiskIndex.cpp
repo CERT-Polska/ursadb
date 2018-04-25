@@ -37,12 +37,11 @@ OnDiskIndex::OnDiskIndex(const std::string &fname) : disk_map(fname) {
 
 QueryResult OnDiskIndex::query_str(const std::string &str) const {
     TrigramGenerator generator = get_generator_for(ntype);
-    auto trigrams = generator((uint8_t *)str.data(), str.size());
     QueryResult result = QueryResult::everything();
 
-    for (auto trigram : trigrams) {
-        result.do_and(query_primitive(trigram));
-    }
+    generator((uint8_t *)str.data(), str.size(), [&](TriGram val) {
+        result.do_and(query_primitive(val));
+    });
 
     return result;
 }

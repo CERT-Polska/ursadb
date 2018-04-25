@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <functional>
 
 #include "Utils.h"
 
@@ -45,9 +46,7 @@ void IndexBuilder::save(const std::string &fname) {
 
 void IndexBuilder::add_file(FileId fid, const uint8_t *data, size_t size) {
     TrigramGenerator generator = get_generator_for(ntype);
-    std::vector<TriGram> out = generator(data, size);
-
-    for (TriGram gram3 : out) {
-        add_trigram(fid, gram3);
-    }
+    generator(data, size, [&](TriGram val) {
+        add_trigram(fid, val);
+    });
 }

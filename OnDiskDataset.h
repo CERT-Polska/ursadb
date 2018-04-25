@@ -10,7 +10,7 @@
 class OnDiskDataset {
     std::string name;
     fs::path db_base;
-    std::string filename_list;
+    std::string files_fname;
     std::vector<std::string> fnames;
     std::vector<OnDiskIndex> indices;
 

@@ -17,9 +17,9 @@ OnDiskDataset::OnDiskDataset(const fs::path &db_base, const std::string &fname) 
         indices.emplace_back(db_base / index_fname);
     }
 
-    filename_list = j["filename_list"];
+    files_fname = j["files"];
     std::string filename;
-    std::ifstream inf(db_base / filename_list, std::ifstream::binary);
+    std::ifstream inf(db_base / files_fname, std::ifstream::binary);
 
     while (!inf.eof()) {
         std::getline(inf, filename);

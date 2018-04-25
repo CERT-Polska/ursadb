@@ -44,11 +44,6 @@ void DatasetBuilder::save(const fs::path &db_base, const std::string &fname) {
 void DatasetBuilder::index(const std::string &filepath) {
     MemMap in(filepath);
 
-    if (in.size() > 1024 * 1024 * 128) {
-        std::cout << "refusing to index file larger than 128MB: " << filepath << std::endl;
-        return;
-    }
-
     total_bytes += in.size();
     FileId fid = register_fname(filepath);
 
