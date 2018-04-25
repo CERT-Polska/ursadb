@@ -153,6 +153,20 @@ std::string get_index_type_name(IndexType type) {
     }
 }
 
+std::optional<IndexType> index_type_from_string(const std::string &type) {
+    if (type == "gram3") {
+        return IndexType::GRAM3;
+    } else if (type == "text4") {
+        return IndexType::TEXT4;
+    } else if (type == "hash4") {
+        return IndexType::HASH4;
+    } else if (type == "wide8") {
+        return IndexType::WIDE8;
+    } else {
+        return std::nullopt;
+    }
+}
+
 void store_dataset(
         const fs::path &db_base, const std::string &fname, const std::set<std::string> &index_names,
         const std::vector<std::string> &fids) {

@@ -14,10 +14,15 @@ class SelectCommand {
 
 class IndexCommand {
     std::string path;
+    std::vector<IndexType> types;
 
   public:
-    IndexCommand(const std::string &path) : path(path) {}
+    IndexCommand(const std::string &path, const std::vector<IndexType> &types)
+        : path(path), types(types) {}
     const std::string &get_path() const { return path; }
+    const std::vector<IndexType> &get_index_types() const { return types; }
+
+    static std::vector<IndexType> default_types() { return {IndexType::GRAM3}; }
 };
 
 class CompactCommand {

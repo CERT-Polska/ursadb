@@ -94,10 +94,25 @@ TEST_CASE("compact command", "[queryparser]") {
     REQUIRE(std::holds_alternative<CompactCommand>(cmd));
 }
 
-TEST_CASE("index command", "[queryparser]") {
+TEST_CASE("index command with default types", "[queryparser]") {
     Command cmd = parse_command("index \"cat\";");
     IndexCommand index_cmd = std::get<IndexCommand>(cmd);
     REQUIRE(index_cmd.get_path() == "cat");
+    REQUIRE(index_cmd.get_index_types() == IndexCommand::default_types());
+}
+
+TEST_CASE("index command with type override", "[queryparser]") {
+    Command cmd = parse_command("index \"cat\" with [text4, wide8];");
+    IndexCommand index_cmd = std::get<IndexCommand>(cmd);
+    REQUIRE(index_cmd.get_path() == "cat");
+    REQUIRE(index_cmd.get_index_types() == std::vector{IndexType::TEXT4, IndexType::WIDE8});
+}
+
+TEST_CASE("index command with empty type override", "[queryparser]") {
+    Command cmd = parse_command("index \"cat\" with [];");
+    IndexCommand index_cmd = std::get<IndexCommand>(cmd);
+    REQUIRE(index_cmd.get_path() == "cat");
+    REQUIRE(index_cmd.get_index_types().empty());
 }
 
 TEST_CASE("index command with escapes", "[queryparser]") {

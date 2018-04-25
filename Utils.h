@@ -2,6 +2,7 @@
 
 #include <experimental/filesystem>
 #include <functional>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -36,6 +37,7 @@ constexpr TrigramGetter get_h4grams = get_trigrams_eager<gen_h4grams>;
 void compress_run(const std::vector<FileId> &run, std::ostream &out);
 std::vector<FileId> read_compressed_run(const uint8_t *start, const uint8_t *end);
 std::string get_index_type_name(IndexType type);
+std::optional<IndexType> index_type_from_string(const std::string &type);
 
 constexpr int get_b64_value(uint8_t character) {
     constexpr int ALPHABET_SIZE = 'Z' - 'A' + 1;

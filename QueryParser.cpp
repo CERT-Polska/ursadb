@@ -36,20 +36,34 @@ struct op_and : pad<one<'&'>, space> {};
 struct op_or : pad<one<'|'>, space> {};
 struct open_bracket : seq<one<'('>, star<space>> {};
 struct close_bracket : seq<star<space>, one<')'>> {};
-struct open_hex : seq<one<'{'>, star<space>> {};
-struct close_hex : seq<star<space>, one<'}'>> {};
+struct open_curly : seq<one<'{'>, star<space>> {};
+struct close_curly : seq<star<space>, one<'}'>> {};
+struct open_square : seq<one<'['>, star<space>> {};
+struct close_square : seq<star<space>, one<']'>> {};
+
 struct hexbytes : list<hexbyte, star<space>> {};
-struct hexstring : if_must<open_hex, hexbytes, close_hex> {};
+struct hexstring : if_must<open_curly, hexbytes, close_curly> {};
 struct string_like : sor<wide_plaintext, plaintext, hexstring> {};
 struct expression;
 struct bracketed : if_must<open_bracket, expression, close_bracket> {};
 struct value : sor<string_like, bracketed> {};
 struct expression : seq<value, star<sor<op_and, op_or>, expression>> {};
-struct select_token : tao::TAO_PEGTL_NAMESPACE::string<'s', 'e', 'l', 'e', 'c', 't'> {};
-struct index_token : tao::TAO_PEGTL_NAMESPACE::string<'i', 'n', 'd', 'e', 'x'> {};
-struct compact_token : tao::TAO_PEGTL_NAMESPACE::string<'c', 'o', 'm', 'p', 'a', 'c', 't'> {};
-struct select : seq<select_token, plus<space>, expression> {};
-struct index : seq<index_token, plus<space>, string_like> {};
+struct comma_token : one<','> {};
+struct select_token : string<'s', 'e', 'l', 'e', 'c', 't'> {};
+struct index_token : string<'i', 'n', 'd', 'e', 'x'> {};
+struct compact_token : string<'c', 'o', 'm', 'p', 'a', 'c', 't'> {};
+struct with_token : string<'w', 'i', 't', 'h'> {};
+struct gram3_token : string<'g', 'r', 'a', 'm', '3'> {};
+struct hash4_token : string<'h', 'a', 's', 'h', '4'> {};
+struct text4_token : string<'t', 'e', 'x', 't', '4'> {};
+struct wide8_token : string<'w', 'i', 'd', 'e', '8'> {};
+struct comma : seq<star<space>, comma_token, star<space>> {};
+struct index_type : sor<gram3_token, hash4_token, text4_token, wide8_token> {};
+struct index_type_list : seq<open_square, opt<list<index_type, comma>>, close_square> {};
+struct index_with_construct : seq<with_token, star<space>, index_type_list> {};
+struct select : seq<select_token, star<space>, expression> {};
+struct index : seq<index_token, star<space>, string_like, star<space>, opt<index_with_construct>> {
+};
 struct compact : seq<compact_token> {};
 struct command : seq<sor<select, index, compact>, star<space>, one<';'>> {};
 struct grammar : seq<command, star<space>, eof> {};
@@ -67,6 +81,11 @@ template <> struct store<ascii_char> : std::true_type {};
 template <> struct store<select> : std::true_type {};
 template <> struct store<index> : std::true_type {};
 template <> struct store<compact> : std::true_type {};
+template <> struct store<index_type_list> : std::true_type {};
+template <> struct store<gram3_token> : std::true_type {};
+template <> struct store<hash4_token> : std::true_type {};
+template <> struct store<text4_token> : std::true_type {};
+template <> struct store<wide8_token> : std::true_type {};
 
 constexpr int hex2int(char hexchar) {
     if (hexchar >= '0' && hexchar <= '9') {
@@ -114,6 +133,18 @@ char transform_char(const parse_tree::node &n) {
     }
 }
 
+std::vector<IndexType> transform_index_types(const parse_tree::node &n) {
+    std::vector<IndexType> result;
+    for (auto &child : n.children) {
+        auto type = index_type_from_string(child->content());
+        if (type == std::nullopt) {
+            throw std::runtime_error("index type unsupported by parser");
+        }
+        result.push_back(type.value());
+    }
+    return result;
+}
+
 std::string transform_string(const parse_tree::node &n) {
     auto *root = &n;
 
@@ -123,7 +154,7 @@ std::string transform_string(const parse_tree::node &n) {
     }
 
     std::string result;
-    for (auto &atom : (*root).children) {
+    for (auto &atom : root->children) {
         result += transform_char(*atom);
 
         if (n.is<wide_plaintext>()) {
@@ -157,8 +188,12 @@ Command transform_command(const parse_tree::node &n) {
         auto &expr = n.children[0];
         return Command(SelectCommand(transform(*expr)));
     } else if (n.is<index>()) {
-        auto &expr = n.children[0];
-        return Command(IndexCommand(transform_string(*expr)));
+        std::string path = transform_string(*n.children[0]);
+        std::vector<IndexType> types = IndexCommand::default_types();
+        if (n.children.size() > 1) {
+            types = transform_index_types(*n.children[1]);
+        }
+        return Command(IndexCommand(path, types));
     } else if (n.is<compact>()) {
         return Command(CompactCommand());
     }
