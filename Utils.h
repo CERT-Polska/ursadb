@@ -29,6 +29,12 @@ std::vector<TriGram> get_trigrams_eager(const uint8_t *mem, size_t size) {
     return out;
 }
 
+using TrigramGetter = std::vector<TriGram>(*)(const uint8_t *, size_t);
+constexpr TrigramGetter get_trigrams = get_trigrams_eager<gen_trigrams>;
+constexpr TrigramGetter get_b64grams = get_trigrams_eager<gen_b64grams>;
+constexpr TrigramGetter get_wide_b64grams = get_trigrams_eager<gen_wide_b64grams>;
+constexpr TrigramGetter get_h4grams = get_trigrams_eager<gen_h4grams>;
+
 void compress_run(const std::vector<FileId> &run, std::ostream &out);
 std::vector<FileId> read_compressed_run(const uint8_t *start, const uint8_t *end);
 std::string get_index_type_name(IndexType type);
