@@ -183,13 +183,13 @@ void Database::index_path(
             std::cout << "empty file, skip" << std::endl;
         }
 
-        task->work_done += 1;
-
         if (builder.estimated_size() > max_memory_size) {
             std::cout << "new dataset " << builder.estimated_size() << std::endl;
             add_dataset(builder);
             builder = DatasetBuilder(types);
         }
+
+        task->work_done += 1;
     }
 
     if (!builder.empty()) {
