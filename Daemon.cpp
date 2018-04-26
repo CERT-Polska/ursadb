@@ -46,6 +46,38 @@ std::string dispatch_command(const Command &cmd, Database *db) {
     return std::visit([db](const auto &cmd) { return execute_command(cmd, db); }, cmd);
 }
 
+struct worker_args {
+    Database *db;
+    zmq::context_t *context;
+};
+
+void *worker_routine(void *arg) {
+    auto *wa = (worker_args *)arg;
+    auto *context = (zmq::context_t *) wa->context;
+    zmq::socket_t socket(*context, ZMQ_REP);
+    socket.connect("inproc://workers");
+
+    while (true) {
+        zmq::message_t request;
+
+        socket.recv(&request);
+        std::string cmd_str = std::string(static_cast<char *>(request.data()), request.size());
+        std::cout << "Received request " << cmd_str << std::endl;
+
+        try {
+            Command cmd = parse_command(cmd_str);
+            std::string s = dispatch_command(cmd, wa->db);
+            zmq::message_t reply(s.data(), s.size());
+            socket.send(reply);
+        } catch (std::runtime_error &e) {
+            std::cout << "Command failed: " << e.what() << std::endl;
+            std::string s = std::string("ERR ") + e.what() + "\n";
+            zmq::message_t reply(s.data(), s.size());
+            socket.send(reply);
+        }
+    }
+}
+
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         printf("Usage:\n");
@@ -62,29 +94,19 @@ int main(int argc, char *argv[]) {
         bind_address = std::string(argv[2]);
     }
 
-    zmq::context_t context(1);
-    zmq::socket_t socket(context, ZMQ_REP);
-    socket.bind(bind_address);
+    zmq::context_t context (1);
+    zmq::socket_t clients (context, ZMQ_ROUTER);
+    clients.bind(bind_address);
+    zmq::socket_t workers (context, ZMQ_DEALER);
+    workers.bind("inproc://workers");
 
-    while (true) {
-        zmq::message_t request;
+    worker_args wa = {&db, &context};
 
-        socket.recv(&request);
-        std::string cmd_str = std::string(static_cast<char *>(request.data()), request.size());
-        std::cout << "Received request " << cmd_str << std::endl;
-
-        try {
-            Command cmd = parse_command(cmd_str);
-            std::string s = dispatch_command(cmd, &db);
-            zmq::message_t reply(s.data(), s.size());
-            socket.send(reply);
-        } catch (std::runtime_error &e) {
-            std::cout << "Command failed: " << e.what() << std::endl;
-            std::string s = std::string("ERR ") + e.what() + "\n";
-            zmq::message_t reply(s.data(), s.size());
-            socket.send(reply);
-        }
+    for (int thread_nbr = 0; thread_nbr != 5; thread_nbr++) {
+        pthread_t worker;
+        pthread_create (&worker, NULL, worker_routine, (void *) &wa);
     }
 
+    zmq::proxy(&clients, &workers, NULL);
     return 0;
 }

@@ -10,9 +10,9 @@
 using json = nlohmann::json;
 namespace fs = std::experimental::filesystem;
 
-Database::Database() : max_memory_size(DEFAULT_MAX_MEM_SIZE), num_datasets(0) {}
+Database::Database() : max_memory_size(DEFAULT_MAX_MEM_SIZE), num_datasets(0), tasks() {}
 
-Database::Database(const std::string &fname) {
+Database::Database(const std::string &fname) : tasks() {
     set_filename(fname);
 
     std::ifstream db_file(db_base / db_name, std::ifstream::binary);
