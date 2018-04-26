@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <random>
 
 #include "DatasetBuilder.h"
 #include "OnDiskDataset.h"
@@ -23,14 +24,16 @@ class Database {
     size_t max_memory_size;
     uint64_t last_task_id;
     std::vector<Task> tasks;
+    std::mt19937_64 random;
 
     std::string allocate_name();
     uint64_t allocate_task_id();
-    void set_filename(const std::string &fname);
+    void load_from_disk();
+
+    explicit Database(const std::string &fname, bool initialize);
 
   public:
     explicit Database(const std::string &fname);
-    explicit Database();
     void index_path(Task *task, const std::vector<IndexType> types, const std::string &filepath);
     void execute(const Query &query, Task *task, std::vector<std::string> *out);
     void add_dataset(DatasetBuilder &builder);

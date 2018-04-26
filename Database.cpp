@@ -10,12 +10,26 @@
 using json = nlohmann::json;
 namespace fs = std::experimental::filesystem;
 
-Database::Database()
-    : max_memory_size(DEFAULT_MAX_MEM_SIZE), num_datasets(0), tasks(), last_task_id(0) {}
+Database::Database(const std::string &fname, bool initialize) : tasks(), last_task_id(0) {
+    std::random_device rd;
+    std::seed_seq seed{rd(), rd(), rd(), rd()}; // A bit better than pathetic default
+    std::mt19937_64 gen(seed);
 
-Database::Database(const std::string &fname) : tasks(), last_task_id(0) {
-    set_filename(fname);
+    db_name = fs::path(fname).filename();
+    db_base = fs::path(fname).parent_path();
 
+    if (initialize) {
+        load_from_disk();
+    } else {
+        max_memory_size = DEFAULT_MAX_MEM_SIZE;
+        num_datasets = 0;
+    }
+}
+
+Database::Database(const std::string &fname) : Database(fname, true) {
+}
+
+void Database::load_from_disk() {
     std::ifstream db_file(db_base / db_name, std::ifstream::binary);
 
     if (db_file.fail()) {
@@ -38,19 +52,13 @@ Database::Database(const std::string &fname) : tasks(), last_task_id(0) {
     }
 }
 
-void Database::set_filename(const std::string &fname) {
-    db_name = fs::path(fname).filename();
-    db_base = fs::path(fname).parent_path();
-}
-
 void Database::create(const std::string &fname) {
     ExclusiveFile lock(fname);
     if (!lock.is_ok()) {
         // TODO() implement either-type error class
         throw std::runtime_error("File already exists");
     }
-    Database empty;
-    empty.set_filename(fname);
+    Database empty(fname, false);
     empty.save();
 }
 
