@@ -30,4 +30,9 @@ class CompactCommand {
     CompactCommand() {}
 };
 
-using Command = std::variant<SelectCommand, IndexCommand, CompactCommand>;
+class StatusCommand {
+  public:
+    StatusCommand() {}
+};
+
+using Command = std::variant<SelectCommand, IndexCommand, CompactCommand, StatusCommand>;

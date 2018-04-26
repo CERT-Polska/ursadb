@@ -42,6 +42,19 @@ std::string execute_command(const CompactCommand &cmd, Database *db) {
     return "OK";
 }
 
+std::string execute_command(const StatusCommand &cmd, Database *db) {
+    std::stringstream ss;
+    const std::vector<Task> &tasks = db->current_tasks();
+
+    ss << "OK\n";
+
+    for (const auto &ts : tasks) {
+        ss << ts.id << ": " << ts.work_estimated << " " << ts.work_done << "\n";
+    }
+
+    return ss.str();
+}
+
 std::string dispatch_command(const Command &cmd, Database *db) {
     return std::visit([db](const auto &cmd) { return execute_command(cmd, db); }, cmd);
 }
@@ -107,6 +120,6 @@ int main(int argc, char *argv[]) {
         pthread_create (&worker, NULL, worker_routine, (void *) &wa);
     }
 
-    zmq::proxy(&clients, &workers, NULL);
+    zmq::proxy(static_cast<void *>(clients), static_cast<void *>(workers), NULL);
     return 0;
 }

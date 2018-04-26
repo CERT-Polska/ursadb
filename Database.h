@@ -11,6 +11,7 @@
 namespace fs = std::experimental::filesystem;
 
 class Task {
+public:
     uint64_t id; // unique task id
     uint64_t work_estimated; // arbitrary number <= work_done
     uint64_t work_done; // arbitrary number, for example "number of bytes to index" or "number of trigrams to merge"
