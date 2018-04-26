@@ -1,14 +1,15 @@
 #pragma once
 
+#include <experimental/filesystem>
+#include <functional>
+#include <optional>
+#include <set>
 #include <string>
 #include <vector>
-#include <set>
-#include <functional>
-#include <experimental/filesystem>
 
 #include "Core.h"
 
-using TrigramCallback = std::function<void (TriGram)>;
+using TrigramCallback = std::function<void(TriGram)>;
 using TrigramGenerator = void (*)(const uint8_t *mem, size_t size, TrigramCallback callback);
 namespace fs = std::experimental::filesystem;
 
@@ -22,16 +23,21 @@ template <TrigramGenerator gen>
 std::vector<TriGram> get_trigrams_eager(const uint8_t *mem, size_t size) {
     std::vector<TriGram> out;
 
-    gen(mem, size, [&](auto val) {
-        out.push_back(val);
-    });
+    gen(mem, size, [&](auto val) { out.push_back(val); });
 
     return out;
 }
 
+using TrigramGetter = std::vector<TriGram> (*)(const uint8_t *, size_t);
+constexpr TrigramGetter get_trigrams = get_trigrams_eager<gen_trigrams>;
+constexpr TrigramGetter get_b64grams = get_trigrams_eager<gen_b64grams>;
+constexpr TrigramGetter get_wide_b64grams = get_trigrams_eager<gen_wide_b64grams>;
+constexpr TrigramGetter get_h4grams = get_trigrams_eager<gen_h4grams>;
+
 void compress_run(const std::vector<FileId> &run, std::ostream &out);
 std::vector<FileId> read_compressed_run(const uint8_t *start, const uint8_t *end);
 std::string get_index_type_name(IndexType type);
+std::optional<IndexType> index_type_from_string(const std::string &type);
 
 constexpr int get_b64_value(uint8_t character) {
     constexpr int ALPHABET_SIZE = 'Z' - 'A' + 1;
@@ -50,5 +56,6 @@ constexpr int get_b64_value(uint8_t character) {
     }
 }
 
-void store_dataset(const fs::path &db_base, const std::string &fname,
-                   const std::set<std::string> &index_names, const std::vector<std::string> &fids);
+void store_dataset(
+        const fs::path &db_base, const std::string &fname, const std::set<std::string> &index_names,
+        const std::vector<std::string> &fids);

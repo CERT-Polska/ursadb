@@ -23,8 +23,9 @@ class OnDiskIndex {
     const std::string &get_fname() const { return disk_map.name(); }
     IndexType index_type() const { return ntype; }
     QueryResult query_str(const std::string &str) const;
-    static void on_disk_merge(const fs::path &db_base, const std::string &fname,
-                              IndexType merge_type, const std::vector<IndexMergeHelper> &indexes);
+    static void on_disk_merge(
+            const fs::path &db_base, const std::string &fname, IndexType merge_type,
+            const std::vector<IndexMergeHelper> &indexes);
 };
 
 struct IndexMergeHelper {
