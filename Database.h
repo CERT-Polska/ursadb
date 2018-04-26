@@ -40,6 +40,7 @@ class Database {
     void compact(Task *task);
     void save();
     Task *allocate_task();
+    const std::vector<OnDiskDataset> &get_datasets() { return datasets; }
 
     static void create(const std::string &path);
 };

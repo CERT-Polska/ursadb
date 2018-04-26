@@ -56,6 +56,23 @@ std::string execute_command(const StatusCommand &cmd, Task *task, Database *db) 
     return ss.str();
 }
 
+std::string execute_command(const TopologyCommand &cmd, Task *task, Database *db) {
+    std::stringstream ss;
+    const std::vector<OnDiskDataset> &datasets = db->get_datasets();
+
+    ss << "OK\n";
+
+    for (const auto &dataset : datasets) {
+        ss << "DATASET " << dataset.get_id() << "\n";
+        for (const auto &index : dataset.get_indexes()) {
+            std::string index_type = get_index_type_name(index.index_type());
+            ss << "INDEX " << dataset.get_id() << "." << index_type << "\n";
+        }
+    }
+
+    return ss.str();
+}
+
 std::string dispatch_command(const Command &cmd, Task *task, Database *db) {
     return std::visit([db, task](const auto &cmd) { return execute_command(cmd, task, db); }, cmd);
 }

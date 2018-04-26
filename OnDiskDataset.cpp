@@ -78,6 +78,15 @@ void OnDiskDataset::execute(const Query &query, std::vector<std::string> *out) c
 
 const std::string &OnDiskDataset::get_name() const { return name; }
 
+std::string OnDiskDataset::get_id() const {
+    int first_dot = name.find('.');
+    int second_dot = name.find('.', first_dot + 1);
+    if (second_dot == std::string::npos) {
+        throw std::runtime_error("Invalid dataset ID found");
+    }
+    return name.substr(first_dot + 1, second_dot - first_dot - 1);
+}
+
 void OnDiskDataset::merge(
         const fs::path &db_base, const std::string &outname,
         const std::vector<OnDiskDataset> &datasets, Task *task) {

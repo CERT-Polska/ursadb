@@ -43,7 +43,8 @@ void Database::load_from_disk() {
         throw std::runtime_error("Failed to parse JSON");
     }
 
-    max_memory_size = db_json["max_mem_size"];
+    // TODO(xmsm) - when not present, use default
+    max_memory_size = db_json["config"]["max_mem_size"];
 
     for (std::string dataset_fname : db_json["datasets"]) {
         datasets.emplace_back(db_base, dataset_fname);
@@ -143,7 +144,9 @@ void Database::execute(const Query &query, Task *task, std::vector<std::string> 
 void Database::save() {
     std::ofstream db_file(db_base / db_name, std::ofstream::out | std::ofstream::binary);
     json db_json;
-    db_json["max_mem_size"] = max_memory_size;
+    db_json["config"] = {
+        {"max_mem_size", max_memory_size}
+    };
     std::vector<std::string> dataset_names;
 
     for (const auto &ds : datasets) {
