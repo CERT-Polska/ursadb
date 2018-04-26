@@ -49,51 +49,42 @@ std::string dispatch_command(const Command &cmd, Database *db) {
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         printf("Usage:\n");
-        printf("    %s [database]\n", argv[0]);
-        printf("    %s [database] server\n", argv[0]);
+        printf("    %s database-file [bind-address]\n", argv[0]);
         return 1;
     }
 
     Database db(argv[1]);
+    std::string bind_address = "tcp://*:9281";
 
-    if (argc == 2 || argv[2] == std::string("repl")) {
-        while (!std::cin.eof()) {
-            std::string input;
-            std::cout << "> ";
-            std::getline(std::cin, input);
-            try {
-                Command cmd = parse_command(input);
-                std::cout << dispatch_command(cmd, &db) << std::endl;
-            } catch (std::runtime_error &e) {
-                std::cout << "Command failed: " << e.what() << std::endl;
-            }
-        }
-    } else if (argv[2] == std::string("server")) {
-        zmq::context_t context(1);
-        zmq::socket_t socket(context, ZMQ_REP);
-        socket.bind("tcp://*:9281");
-
-        while (true) {
-            zmq::message_t request;
-
-            socket.recv(&request);
-            std::string cmd_str = std::string(static_cast<char *>(request.data()), request.size());
-            std::cout << "Received request " << cmd_str << std::endl;
-
-            try {
-                Command cmd = parse_command(cmd_str);
-                std::string s = dispatch_command(cmd, &db);
-                zmq::message_t reply(s.data(), s.size());
-                socket.send(reply);
-            } catch (std::runtime_error &e) {
-                std::cout << "Command failed: " << e.what() << std::endl;
-                std::string s = std::string("ERR ") + e.what() + "\n";
-                zmq::message_t reply(s.data(), s.size());
-                socket.send(reply);
-            }
-        }
-    } else {
-        std::cout << "Unknown mode: " << argv[2] << std::endl;
+    if (argc > 3) {
+        std::cout << "Too many command line arguments." << std::endl;
+    } else if (argc == 3) {
+        bind_address = std::string(argv[2]);
     }
+
+    zmq::context_t context(1);
+    zmq::socket_t socket(context, ZMQ_REP);
+    socket.bind(bind_address);
+
+    while (true) {
+        zmq::message_t request;
+
+        socket.recv(&request);
+        std::string cmd_str = std::string(static_cast<char *>(request.data()), request.size());
+        std::cout << "Received request " << cmd_str << std::endl;
+
+        try {
+            Command cmd = parse_command(cmd_str);
+            std::string s = dispatch_command(cmd, &db);
+            zmq::message_t reply(s.data(), s.size());
+            socket.send(reply);
+        } catch (std::runtime_error &e) {
+            std::cout << "Command failed: " << e.what() << std::endl;
+            std::string s = std::string("ERR ") + e.what() + "\n";
+            zmq::message_t reply(s.data(), s.size());
+            socket.send(reply);
+        }
+    }
+
     return 0;
 }
