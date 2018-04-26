@@ -22,7 +22,6 @@ Database::Database(const std::string &fname, bool initialize) : tasks(), last_ta
         load_from_disk();
     } else {
         max_memory_size = DEFAULT_MAX_MEM_SIZE;
-        num_datasets = 0;
     }
 }
 
@@ -44,7 +43,6 @@ void Database::load_from_disk() {
         throw std::runtime_error("Failed to parse JSON");
     }
 
-    num_datasets = db_json["num_datasets"];
     max_memory_size = db_json["max_mem_size"];
 
     for (std::string dataset_fname : db_json["datasets"]) {
@@ -62,14 +60,27 @@ void Database::create(const std::string &fname) {
     empty.save();
 }
 
+std::string random_hex_string(int length, std::mt19937_64 *rd) {
+    constexpr static char charset[] = "0123456789abcdef";
+    thread_local static std::uniform_int_distribution<int> pick(0, sizeof(charset) - 2);
+
+    std::string result;
+    result.reserve(length);
+
+    for (int i = 0; i < length; i++) {
+        result += charset[pick(*rd)];
+    }
+
+    return result;
+}
+
 std::string Database::allocate_name() {
     while (true) {
         // TODO limit this to some sane value (like 10000 etc),
         // to avoid infinite loop in exceptional cases.
 
         std::stringstream ss;
-        ss << "set." << num_datasets << "." << db_name.string();
-        num_datasets++;
+        ss << "set." << random_hex_string(8, &random) << "." << db_name.string();
         std::string fname = ss.str();
         ExclusiveFile lock(db_base / fname);
         if (lock.is_ok()) {
@@ -132,7 +143,6 @@ void Database::execute(const Query &query, Task *task, std::vector<std::string> 
 void Database::save() {
     std::ofstream db_file(db_base / db_name, std::ofstream::out | std::ofstream::binary);
     json db_json;
-    db_json["num_datasets"] = num_datasets;
     db_json["max_mem_size"] = max_memory_size;
     std::vector<std::string> dataset_names;
 
@@ -172,7 +182,7 @@ void Database::index_path(
         }
     }
 
-    task->work_estimated = targets.size();
+    task->work_estimated = targets.size() + 1;
 
     for (const auto &target : targets) {
         std::cout << "indexing " << target << std::endl;
@@ -196,4 +206,6 @@ void Database::index_path(
         add_dataset(builder);
         save();
     }
+
+    task->work_done += 1;
 }

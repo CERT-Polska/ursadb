@@ -18,7 +18,6 @@ class OnDiskDataset;
 class Database {
     fs::path db_name;
     fs::path db_base;
-    int num_datasets;
     std::set<std::string> all_files;
     std::vector<OnDiskDataset> datasets;
     size_t max_memory_size;
