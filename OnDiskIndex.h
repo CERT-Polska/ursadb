@@ -4,6 +4,8 @@
 #include "Database.h"
 #include "MemMap.h"
 #include "Query.h"
+#include "Task.h"
+
 #include <string>
 #include <vector>
 
