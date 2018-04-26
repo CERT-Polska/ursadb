@@ -2,7 +2,7 @@
 
 class Task {
   public:
-    // unique task id
+    // task id
     uint64_t id;
     // arbitrary number <= work_done
     uint64_t work_estimated;

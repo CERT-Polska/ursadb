@@ -44,12 +44,13 @@ std::string execute_command(const CompactCommand &cmd, Task *task, Database *db)
 
 std::string execute_command(const StatusCommand &cmd, Task *task, Database *db) {
     std::stringstream ss;
-    const std::vector<Task> &tasks = db->current_tasks();
+    const std::map<uint64_t, Task> &tasks = db->current_tasks();
 
     ss << "OK\n";
 
-    for (const auto &ts : tasks) {
-        ss << ts.id << ": " << ts.work_estimated << " " << ts.work_done << "\n";
+    for (const auto &pair : tasks) {
+        const Task &ts = pair.second;
+        ss << ts.id << ": " << ts.work_done << " " << ts.work_estimated << "\n";
     }
 
     return ss.str();

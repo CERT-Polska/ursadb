@@ -23,7 +23,7 @@ class Database {
     std::vector<OnDiskDataset> datasets;
     size_t max_memory_size;
     uint64_t last_task_id;
-    std::vector<Task> tasks;
+    std::map<uint64_t, Task> tasks;
     std::mt19937_64 random;
 
     std::string allocate_name();
@@ -37,7 +37,7 @@ class Database {
     void index_path(Task *task, const std::vector<IndexType> types, const std::string &filepath);
     void execute(const Query &query, Task *task, std::vector<std::string> *out);
     void add_dataset(DatasetBuilder &builder);
-    const std::vector<Task> &current_tasks() { return tasks; }
+    const std::map<uint64_t, Task> &current_tasks() { return tasks; }
     void compact(Task *task);
     void save();
     Task *allocate_task();

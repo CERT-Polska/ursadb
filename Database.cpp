@@ -80,15 +80,19 @@ std::string Database::allocate_name() {
 
 uint64_t Database::allocate_task_id() {
     // TODO data race
-    last_task_id++;
-    return last_task_id;
+    return ++last_task_id;
 }
 
 Task *Database::allocate_task() {
-    uint64_t task_id = allocate_task_id();
-    auto timestamp = std::chrono::steady_clock::now().time_since_epoch();
-    uint64_t epoch_ms = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp).count();
-    return &tasks.emplace_back(task_id, epoch_ms);
+    while (true) {
+        uint64_t task_id = allocate_task_id();
+        auto timestamp = std::chrono::steady_clock::now().time_since_epoch();
+        uint64_t epoch_ms = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp).count();
+        if (tasks.count(task_id) == 0) {
+            Task new_task(task_id, epoch_ms);
+            return &tasks.emplace(task_id, new_task).first->second;
+        }
+    }
 }
 
 void Database::add_dataset(DatasetBuilder &builder) {
@@ -168,7 +172,7 @@ void Database::index_path(
         }
     }
 
-    task->work_estimated = all_files.size();
+    task->work_estimated = targets.size();
 
     for (const auto &target : targets) {
         std::cout << "indexing " << target << std::endl;
