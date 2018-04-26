@@ -10,7 +10,8 @@
 using json = nlohmann::json;
 namespace fs = std::experimental::filesystem;
 
-Database::Database() : max_memory_size(DEFAULT_MAX_MEM_SIZE), num_datasets(0), tasks(), last_task_id(0) {}
+Database::Database()
+    : max_memory_size(DEFAULT_MAX_MEM_SIZE), num_datasets(0), tasks(), last_task_id(0) {}
 
 Database::Database(const std::string &fname) : tasks(), last_task_id(0) {
     set_filename(fname);
@@ -118,7 +119,8 @@ void Database::save() {
     db_file << std::setw(4) << db_json << std::endl;
 }
 
-void Database::index_path(Task *task, const std::vector<IndexType> types, const std::string &filepath) {
+void Database::index_path(
+        Task *task, const std::vector<IndexType> types, const std::string &filepath) {
     namespace fs = std::experimental::filesystem;
     DatasetBuilder builder(types);
     fs::recursive_directory_iterator end;

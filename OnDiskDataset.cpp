@@ -3,9 +3,9 @@
 #include <fstream>
 #include <set>
 
+#include "Database.h"
 #include "Query.h"
 #include "lib/Json.h"
-#include "Database.h"
 
 using json = nlohmann::json;
 
@@ -80,8 +80,7 @@ const std::string &OnDiskDataset::get_name() const { return name; }
 
 void OnDiskDataset::merge(
         const fs::path &db_base, const std::string &outname,
-        const std::vector<OnDiskDataset> &datasets,
-        Task *task) {
+        const std::vector<OnDiskDataset> &datasets, Task *task) {
     std::set<IndexType> index_types;
 
     for (const OnDiskDataset &dataset : datasets) {

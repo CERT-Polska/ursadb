@@ -76,7 +76,7 @@ struct WorkerArgs {
 };
 
 void *worker_routine(void *arg) {
-    auto *wa = (WorkerArgs *) arg;
+    auto *wa = (WorkerArgs *)arg;
     auto *context = wa->context;
     zmq::socket_t socket(*context, ZMQ_REP);
     socket.connect("inproc://workers");
@@ -110,17 +110,17 @@ int main(int argc, char *argv[]) {
         bind_address = std::string(argv[2]);
     }
 
-    zmq::context_t context (1);
-    zmq::socket_t clients (context, ZMQ_ROUTER);
+    zmq::context_t context(1);
+    zmq::socket_t clients(context, ZMQ_ROUTER);
     clients.bind(bind_address);
-    zmq::socket_t workers (context, ZMQ_DEALER);
+    zmq::socket_t workers(context, ZMQ_DEALER);
     workers.bind("inproc://workers");
 
     WorkerArgs wa = {&db, &context};
 
     for (int thread_nbr = 0; thread_nbr != 5; thread_nbr++) {
         pthread_t worker;
-        pthread_create (&worker, NULL, worker_routine, (void *) &wa);
+        pthread_create(&worker, NULL, worker_routine, (void *)&wa);
     }
 
     zmq::proxy(static_cast<void *>(clients), static_cast<void *>(workers), NULL);

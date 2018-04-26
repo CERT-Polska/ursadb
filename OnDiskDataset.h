@@ -3,10 +3,10 @@
 #include <string>
 #include <vector>
 
-#include "Task.h"
 #include "Core.h"
 #include "OnDiskIndex.h"
 #include "Query.h"
+#include "Task.h"
 
 class OnDiskIndex;
 

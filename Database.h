@@ -1,14 +1,14 @@
 #pragma once
 
 #include <experimental/filesystem>
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
 
-#include "Task.h"
 #include "DatasetBuilder.h"
 #include "OnDiskDataset.h"
 #include "Query.h"
+#include "Task.h"
 
 namespace fs = std::experimental::filesystem;
 
@@ -25,7 +25,10 @@ class Database {
 
     uint64_t last_task_id;
     std::vector<Task> tasks;
-    uint64_t allocate_task_id() { last_task_id++; return last_task_id; }
+    uint64_t allocate_task_id() {
+        last_task_id++;
+        return last_task_id;
+    }
     void set_filename(const std::string &fname);
 
   public:

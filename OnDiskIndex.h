@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Core.h"
+#include "Database.h"
 #include "MemMap.h"
 #include "Query.h"
-#include "Database.h"
 #include <string>
 #include <vector>
 
