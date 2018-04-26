@@ -20,15 +20,12 @@ class Database {
     int num_datasets;
     std::set<std::string> all_files;
     std::vector<OnDiskDataset> datasets;
-    std::string allocate_name();
     size_t max_memory_size;
-
     uint64_t last_task_id;
     std::vector<Task> tasks;
-    uint64_t allocate_task_id() {
-        last_task_id++;
-        return last_task_id;
-    }
+
+    std::string allocate_name();
+    uint64_t allocate_task_id();
     void set_filename(const std::string &fname);
 
   public:
@@ -40,10 +37,7 @@ class Database {
     const std::vector<Task> &current_tasks() { return tasks; }
     void compact(Task *task);
     void save();
+    Task *allocate_task();
 
     static void create(const std::string &path);
-    Task *allocate_task() {
-        uint64_t task_id = allocate_task_id();
-        return &tasks.emplace_back(task_id);
-    }
 };

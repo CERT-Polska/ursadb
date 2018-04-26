@@ -70,6 +70,19 @@ std::string Database::allocate_name() {
     }
 }
 
+uint64_t Database::allocate_task_id() {
+    // TODO data race
+    last_task_id++;
+    return last_task_id;
+}
+
+Task *Database::allocate_task() {
+    uint64_t task_id = allocate_task_id();
+    auto timestamp = std::chrono::steady_clock::now().time_since_epoch();
+    uint64_t epoch_ms = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp).count();
+    return &tasks.emplace_back(task_id, epoch_ms);
+}
+
 void Database::add_dataset(DatasetBuilder &builder) {
     auto dataset_name = allocate_name();
     builder.save(db_base, dataset_name);
