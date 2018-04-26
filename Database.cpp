@@ -107,14 +107,15 @@ Task *Database::allocate_task() {
     }
 }
 
-void Database::add_dataset(DatasetBuilder &builder) {
+std::string Database::add_dataset(DatasetBuilder &builder) {
     auto dataset_name = allocate_name();
     builder.save(db_base, dataset_name);
-    OnDiskDataset &ds = datasets.emplace_back(db_base, dataset_name);
+    return dataset_name;
+    /* OnDiskDataset &ds = datasets.emplace_back(db_base, dataset_name);
 
     for (auto &fn : ds.indexed_files()) {
         all_files.insert(fn);
-    }
+    } */
 }
 
 void Database::compact(Task *task) {
@@ -122,14 +123,10 @@ void Database::compact(Task *task) {
     OnDiskDataset::merge(db_base, dataset_name, datasets, task);
 
     for (auto &dataset : datasets) {
-        dataset.drop();
+        task->changes.emplace_back("drop", dataset.get_name());
     }
 
-    datasets.clear();
-
-    using json = nlohmann::json;
-    datasets.emplace_back(db_base, dataset_name);
-    save();
+    task->changes.emplace_back("insert", dataset_name);
 }
 
 void Database::execute(const Query &query, Task *task, std::vector<std::string> *out) {
@@ -157,8 +154,7 @@ void Database::save() {
     db_file << std::setw(4) << db_json << std::endl;
 }
 
-void Database::index_path(
-        Task *task, const std::vector<IndexType> types, const std::string &filepath) {
+void Database::index_path(Task *task, const std::vector<IndexType> types, const std::string &filepath) {
     namespace fs = std::experimental::filesystem;
     DatasetBuilder builder(types);
     fs::recursive_directory_iterator end;
@@ -198,7 +194,7 @@ void Database::index_path(
 
         if (builder.estimated_size() > max_memory_size) {
             std::cout << "new dataset " << builder.estimated_size() << std::endl;
-            add_dataset(builder);
+            task->changes.emplace_back("insert", add_dataset(builder));
             builder = DatasetBuilder(types);
         }
 
@@ -206,8 +202,7 @@ void Database::index_path(
     }
 
     if (!builder.empty()) {
-        add_dataset(builder);
-        save();
+        task->changes.emplace_back("insert", add_dataset(builder));
     }
 
     task->work_done += 1;

@@ -82,10 +82,9 @@ std::string dispatch_command(const Command &cmd, Task *task, Database *db) {
     return std::visit([db, task](const auto &cmd) { return execute_command(cmd, task, db); }, cmd);
 }
 
-std::string dispatch_command_safe(const std::string &cmd_str, Database *db) {
+std::string dispatch_command_safe(const std::string &cmd_str, Task *task, Database *db) {
     try {
         Command cmd = parse_command(cmd_str);
-        Task *task = db->allocate_task();
         return dispatch_command(cmd, task, db);
     } catch (std::runtime_error &e) {
         std::cout << "Command failed: " << e.what() << std::endl;
@@ -120,11 +119,20 @@ worker_thread(void *arg) {
             assert(empty.size() == 0);
         }
 
+        std::string task_id_str = s_recv(worker);
+        {
+            std::string empty = s_recv(worker);
+            assert(empty.size() == 0);
+        }
+
+        uint64_t task_id = stoul(task_id_str);
+        Task &task = wa->db->current_tasks().at(task_id);
+
         //  Get request, send reply
         std::string request = s_recv(worker);
         std::cout << "Worker: " << request << std::endl;
 
-        std::string s = dispatch_command_safe(request, wa->db);
+        std::string s = dispatch_command_safe(request, &task, wa->db);
 
         s_sendmore(worker, address);
         s_sendmore(worker, "");
@@ -174,6 +182,7 @@ int main(int argc, char *argv[])
     //
     //  A very simple queue structure with known max size
     std::queue<std::string> worker_queue;
+    std::map<std::string, uint64_t> worker_task_ids;
 
     while (1) {
 
@@ -193,7 +202,24 @@ int main(int argc, char *argv[])
         if (items[0].revents & ZMQ_POLLIN) {
 
             //  Queue worker address for LRU routing
-            worker_queue.push(s_recv(backend));
+            std::string worker_addr = s_recv(backend);
+            uint64_t did_task = worker_task_ids[worker_addr];
+            std::cout << "worker finished: " << worker_addr << ", he was doing task " << did_task << std::endl;
+
+            // TODO META-PROBLEM: Implement immutable Database views for command operational purposes
+            // TODO META-PROBLEM**2: Implement garbage collector for unused datasets
+
+            if (did_task != 0) {
+                std::cout << "Requested changes: " << std::endl;
+                for (const auto &change : db.current_tasks().at(did_task).changes) {
+                    std::cout << change.first << " " << change.second << std::endl;
+                }
+                std::cout << "EOF" << std::endl;
+
+                db.current_tasks().erase(did_task);
+            }
+
+            worker_queue.push(worker_addr);
 
             {
                 //  Second frame is empty
@@ -237,9 +263,16 @@ int main(int argc, char *argv[])
             std::string worker_addr = worker_queue.front();//worker_queue [0];
             worker_queue.pop();
 
+            Task *task = db.allocate_task();
+            worker_task_ids[worker_addr] = task->id;
+            std::ostringstream ss;
+            ss << task->id; // TODO passing string o_O
+
             s_sendmore(backend, worker_addr);
             s_sendmore(backend, "");
             s_sendmore(backend, client_addr);
+            s_sendmore(backend, "");
+            s_sendmore(backend, ss.str());
             s_sendmore(backend, "");
             s_send(backend, request);
         }
