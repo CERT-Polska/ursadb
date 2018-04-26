@@ -31,16 +31,16 @@ class Database {
   public:
     explicit Database(const std::string &fname);
     explicit Database();
-    void index_path(Task &task, const std::vector<IndexType> types, const std::string &filepath);
-    void execute(Task &task, const Query &query, std::vector<std::string> &out);
+    void index_path(Task *task, const std::vector<IndexType> types, const std::string &filepath);
+    void execute(const Query &query, Task *task, std::vector<std::string> *out);
     void add_dataset(DatasetBuilder &builder);
     const std::vector<Task> &current_tasks() { return tasks; }
-    void compact(Task &task);
+    void compact(Task *task);
     void save();
 
     static void create(const std::string &path);
-    Task &allocate_task() {
+    Task *allocate_task() {
         uint64_t task_id = allocate_task_id();
-        return tasks.emplace_back(task_id);
+        return &tasks.emplace_back(task_id);
     }
 };

@@ -60,9 +60,8 @@ std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram) const {
 }
 
 void OnDiskIndex::on_disk_merge(
-        Task &task,
         const fs::path &db_base, const std::string &fname, IndexType merge_type,
-        const std::vector<IndexMergeHelper> &indexes) {
+        const std::vector<IndexMergeHelper> &indexes, Task *task) {
     std::ofstream out(db_base / fname, std::ofstream::binary | std::ofstream::out);
 
     if (!std::all_of(indexes.begin(), indexes.end(), [merge_type](const IndexMergeHelper &ndx) {
@@ -96,7 +95,7 @@ void OnDiskIndex::on_disk_merge(
             baseline += helper.file_count;
         }
         compress_run(all_ids, out);
-        task.work_done += 1;
+        task->work_done += 1;
     }
     out_offsets[NUM_TRIGRAMS] = (uint64_t)out.tellp();
 

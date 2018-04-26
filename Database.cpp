@@ -79,9 +79,9 @@ void Database::add_dataset(DatasetBuilder &builder) {
     }
 }
 
-void Database::compact(Task &task) {
+void Database::compact(Task *task) {
     std::string dataset_name = allocate_name();
-    OnDiskDataset::merge(task, db_base, dataset_name, datasets);
+    OnDiskDataset::merge(db_base, dataset_name, datasets, task);
 
     for (auto &dataset : datasets) {
         dataset.drop();
@@ -94,12 +94,12 @@ void Database::compact(Task &task) {
     save();
 }
 
-void Database::execute(Task &task, const Query &query, std::vector<std::string> &out) {
-    task.work_estimated = datasets.size();
+void Database::execute(const Query &query, Task *task, std::vector<std::string> *out) {
+    task->work_estimated = datasets.size();
 
     for (const auto &ds : datasets) {
-        ds.execute(query, &out);
-        task.work_done += 1;
+        ds.execute(query, out);
+        task->work_done += 1;
     }
 }
 
@@ -118,7 +118,7 @@ void Database::save() {
     db_file << std::setw(4) << db_json << std::endl;
 }
 
-void Database::index_path(Task &task, const std::vector<IndexType> types, const std::string &filepath) {
+void Database::index_path(Task *task, const std::vector<IndexType> types, const std::string &filepath) {
     namespace fs = std::experimental::filesystem;
     DatasetBuilder builder(types);
     fs::recursive_directory_iterator end;
@@ -145,7 +145,7 @@ void Database::index_path(Task &task, const std::vector<IndexType> types, const 
         }
     }
 
-    task.work_estimated = all_files.size();
+    task->work_estimated = all_files.size();
 
     for (const auto &target : targets) {
         std::cout << "indexing " << target << std::endl;
@@ -156,7 +156,7 @@ void Database::index_path(Task &task, const std::vector<IndexType> types, const 
             std::cout << "empty file, skip" << std::endl;
         }
 
-        task.work_done += 1;
+        task->work_done += 1;
 
         if (builder.estimated_size() > max_memory_size) {
             std::cout << "new dataset " << builder.estimated_size() << std::endl;

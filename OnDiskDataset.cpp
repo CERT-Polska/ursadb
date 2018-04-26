@@ -79,9 +79,9 @@ void OnDiskDataset::execute(const Query &query, std::vector<std::string> *out) c
 const std::string &OnDiskDataset::get_name() const { return name; }
 
 void OnDiskDataset::merge(
-        Task &task,
         const fs::path &db_base, const std::string &outname,
-        const std::vector<OnDiskDataset> &datasets) {
+        const std::vector<OnDiskDataset> &datasets,
+        Task *task) {
     std::set<IndexType> index_types;
 
     for (const OnDiskDataset &dataset : datasets) {
@@ -90,7 +90,7 @@ void OnDiskDataset::merge(
         }
     }
 
-    task.work_estimated = NUM_TRIGRAMS * index_types.size();
+    task->work_estimated = NUM_TRIGRAMS * index_types.size();
 
     json dataset;
 
@@ -103,7 +103,7 @@ void OnDiskDataset::merge(
             indexes.push_back(IndexMergeHelper(
                     &dataset.get_index_with_type(index_type), dataset.fnames.size()));
         }
-        OnDiskIndex::on_disk_merge(task, db_base, index_name, index_type, indexes);
+        OnDiskIndex::on_disk_merge(db_base, index_name, index_type, indexes, task);
     }
 
     std::vector<std::string> file_names;

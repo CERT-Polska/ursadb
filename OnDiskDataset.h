@@ -29,8 +29,7 @@ class OnDiskDataset {
     const std::vector<std::string> &indexed_files() const { return fnames; }
     void execute(const Query &query, std::vector<std::string> *out) const;
     static void
-    merge(Task &task,
-          const fs::path &db_base, const std::string &outname,
-          const std::vector<OnDiskDataset> &datasets);
+    merge(const fs::path &db_base, const std::string &outname,
+          const std::vector<OnDiskDataset> &datasets, Task *task);
     void drop();
 };

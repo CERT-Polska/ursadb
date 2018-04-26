@@ -15,12 +15,12 @@
 #include "OnDiskDataset.h"
 #include "QueryParser.h"
 
-std::string execute_command(Task &task, const SelectCommand &cmd, Database *db) {
+std::string execute_command(const SelectCommand &cmd, Task *task, Database *db) {
     std::stringstream ss;
 
     const Query &query = cmd.get_query();
     std::vector<std::string> out;
-    db->execute(task, query, out);
+    db->execute(query, task, &out);
     ss << "OK\n";
     for (std::string &s : out) {
         ss << s << "\n";
@@ -29,20 +29,20 @@ std::string execute_command(Task &task, const SelectCommand &cmd, Database *db) 
     return ss.str();
 }
 
-std::string execute_command(Task &task, const IndexCommand &cmd, Database *db) {
+std::string execute_command(const IndexCommand &cmd, Task *task, Database *db) {
     const std::string &path = cmd.get_path();
     db->index_path(task, cmd.get_index_types(), path);
 
     return "OK";
 }
 
-std::string execute_command(Task &task, const CompactCommand &cmd, Database *db) {
+std::string execute_command(const CompactCommand &cmd, Task *task, Database *db) {
     db->compact(task);
 
     return "OK";
 }
 
-std::string execute_command(Task &task, const StatusCommand &cmd, Database *db) {
+std::string execute_command(const StatusCommand &cmd, Task *task, Database *db) {
     std::stringstream ss;
     const std::vector<Task> &tasks = db->current_tasks();
 
@@ -55,17 +55,28 @@ std::string execute_command(Task &task, const StatusCommand &cmd, Database *db) 
     return ss.str();
 }
 
-std::string dispatch_command(Task &task, const Command &cmd, Database *db) {
-    return std::visit([db, &task](const auto &cmd) { return execute_command(task, cmd, db); }, cmd);
+std::string dispatch_command(const Command &cmd, Task *task, Database *db) {
+    return std::visit([db, task](const auto &cmd) { return execute_command(cmd, task, db); }, cmd);
 }
 
-struct worker_args {
+std::string dispatch_command_safe(const std::string &cmd_str, Database *db) {
+    try {
+        Command cmd = parse_command(cmd_str);
+        Task *task = db->allocate_task();
+        return dispatch_command(cmd, task, db);
+    } catch (std::runtime_error &e) {
+        std::cout << "Command failed: " << e.what() << std::endl;
+        return std::string("ERR ") + e.what() + "\n";
+    }
+}
+
+struct WorkerArgs {
     Database *db;
     zmq::context_t *context;
 };
 
 void *worker_routine(void *arg) {
-    auto *wa = (worker_args *) arg;
+    auto *wa = (WorkerArgs *) arg;
     auto *context = wa->context;
     zmq::socket_t socket(*context, ZMQ_REP);
     socket.connect("inproc://workers");
@@ -77,18 +88,9 @@ void *worker_routine(void *arg) {
         std::string cmd_str = std::string(static_cast<char *>(request.data()), request.size());
         std::cout << "Received request " << cmd_str << std::endl;
 
-        try {
-            Command cmd = parse_command(cmd_str);
-            Task &task = wa->db->allocate_task();
-            std::string s = dispatch_command(task, cmd, wa->db);
-            zmq::message_t reply(s.data(), s.size());
-            socket.send(reply);
-        } catch (std::runtime_error &e) {
-            std::cout << "Command failed: " << e.what() << std::endl;
-            std::string s = std::string("ERR ") + e.what() + "\n";
-            zmq::message_t reply(s.data(), s.size());
-            socket.send(reply);
-        }
+        std::string s = dispatch_command_safe(cmd_str, wa->db);
+        zmq::message_t reply(s.data(), s.size());
+        socket.send(reply);
     }
 }
 
@@ -114,7 +116,7 @@ int main(int argc, char *argv[]) {
     zmq::socket_t workers (context, ZMQ_DEALER);
     workers.bind("inproc://workers");
 
-    worker_args wa = {&db, &context};
+    WorkerArgs wa = {&db, &context};
 
     for (int thread_nbr = 0; thread_nbr != 5; thread_nbr++) {
         pthread_t worker;
