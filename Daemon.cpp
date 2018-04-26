@@ -8,6 +8,11 @@
 #include <variant>
 #include <vector>
 #include <zmq.hpp>
+#include <queue>
+#include <sys/types.h>
+#include <pthread.h>
+
+#include "zhelpers.hpp"
 
 #include "Command.h"
 #include "Database.h"
@@ -89,30 +94,49 @@ std::string dispatch_command_safe(const std::string &cmd_str, Database *db) {
 }
 
 struct WorkerArgs {
+    int worker_nbr;
     Database *db;
-    zmq::context_t *context;
 };
 
-void *worker_routine(void *arg) {
-    auto *wa = (WorkerArgs *)arg;
-    auto *context = wa->context;
-    zmq::socket_t socket(*context, ZMQ_REP);
-    socket.connect("inproc://workers");
+static void *
+worker_thread(void *arg) {
+    auto *wa = static_cast<WorkerArgs *>(arg);
 
-    while (true) {
-        zmq::message_t request;
+    zmq::context_t context(1);
+    zmq::socket_t worker(context, ZMQ_REQ);
 
-        socket.recv(&request);
-        std::string cmd_str = std::string(static_cast<char *>(request.data()), request.size());
-        std::cout << "Received request " << cmd_str << std::endl;
+    s_set_id(worker);
+    worker.connect("ipc://backend.ipc");
 
-        std::string s = dispatch_command_safe(cmd_str, wa->db);
-        zmq::message_t reply(s.data(), s.size());
-        socket.send(reply);
+    //  Tell backend we're ready for work
+    s_send(worker, "READY");
+
+    while (1) {
+        //  Read and save all frames until we get an empty frame
+        //  In this example there is only 1 but it could be more
+        std::string address = s_recv(worker);
+        {
+            std::string empty = s_recv(worker);
+            assert(empty.size() == 0);
+        }
+
+        //  Get request, send reply
+        std::string request = s_recv(worker);
+        std::cout << "Worker: " << request << std::endl;
+
+        std::string s = dispatch_command_safe(request, wa->db);
+
+        s_sendmore(worker, address);
+        s_sendmore(worker, "");
+        s_send(worker, s);
     }
+    return (NULL);
 }
 
-int main(int argc, char *argv[]) {
+// LRU queue on ZMQ based on exemplary implementation by:
+// Olivier Chamoux <olivier.chamoux@fr.thalesgroup.com>
+int main(int argc, char *argv[])
+{
     if (argc < 2) {
         printf("Usage:\n");
         printf("    %s database-file [bind-address]\n", argv[0]);
@@ -120,7 +144,7 @@ int main(int argc, char *argv[]) {
     }
 
     Database db(argv[1]);
-    std::string bind_address = "tcp://*:9281";
+    std::string bind_address = "tcp://127.0.0.1:9281";
 
     if (argc > 3) {
         std::cout << "Too many command line arguments." << std::endl;
@@ -128,19 +152,97 @@ int main(int argc, char *argv[]) {
         bind_address = std::string(argv[2]);
     }
 
+    //  Prepare our context and sockets
     zmq::context_t context(1);
-    zmq::socket_t clients(context, ZMQ_ROUTER);
-    clients.bind(bind_address);
-    zmq::socket_t workers(context, ZMQ_DEALER);
-    workers.bind("inproc://workers");
+    zmq::socket_t frontend(context, ZMQ_ROUTER);
+    zmq::socket_t backend(context, ZMQ_ROUTER);
 
-    WorkerArgs wa = {&db, &context};
+    frontend.bind(bind_address);
+    backend.bind("ipc://backend.ipc");
 
-    for (int thread_nbr = 0; thread_nbr != 5; thread_nbr++) {
+    int worker_nbr;
+    for (worker_nbr = 0; worker_nbr < 3; worker_nbr++) {
+        auto *wa = new WorkerArgs{worker_nbr, &db};
         pthread_t worker;
-        pthread_create(&worker, NULL, worker_routine, (void *)&wa);
+        pthread_create(&worker, NULL, worker_thread, (void *)wa);
     }
+    //  Logic of LRU loop
+    //  - Poll backend always, frontend only if 1+ worker ready
+    //  - If worker replies, queue worker as ready and forward reply
+    //    to client if necessary
+    //  - If client requests, pop next worker and send request to it
+    //
+    //  A very simple queue structure with known max size
+    std::queue<std::string> worker_queue;
 
-    zmq::proxy(static_cast<void *>(clients), static_cast<void *>(workers), NULL);
+    while (1) {
+
+        //  Initialize poll set
+        zmq::pollitem_t items[] = {
+                //  Always poll for worker activity on backend
+                { static_cast<void *>(backend), 0, ZMQ_POLLIN, 0 },
+                //  Poll front-end only if we have available workers
+                { static_cast<void *>(frontend), 0, ZMQ_POLLIN, 0 }
+        };
+        if (worker_queue.size())
+            zmq::poll(&items[0], 2, -1);
+        else
+            zmq::poll(&items[0], 1, -1);
+
+        //  Handle worker activity on backend
+        if (items[0].revents & ZMQ_POLLIN) {
+
+            //  Queue worker address for LRU routing
+            worker_queue.push(s_recv(backend));
+
+            {
+                //  Second frame is empty
+                std::string empty = s_recv(backend);
+                assert(empty.size() == 0);
+            }
+
+            //  Third frame is READY or else a client reply address
+            std::string client_addr = s_recv(backend);
+
+            //  If client reply, send rest back to frontend
+            if (client_addr.compare("READY") != 0) {
+
+                {
+                    std::string empty = s_recv(backend);
+                    assert(empty.size() == 0);
+                }
+
+                std::string reply = s_recv(backend);
+                s_sendmore(frontend, client_addr);
+                s_sendmore(frontend, "");
+                s_send(frontend, reply);
+
+                //if (--client_nbr == 0)
+                //    break;
+            }
+        }
+        if (items[1].revents & ZMQ_POLLIN) {
+
+            //  Now get next client request, route to LRU worker
+            //  Client request is [address][empty][request]
+            std::string client_addr = s_recv(frontend);
+
+            {
+                std::string empty = s_recv(frontend);
+                assert(empty.size() == 0);
+            }
+
+            std::string request = s_recv(frontend);
+
+            std::string worker_addr = worker_queue.front();//worker_queue [0];
+            worker_queue.pop();
+
+            s_sendmore(backend, worker_addr);
+            s_sendmore(backend, "");
+            s_sendmore(backend, client_addr);
+            s_sendmore(backend, "");
+            s_send(backend, request);
+        }
+    }
     return 0;
 }
