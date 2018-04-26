@@ -5,6 +5,7 @@
 
 #include "Query.h"
 #include "lib/Json.h"
+#include "Database.h"
 
 using json = nlohmann::json;
 
@@ -78,6 +79,7 @@ void OnDiskDataset::execute(const Query &query, std::vector<std::string> *out) c
 const std::string &OnDiskDataset::get_name() const { return name; }
 
 void OnDiskDataset::merge(
+        Task &task,
         const fs::path &db_base, const std::string &outname,
         const std::vector<OnDiskDataset> &datasets) {
     std::set<IndexType> index_types;
@@ -87,6 +89,8 @@ void OnDiskDataset::merge(
             index_types.insert(index.index_type());
         }
     }
+
+    task.work_estimated = NUM_TRIGRAMS * index_types.size();
 
     json dataset;
 
@@ -99,7 +103,7 @@ void OnDiskDataset::merge(
             indexes.push_back(IndexMergeHelper(
                     &dataset.get_index_with_type(index_type), dataset.fnames.size()));
         }
-        OnDiskIndex::on_disk_merge(db_base, index_name, index_type, indexes);
+        OnDiskIndex::on_disk_merge(task, db_base, index_name, index_type, indexes);
     }
 
     std::vector<std::string> file_names;

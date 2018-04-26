@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "MemMap.h"
 #include "Query.h"
+#include "Database.h"
 #include <string>
 #include <vector>
 
@@ -24,6 +25,7 @@ class OnDiskIndex {
     IndexType index_type() const { return ntype; }
     QueryResult query_str(const std::string &str) const;
     static void on_disk_merge(
+            Task &task,
             const fs::path &db_base, const std::string &fname, IndexType merge_type,
             const std::vector<IndexMergeHelper> &indexes);
 };

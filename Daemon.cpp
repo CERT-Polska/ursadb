@@ -15,12 +15,12 @@
 #include "OnDiskDataset.h"
 #include "QueryParser.h"
 
-std::string execute_command(const SelectCommand &cmd, Database *db) {
+std::string execute_command(Task &task, const SelectCommand &cmd, Database *db) {
     std::stringstream ss;
 
     const Query &query = cmd.get_query();
     std::vector<std::string> out;
-    db->execute(query, out);
+    db->execute(task, query, out);
     ss << "OK\n";
     for (std::string &s : out) {
         ss << s << "\n";
@@ -29,20 +29,20 @@ std::string execute_command(const SelectCommand &cmd, Database *db) {
     return ss.str();
 }
 
-std::string execute_command(const IndexCommand &cmd, Database *db) {
+std::string execute_command(Task &task, const IndexCommand &cmd, Database *db) {
     const std::string &path = cmd.get_path();
-    db->index_path(cmd.get_index_types(), path);
+    db->index_path(task, cmd.get_index_types(), path);
 
     return "OK";
 }
 
-std::string execute_command(const CompactCommand &cmd, Database *db) {
-    db->compact();
+std::string execute_command(Task &task, const CompactCommand &cmd, Database *db) {
+    db->compact(task);
 
     return "OK";
 }
 
-std::string execute_command(const StatusCommand &cmd, Database *db) {
+std::string execute_command(Task &task, const StatusCommand &cmd, Database *db) {
     std::stringstream ss;
     const std::vector<Task> &tasks = db->current_tasks();
 
@@ -55,8 +55,8 @@ std::string execute_command(const StatusCommand &cmd, Database *db) {
     return ss.str();
 }
 
-std::string dispatch_command(const Command &cmd, Database *db) {
-    return std::visit([db](const auto &cmd) { return execute_command(cmd, db); }, cmd);
+std::string dispatch_command(Task &task, const Command &cmd, Database *db) {
+    return std::visit([db, &task](const auto &cmd) { return execute_command(task, cmd, db); }, cmd);
 }
 
 struct worker_args {
@@ -65,8 +65,8 @@ struct worker_args {
 };
 
 void *worker_routine(void *arg) {
-    auto *wa = (worker_args *)arg;
-    auto *context = (zmq::context_t *) wa->context;
+    auto *wa = (worker_args *) arg;
+    auto *context = wa->context;
     zmq::socket_t socket(*context, ZMQ_REP);
     socket.connect("inproc://workers");
 
@@ -79,7 +79,8 @@ void *worker_routine(void *arg) {
 
         try {
             Command cmd = parse_command(cmd_str);
-            std::string s = dispatch_command(cmd, wa->db);
+            Task &task = wa->db->allocate_task();
+            std::string s = dispatch_command(task, cmd, wa->db);
             zmq::message_t reply(s.data(), s.size());
             socket.send(reply);
         } catch (std::runtime_error &e) {

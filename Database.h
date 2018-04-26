@@ -3,20 +3,16 @@
 #include <experimental/filesystem>
 #include <string>
 #include <vector>
+#include <map>
 
+#include "Task.h"
 #include "DatasetBuilder.h"
 #include "OnDiskDataset.h"
 #include "Query.h"
 
 namespace fs = std::experimental::filesystem;
 
-class Task {
-public:
-    uint64_t id; // unique task id
-    uint64_t work_estimated; // arbitrary number <= work_done
-    uint64_t work_done; // arbitrary number, for example "number of bytes to index" or "number of trigrams to merge"
-    uint64_t start_timestamp; // for ETA calculation
-};
+class OnDiskDataset;
 
 class Database {
     fs::path db_name;
@@ -24,21 +20,27 @@ class Database {
     int num_datasets;
     std::set<std::string> all_files;
     std::vector<OnDiskDataset> datasets;
-    std::vector<Task> tasks;
     std::string allocate_name();
     size_t max_memory_size;
 
+    uint64_t last_task_id;
+    std::vector<Task> tasks;
+    uint64_t allocate_task_id() { last_task_id++; return last_task_id; }
     void set_filename(const std::string &fname);
 
   public:
     explicit Database(const std::string &fname);
     explicit Database();
-    void index_path(const std::vector<IndexType> types, const std::string &filepath);
-    void execute(const Query &query, std::vector<std::string> &out);
+    void index_path(Task &task, const std::vector<IndexType> types, const std::string &filepath);
+    void execute(Task &task, const Query &query, std::vector<std::string> &out);
     void add_dataset(DatasetBuilder &builder);
     const std::vector<Task> &current_tasks() { return tasks; }
-    void compact();
+    void compact(Task &task);
     void save();
 
     static void create(const std::string &path);
+    Task &allocate_task() {
+        uint64_t task_id = allocate_task_id();
+        return tasks.emplace_back(task_id);
+    }
 };

@@ -10,9 +10,9 @@
 using json = nlohmann::json;
 namespace fs = std::experimental::filesystem;
 
-Database::Database() : max_memory_size(DEFAULT_MAX_MEM_SIZE), num_datasets(0), tasks() {}
+Database::Database() : max_memory_size(DEFAULT_MAX_MEM_SIZE), num_datasets(0), tasks(), last_task_id(0) {}
 
-Database::Database(const std::string &fname) : tasks() {
+Database::Database(const std::string &fname) : tasks(), last_task_id(0) {
     set_filename(fname);
 
     std::ifstream db_file(db_base / db_name, std::ifstream::binary);
@@ -79,9 +79,9 @@ void Database::add_dataset(DatasetBuilder &builder) {
     }
 }
 
-void Database::compact() {
+void Database::compact(Task &task) {
     std::string dataset_name = allocate_name();
-    OnDiskDataset::merge(db_base, dataset_name, datasets);
+    OnDiskDataset::merge(task, db_base, dataset_name, datasets);
 
     for (auto &dataset : datasets) {
         dataset.drop();
@@ -94,9 +94,12 @@ void Database::compact() {
     save();
 }
 
-void Database::execute(const Query &query, std::vector<std::string> &out) {
+void Database::execute(Task &task, const Query &query, std::vector<std::string> &out) {
+    task.work_estimated = datasets.size();
+
     for (const auto &ds : datasets) {
         ds.execute(query, &out);
+        task.work_done += 1;
     }
 }
 
@@ -115,7 +118,7 @@ void Database::save() {
     db_file << std::setw(4) << db_json << std::endl;
 }
 
-void Database::index_path(const std::vector<IndexType> types, const std::string &filepath) {
+void Database::index_path(Task &task, const std::vector<IndexType> types, const std::string &filepath) {
     namespace fs = std::experimental::filesystem;
     DatasetBuilder builder(types);
     fs::recursive_directory_iterator end;
@@ -128,28 +131,37 @@ void Database::index_path(const std::vector<IndexType> types, const std::string 
         }
     }
 
+    std::vector<std::string> targets;
+
     for (fs::recursive_directory_iterator dir(filepath); dir != end; ++dir) {
         if (fs::is_regular_file(dir->path())) {
             fs::path absfn = fs::absolute(dir->path());
 
             if (all_files.find(absfn.string()) != all_files.end()) {
-                std::cout << "skip existing " << absfn.string() << std::endl;
                 continue;
             }
 
-            std::cout << "indexing " << absfn.string() << std::endl;
+            targets.push_back(absfn.string());
+        }
+    }
 
-            try {
-                builder.index(absfn.string());
-            } catch (empty_file_error &e) {
-                std::cout << "empty file, skip" << std::endl;
-            }
+    task.work_estimated = all_files.size();
 
-            if (builder.estimated_size() > max_memory_size) {
-                std::cout << "new dataset " << builder.estimated_size() << std::endl;
-                add_dataset(builder);
-                builder = DatasetBuilder(types);
-            }
+    for (const auto &target : targets) {
+        std::cout << "indexing " << target << std::endl;
+
+        try {
+            builder.index(target);
+        } catch (empty_file_error &e) {
+            std::cout << "empty file, skip" << std::endl;
+        }
+
+        task.work_done += 1;
+
+        if (builder.estimated_size() > max_memory_size) {
+            std::cout << "new dataset " << builder.estimated_size() << std::endl;
+            add_dataset(builder);
+            builder = DatasetBuilder(types);
         }
     }
 

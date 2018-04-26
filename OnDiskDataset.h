@@ -3,9 +3,12 @@
 #include <string>
 #include <vector>
 
+#include "Task.h"
 #include "Core.h"
 #include "OnDiskIndex.h"
 #include "Query.h"
+
+class OnDiskIndex;
 
 class OnDiskDataset {
     std::string name;
@@ -26,7 +29,8 @@ class OnDiskDataset {
     const std::vector<std::string> &indexed_files() const { return fnames; }
     void execute(const Query &query, std::vector<std::string> *out) const;
     static void
-    merge(const fs::path &db_base, const std::string &outname,
+    merge(Task &task,
+          const fs::path &db_base, const std::string &outname,
           const std::vector<OnDiskDataset> &datasets);
     void drop();
 };
