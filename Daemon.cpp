@@ -68,7 +68,7 @@ std::string execute_command(const TopologyCommand &cmd, Task *task, DatabaseSnap
         ss << "DATASET " << dataset->get_id() << "\n";
         for (const auto &index : dataset->get_indexes()) {
             std::string index_type = get_index_type_name(index.index_type());
-            ss << "INDEX " << dataset->get_id() << "." << index_type << "\n";
+            ss << "INDEX " << dataset->get_id() << " " << index_type << "\n";
         }
     }
 
@@ -252,14 +252,18 @@ int main(int argc, char *argv[]) {
             worker_queue.push(worker_addr);
 
             //  Second frame is empty
-            assert(s_recv(backend).size() == 0);
+            if (s_recv(backend).size() != 0) {
+                throw std::runtime_error("Expected zero-size frame");
+            }
 
             //  Third frame is READY or else a client reply address
             std::string client_addr = s_recv(backend);
 
             //  If client reply, send rest back to frontend
             if (client_addr.compare("READY") != 0) {
-                assert(s_recv(backend).size() == 0);
+                if (s_recv(backend).size() != 0) {
+                    throw std::runtime_error("Expected zero-size frame");
+                }
 
                 std::string reply = s_recv(backend);
                 s_sendmore(frontend, client_addr);
@@ -272,7 +276,9 @@ int main(int argc, char *argv[]) {
             //  Client request is [address][empty][request]
             std::string client_addr = s_recv(frontend);
 
-            assert(s_recv(frontend).size() == 0);
+            if (s_recv(frontend).size() != 0) {
+                throw std::runtime_error("Expected zero-size frame");
+            }
 
             std::string request = s_recv(frontend);
 
