@@ -50,8 +50,10 @@ struct value : sor<string_like, bracketed> {};
 struct expression : seq<value, star<sor<op_and, op_or>, expression>> {};
 struct comma_token : one<','> {};
 struct select_token : string<'s', 'e', 'l', 'e', 'c', 't'> {};
+struct status_token : string<'s', 't', 'a', 't', 'u', 's'> {};
 struct index_token : string<'i', 'n', 'd', 'e', 'x'> {};
 struct compact_token : string<'c', 'o', 'm', 'p', 'a', 'c', 't'> {};
+struct topology_token : string<'t', 'o', 'p', 'o', 'l', 'o', 'g', 'y'> {};
 struct with_token : string<'w', 'i', 't', 'h'> {};
 struct gram3_token : string<'g', 'r', 'a', 'm', '3'> {};
 struct hash4_token : string<'h', 'a', 's', 'h', '4'> {};
@@ -62,10 +64,12 @@ struct index_type : sor<gram3_token, hash4_token, text4_token, wide8_token> {};
 struct index_type_list : seq<open_square, opt<list<index_type, comma>>, close_square> {};
 struct index_with_construct : seq<with_token, star<space>, index_type_list> {};
 struct select : seq<select_token, star<space>, expression> {};
+struct status : seq<status_token> {};
+struct topology : seq<topology_token> {};
 struct index : seq<index_token, star<space>, string_like, star<space>, opt<index_with_construct>> {
 };
 struct compact : seq<compact_token> {};
-struct command : seq<sor<select, index, compact>, star<space>, one<';'>> {};
+struct command : seq<sor<select, index, compact, status, topology>, star<space>, one<';'>> {};
 struct grammar : seq<command, star<space>, eof> {};
 
 template <typename> struct store : std::false_type {};
@@ -81,6 +85,8 @@ template <> struct store<ascii_char> : std::true_type {};
 template <> struct store<select> : std::true_type {};
 template <> struct store<index> : std::true_type {};
 template <> struct store<compact> : std::true_type {};
+template <> struct store<topology> : std::true_type {};
+template <> struct store<status> : std::true_type {};
 template <> struct store<index_type_list> : std::true_type {};
 template <> struct store<gram3_token> : std::true_type {};
 template <> struct store<hash4_token> : std::true_type {};
@@ -196,6 +202,10 @@ Command transform_command(const parse_tree::node &n) {
         return Command(IndexCommand(path, types));
     } else if (n.is<compact>()) {
         return Command(CompactCommand());
+    } else if (n.is<status>()) {
+        return Command(StatusCommand());
+    } else if (n.is<topology>()) {
+        return Command(TopologyCommand());
     }
 
     throw std::runtime_error("Unknown parse_tree node, can not create Command.");

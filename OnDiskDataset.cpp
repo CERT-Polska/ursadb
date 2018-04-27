@@ -3,6 +3,7 @@
 #include <fstream>
 #include <set>
 
+#include "Database.h"
 #include "Query.h"
 #include "lib/Json.h"
 
@@ -77,9 +78,18 @@ void OnDiskDataset::execute(const Query &query, std::vector<std::string> *out) c
 
 const std::string &OnDiskDataset::get_name() const { return name; }
 
+std::string OnDiskDataset::get_id() const {
+    int first_dot = name.find('.');
+    int second_dot = name.find('.', first_dot + 1);
+    if (second_dot == std::string::npos) {
+        throw std::runtime_error("Invalid dataset ID found");
+    }
+    return name.substr(first_dot + 1, second_dot - first_dot - 1);
+}
+
 void OnDiskDataset::merge(
         const fs::path &db_base, const std::string &outname,
-        const std::vector<OnDiskDataset> &datasets) {
+        const std::vector<OnDiskDataset> &datasets, Task *task) {
     std::set<IndexType> index_types;
 
     for (const OnDiskDataset &dataset : datasets) {
@@ -87,6 +97,8 @@ void OnDiskDataset::merge(
             index_types.insert(index.index_type());
         }
     }
+
+    task->work_estimated = NUM_TRIGRAMS * index_types.size();
 
     json dataset;
 
@@ -99,7 +111,7 @@ void OnDiskDataset::merge(
             indexes.push_back(IndexMergeHelper(
                     &dataset.get_index_with_type(index_type), dataset.fnames.size()));
         }
-        OnDiskIndex::on_disk_merge(db_base, index_name, index_type, indexes);
+        OnDiskIndex::on_disk_merge(db_base, index_name, index_type, indexes, task);
     }
 
     std::vector<std::string> file_names;
