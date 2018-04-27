@@ -209,6 +209,7 @@ int main(int argc, char *argv[])
             std::string worker_addr = s_recv(backend);
             uint64_t did_task = worker_task_ids[worker_addr];
             std::cout << "worker finished: " << worker_addr << ", he was doing task " << did_task << std::endl;
+            snapshots.erase(worker_addr);
 
             if (did_task != 0) {
                 const auto &changes = db.current_tasks().at(did_task).changes;
@@ -238,7 +239,6 @@ int main(int argc, char *argv[])
                 }
 
                 for (const auto &p : snapshots) {
-                    // TODO this should be ran only for workers which are actually doing sth
                     for (const auto *ds : p.second.get_datasets()) {
                         required_datasets.insert(ds);
                     }

@@ -115,6 +115,7 @@ void Database::drop_dataset(const std::string &dsname) {
 void Database::unload_dataset(const std::string &dsname) {
     for (auto it = loaded_datasets.begin(); it != loaded_datasets.end();) {
         if ((*it).get()->get_name() == dsname) {
+            // TODO delete dataset from fs
             it = loaded_datasets.erase(it);
             std::cout << "unload ds " << dsname << std::endl;
         } else {
