@@ -20,12 +20,12 @@
 #include "OnDiskDataset.h"
 #include "QueryParser.h"
 
-std::string execute_command(const SelectCommand &cmd, Task *task, Database *db) {
+std::string execute_command(const SelectCommand &cmd, Task *task, DatabaseSnapshot *snap) {
     std::stringstream ss;
 
     const Query &query = cmd.get_query();
     std::vector<std::string> out;
-    db->execute(query, task, &out);
+    snap->execute(query, task, &out);
     ss << "OK\n";
     for (std::string &s : out) {
         ss << s << "\n";
@@ -34,58 +34,58 @@ std::string execute_command(const SelectCommand &cmd, Task *task, Database *db) 
     return ss.str();
 }
 
-std::string execute_command(const IndexCommand &cmd, Task *task, Database *db) {
+std::string execute_command(const IndexCommand &cmd, Task *task, DatabaseSnapshot *snap) {
     const std::string &path = cmd.get_path();
-    db->index_path(task, cmd.get_index_types(), path);
+    snap->index_path(task, cmd.get_index_types(), path);
 
     return "OK";
 }
 
-std::string execute_command(const CompactCommand &cmd, Task *task, Database *db) {
-    db->compact(task);
+std::string execute_command(const CompactCommand &cmd, Task *task, DatabaseSnapshot *snap) {
+    snap->compact(task);
 
     return "OK";
 }
 
-std::string execute_command(const StatusCommand &cmd, Task *task, Database *db) {
+std::string execute_command(const StatusCommand &cmd, Task *task, DatabaseSnapshot *snap) {
     std::stringstream ss;
-    const std::map<uint64_t, Task> &tasks = db->current_tasks();
+    //const std::map<uint64_t, Task> &tasks = snap->current_tasks(); */
 
     ss << "OK\n";
 
-    for (const auto &pair : tasks) {
+    /* for (const auto &pair : tasks) {
         const Task &ts = pair.second;
         ss << ts.id << ": " << ts.work_done << " " << ts.work_estimated << "\n";
-    }
+    } */ // TODO
 
     return ss.str();
 }
 
-std::string execute_command(const TopologyCommand &cmd, Task *task, Database *db) {
+std::string execute_command(const TopologyCommand &cmd, Task *task, DatabaseSnapshot *snap) {
     std::stringstream ss;
-    const std::vector<OnDiskDataset> &datasets = db->get_datasets();
+    // const std::vector<const OnDiskDataset*> datasets = snap->get_datasets();
 
     ss << "OK\n";
 
-    for (const auto &dataset : datasets) {
-        ss << "DATASET " << dataset.get_id() << "\n";
-        for (const auto &index : dataset.get_indexes()) {
+    /* for (const auto &dataset : datasets) {
+        ss << "DATASET " << dataset->get_id() << "\n";
+        for (const auto &index : dataset->get_indexes()) {
             std::string index_type = get_index_type_name(index.index_type());
-            ss << "INDEX " << dataset.get_id() << "." << index_type << "\n";
+            ss << "INDEX " << dataset->get_id() << "." << index_type << "\n";
         }
-    }
+    } */ // TODO
 
     return ss.str();
 }
 
-std::string dispatch_command(const Command &cmd, Task *task, Database *db) {
-    return std::visit([db, task](const auto &cmd) { return execute_command(cmd, task, db); }, cmd);
+std::string dispatch_command(const Command &cmd, Task *task, DatabaseSnapshot *snap) {
+    return std::visit([snap, task](const auto &cmd) { return execute_command(cmd, task, snap); }, cmd);
 }
 
-std::string dispatch_command_safe(const std::string &cmd_str, Task *task, Database *db) {
+std::string dispatch_command_safe(const std::string &cmd_str, Task *task, DatabaseSnapshot *snap) {
     try {
         Command cmd = parse_command(cmd_str);
-        return dispatch_command(cmd, task, db);
+        return dispatch_command(cmd, task, snap);
     } catch (std::runtime_error &e) {
         std::cout << "Command failed: " << e.what() << std::endl;
         return std::string("ERR ") + e.what() + "\n";
@@ -95,6 +95,7 @@ std::string dispatch_command_safe(const std::string &cmd_str, Task *task, Databa
 struct WorkerArgs {
     int worker_nbr;
     Database *db;
+    std::map<std::string, DatabaseSnapshot> *snapshots;
 };
 
 static void *
@@ -104,7 +105,7 @@ worker_thread(void *arg) {
     zmq::context_t context(1);
     zmq::socket_t worker(context, ZMQ_REQ);
 
-    s_set_id(worker);
+    std::string my_addr = s_set_id(worker);
     worker.connect("ipc://backend.ipc");
 
     //  Tell backend we're ready for work
@@ -130,9 +131,10 @@ worker_thread(void *arg) {
 
         //  Get request, send reply
         std::string request = s_recv(worker);
+        DatabaseSnapshot *snap = &wa->snapshots->at(my_addr);
         std::cout << "Worker: " << request << std::endl;
 
-        std::string s = dispatch_command_safe(request, &task, wa->db);
+        std::string s = dispatch_command_safe(request, &task, snap);
 
         s_sendmore(worker, address);
         s_sendmore(worker, "");
@@ -168,9 +170,11 @@ int main(int argc, char *argv[])
     frontend.bind(bind_address);
     backend.bind("ipc://backend.ipc");
 
+    std::map<std::string, DatabaseSnapshot> snapshots;
+
     int worker_nbr;
     for (worker_nbr = 0; worker_nbr < 3; worker_nbr++) {
-        auto *wa = new WorkerArgs{worker_nbr, &db};
+        auto *wa = new WorkerArgs{worker_nbr, &db, &snapshots};
         pthread_t worker;
         pthread_create(&worker, NULL, worker_thread, (void *)wa);
     }
@@ -206,12 +210,19 @@ int main(int argc, char *argv[])
             uint64_t did_task = worker_task_ids[worker_addr];
             std::cout << "worker finished: " << worker_addr << ", he was doing task " << did_task << std::endl;
 
-            // TODO META-PROBLEM: Implement immutable Database views for command operational purposes
             // TODO META-PROBLEM**2: Implement garbage collector for unused datasets
 
             if (did_task != 0) {
                 std::cout << "Requested changes: " << std::endl;
                 for (const auto &change : db.current_tasks().at(did_task).changes) {
+                    if (change.first == "insert") {
+                        db.load_dataset(change.second);
+                    } else if (change.first == "drop") {
+                        db.drop_dataset(change.second);
+                    } else {
+                        std::cout << "unknown change" << std::endl;
+                    }
+
                     std::cout << change.first << " " << change.second << std::endl;
                 }
                 std::cout << "EOF" << std::endl;
@@ -264,6 +275,7 @@ int main(int argc, char *argv[])
             worker_queue.pop();
 
             Task *task = db.allocate_task();
+            snapshots.emplace(worker_addr, db.snapshot());
             worker_task_ids[worker_addr] = task->id;
             std::ostringstream ss;
             ss << task->id; // TODO passing string o_O

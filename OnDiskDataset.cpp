@@ -89,11 +89,11 @@ std::string OnDiskDataset::get_id() const {
 
 void OnDiskDataset::merge(
         const fs::path &db_base, const std::string &outname,
-        const std::vector<OnDiskDataset> &datasets, Task *task) {
+        const std::vector<const OnDiskDataset*> &datasets, Task *task) {
     std::set<IndexType> index_types;
 
-    for (const OnDiskDataset &dataset : datasets) {
-        for (const OnDiskIndex &index : dataset.indices) {
+    for (const OnDiskDataset *dataset : datasets) {
+        for (const OnDiskIndex &index : dataset->indices) {
             index_types.insert(index.index_type());
         }
     }
@@ -107,16 +107,16 @@ void OnDiskDataset::merge(
         std::string index_name = get_index_type_name(index_type) + "." + outname;
         index_names.insert(index_name);
         std::vector<IndexMergeHelper> indexes;
-        for (const OnDiskDataset &dataset : datasets) {
+        for (const OnDiskDataset *dataset : datasets) {
             indexes.push_back(IndexMergeHelper(
-                    &dataset.get_index_with_type(index_type), dataset.fnames.size()));
+                    &dataset->get_index_with_type(index_type), dataset->fnames.size()));
         }
         OnDiskIndex::on_disk_merge(db_base, index_name, index_type, indexes, task);
     }
 
     std::vector<std::string> file_names;
-    for (const OnDiskDataset &dataset : datasets) {
-        for (const std::string fname : dataset.fnames) {
+    for (const OnDiskDataset *dataset : datasets) {
+        for (const std::string fname : dataset->fnames) {
             file_names.push_back(fname);
         }
     }
