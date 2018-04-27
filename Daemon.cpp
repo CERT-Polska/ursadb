@@ -105,7 +105,8 @@ worker_thread(void *arg) {
     zmq::context_t context(1);
     zmq::socket_t worker(context, ZMQ_REQ);
 
-    std::string my_addr = s_set_id(worker);
+    std::string my_addr = std::to_string(wa->worker_nbr);
+    worker.setsockopt(ZMQ_IDENTITY, my_addr.c_str(), my_addr.length());
     worker.connect("ipc://backend.ipc");
 
     //  Tell backend we're ready for work
