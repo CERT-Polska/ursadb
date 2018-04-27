@@ -275,6 +275,7 @@ int main(int argc, char *argv[])
             worker_queue.pop();
 
             Task *task = db.allocate_task();
+            snapshots.erase(worker_addr);
             snapshots.emplace(worker_addr, db.snapshot());
             worker_task_ids[worker_addr] = task->id;
             std::ostringstream ss;
