@@ -11,31 +11,11 @@
 #include "OnDiskDataset.h"
 #include "Query.h"
 #include "Task.h"
+#include "DatabaseSnapshot.h"
 
 namespace fs = std::experimental::filesystem;
 
 class OnDiskDataset;
-
-class DatabaseSnapshot {
-    fs::path db_name;
-    fs::path db_base;
-    std::vector<const OnDiskDataset*> datasets;
-    const std::map<uint64_t, Task> *tasks;
-    size_t max_memory_size;
-    std::mt19937_64 random;
-
-    std::string allocate_name();
-
-public:
-    DatabaseSnapshot(fs::path db_name, fs::path db_base, std::vector<const OnDiskDataset*> datasets,
-                     const std::map<uint64_t, Task> *tasks, size_t max_memory_size)
-            : db_name(db_name), db_base(db_base), datasets(datasets), tasks(tasks), max_memory_size(max_memory_size) {}
-    void index_path(Task *task, const std::vector<IndexType> types, const std::string &filepath);
-    void execute(const Query &query, Task *task, std::vector<std::string> *out);
-    void compact(Task *task);
-    const std::vector<const OnDiskDataset*> &get_datasets() { return datasets; };
-    const std::map<uint64_t, Task> *get_tasks() { return tasks; };
-};
 
 class Database {
     fs::path db_name;
@@ -65,13 +45,5 @@ class Database {
     static void create(const std::string &path);
     void load_dataset(const std::string &dsname);
     void drop_dataset(const std::string &dsname);
-    DatabaseSnapshot snapshot() {
-        std::vector<const OnDiskDataset*> cds;
-
-        for (const auto *d : working_datasets) {
-            cds.push_back(d);
-        }
-
-        return DatabaseSnapshot(db_name, db_base, cds, &tasks, max_memory_size);
-    }
+    DatabaseSnapshot snapshot();
 };
