@@ -40,7 +40,8 @@ public:
 class Database {
     fs::path db_name;
     fs::path db_base;
-    std::vector<OnDiskDataset> working_datasets;
+    std::vector<OnDiskDataset*> working_datasets;
+    std::vector<std::unique_ptr<OnDiskDataset>> loaded_datasets;
     size_t max_memory_size;
 
     uint64_t last_task_id;
@@ -58,7 +59,8 @@ class Database {
 
     void save();
     Task *allocate_task();
-    const std::vector<OnDiskDataset> &datasets() { return working_datasets; }
+    const std::vector<OnDiskDataset*> &working_sets() { return working_datasets; }
+    const std::vector<std::unique_ptr<OnDiskDataset>> &loaded_sets() { return loaded_datasets; }
 
     static void create(const std::string &path);
     void load_dataset(const std::string &dsname);
@@ -66,8 +68,8 @@ class Database {
     DatabaseSnapshot snapshot() {
         std::vector<const OnDiskDataset*> cds;
 
-        for (const auto &d : working_datasets) {
-            cds.push_back(&d);
+        for (const auto *d : working_datasets) {
+            cds.push_back(d);
         }
 
         return DatabaseSnapshot(db_name, db_base, cds, &tasks, max_memory_size);

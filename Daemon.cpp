@@ -210,14 +210,14 @@ int main(int argc, char *argv[])
             uint64_t did_task = worker_task_ids[worker_addr];
             std::cout << "worker finished: " << worker_addr << ", he was doing task " << did_task << std::endl;
 
-            // TODO META-PROBLEM**2: Implement garbage collector for unused datasets
+            // TODO GC condition: remove all loaded datasets which are not used in any snapshot/task
 
             if (did_task != 0) {
-                std::cout << "Requested changes: " << std::endl;
-                for (const auto &change : db.current_tasks().at(did_task).changes) {
-                    if (change.first == "insert") {
+                const auto &changes = db.current_tasks().at(did_task).changes;
+                for (const auto &change : changes) {
+                    if (change.first == DB_CHANGE_INSERT) {
                         db.load_dataset(change.second);
-                    } else if (change.first == "drop") {
+                    } else if (change.first == DB_CHANGE_DROP) {
                         db.drop_dataset(change.second);
                     } else {
                         std::cout << "unknown change" << std::endl;
@@ -225,7 +225,10 @@ int main(int argc, char *argv[])
 
                     std::cout << change.first << " " << change.second << std::endl;
                 }
-                std::cout << "EOF" << std::endl;
+
+                if (!changes.empty()) {
+                    db.save();
+                }
 
                 db.current_tasks().erase(did_task);
             }

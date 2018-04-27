@@ -3,6 +3,7 @@
 #include <experimental/filesystem>
 #include <fstream>
 #include <iostream>
+#include <memory>
 
 #include "ExclusiveFile.h"
 #include "lib/Json.h"
@@ -46,8 +47,8 @@ void Database::load_from_disk() {
     // TODO(xmsm) - when not present, use default
     max_memory_size = db_json["config"]["max_mem_size"];
 
-    for (std::string dataset_fname : db_json["datasets"]) {
-        working_datasets.emplace_back(db_base, dataset_fname);
+    for (const std::string &dataset_fname : db_json["datasets"]) {
+        load_dataset(dataset_fname);
     }
 }
 
@@ -83,10 +84,10 @@ void DatabaseSnapshot::compact(Task *task) {
     OnDiskDataset::merge(db_base, dataset_name, datasets, task);
 
     for (auto &dataset : datasets) {
-        task->changes.emplace_back("drop", dataset->get_name());
+        task->changes.emplace_back(DB_CHANGE_DROP, dataset->get_name());
     }
 
-    task->changes.emplace_back("insert", dataset_name);
+    task->changes.emplace_back(DB_CHANGE_INSERT, dataset_name);
 }
 
 void DatabaseSnapshot::execute(const Query &query, Task *task, std::vector<std::string> *out) {
@@ -106,8 +107,8 @@ void Database::save() {
     };
     std::vector<std::string> dataset_names;
 
-    for (const auto &ds : working_datasets) {
-        dataset_names.push_back(ds.get_name());
+    for (const auto *ds : working_datasets) {
+        dataset_names.push_back(ds->get_name());
     }
 
     db_json["datasets"] = dataset_names;
@@ -115,13 +116,14 @@ void Database::save() {
 }
 
 void Database::load_dataset(const std::string &ds) {
-    working_datasets.emplace_back(db_base, ds);
+    loaded_datasets.push_back(std::make_unique<OnDiskDataset>(db_base, ds));
+    working_datasets.push_back(loaded_datasets.back().get());
     std::cout << "loaded new dataset " << ds << std::endl;
 }
 
 void Database::drop_dataset(const std::string &dsname) {
     for (auto it = working_datasets.begin(); it != working_datasets.end(); ++it) {
-        if ((*it).get_name() == dsname) {
+        if ((*it)->get_name() == dsname) {
             it = working_datasets.erase(it);
             std::cout << "drop " << dsname << std::endl;
         }
@@ -171,7 +173,7 @@ void DatabaseSnapshot::index_path(Task *task, const std::vector<IndexType> types
             std::cout << "new dataset " << builder.estimated_size() << std::endl;
             auto dataset_name = allocate_name();
             builder.save(db_base, dataset_name);
-            task->changes.emplace_back("insert", dataset_name);
+            task->changes.emplace_back(DB_CHANGE_INSERT, dataset_name);
             builder = DatasetBuilder(types);
         }
 
@@ -181,7 +183,7 @@ void DatabaseSnapshot::index_path(Task *task, const std::vector<IndexType> types
     if (!builder.empty()) {
         auto dataset_name = allocate_name();
         builder.save(db_base, dataset_name);
-        task->changes.emplace_back("insert", dataset_name);
+        task->changes.emplace_back(DB_CHANGE_INSERT, dataset_name);
     }
 
     task->work_done += 1;
