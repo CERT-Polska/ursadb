@@ -49,31 +49,31 @@ std::string execute_command(const CompactCommand &cmd, Task *task, DatabaseSnaps
 
 std::string execute_command(const StatusCommand &cmd, Task *task, DatabaseSnapshot *snap) {
     std::stringstream ss;
-    //const std::map<uint64_t, Task> &tasks = snap->current_tasks(); */
+    const std::map<uint64_t, Task> *tasks = snap->get_tasks();
 
     ss << "OK\n";
 
-    /* for (const auto &pair : tasks) {
+    for (const auto &pair : *tasks) {
         const Task &ts = pair.second;
         ss << ts.id << ": " << ts.work_done << " " << ts.work_estimated << "\n";
-    } */ // TODO
+    }
 
     return ss.str();
 }
 
 std::string execute_command(const TopologyCommand &cmd, Task *task, DatabaseSnapshot *snap) {
     std::stringstream ss;
-    // const std::vector<const OnDiskDataset*> datasets = snap->get_datasets();
+    const std::vector<const OnDiskDataset*> &datasets = snap->get_datasets();
 
     ss << "OK\n";
 
-    /* for (const auto &dataset : datasets) {
+    for (const auto *dataset : datasets) {
         ss << "DATASET " << dataset->get_id() << "\n";
         for (const auto &index : dataset->get_indexes()) {
             std::string index_type = get_index_type_name(index.index_type());
             ss << "INDEX " << dataset->get_id() << "." << index_type << "\n";
         }
-    } */ // TODO
+    }
 
     return ss.str();
 }

@@ -20,17 +20,21 @@ class DatabaseSnapshot {
     fs::path db_name;
     fs::path db_base;
     std::vector<const OnDiskDataset*> datasets;
+    const std::map<uint64_t, Task> *tasks;
     size_t max_memory_size;
     std::mt19937_64 random;
 
     std::string allocate_name();
 
 public:
-    DatabaseSnapshot(fs::path db_name, fs::path db_base, std::vector<const OnDiskDataset*> datasets, size_t max_memory_size)
-            : db_name(db_name), db_base(db_base), datasets(datasets), max_memory_size(max_memory_size) {}
+    DatabaseSnapshot(fs::path db_name, fs::path db_base, std::vector<const OnDiskDataset*> datasets,
+                     const std::map<uint64_t, Task> *tasks, size_t max_memory_size)
+            : db_name(db_name), db_base(db_base), datasets(datasets), tasks(tasks), max_memory_size(max_memory_size) {}
     void index_path(Task *task, const std::vector<IndexType> types, const std::string &filepath);
     void execute(const Query &query, Task *task, std::vector<std::string> *out);
     void compact(Task *task);
+    const std::vector<const OnDiskDataset*> &get_datasets() { return datasets; };
+    const std::map<uint64_t, Task> *get_tasks() { return tasks; };
 };
 
 class Database {
@@ -66,6 +70,6 @@ class Database {
             cds.push_back(&d);
         }
 
-        return DatabaseSnapshot(db_name, db_base, cds, max_memory_size);
+        return DatabaseSnapshot(db_name, db_base, cds, &tasks, max_memory_size);
     }
 };
