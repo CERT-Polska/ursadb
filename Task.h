@@ -18,7 +18,7 @@ class Task {
     // arbitrary number, for example "number of bytes to index" or "number of trigrams to merge"
     uint64_t work_done;
     // miliseconds since epoch, for ETA calculation
-    time_t epoch_ms;
+    uint64_t epoch_ms;
 
     std::vector<DBChange> changes;
 
