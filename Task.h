@@ -19,7 +19,7 @@ class Task {
     uint64_t work_done;
     // miliseconds since epoch, for ETA calculation
     uint64_t epoch_ms;
-
+    // changes done by this task. Will be resolved after task is finished
     std::vector<DBChange> changes;
 
     Task(uint64_t id, uint64_t epoch_ms)

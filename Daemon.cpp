@@ -212,10 +212,10 @@ int main(int argc, char *argv[]) {
                     ) {
                         db.drop_dataset(change.second);
                     } else {
-                        std::cout << "unknown change" << std::endl;
+                        std::cout << "ignored unknown change" << std::endl;
                     }
 
-                    std::cout << db_change_to_string(change.first) << " " << change.second << std::endl;
+                    std::cout << "change: " << db_change_to_string(change.first) << " " << change.second << std::endl;
                 }
 
                 if (!changes.empty()) {
