@@ -113,10 +113,14 @@ static void *worker_thread(void *arg) {
         //  Read and save all frames until we get an empty frame
         //  In this example there is only 1 but it could be more
         std::string address = s_recv(worker);
-        assert(s_recv(worker).size() == 0);
+        if (s_recv(worker).size() != 0) {
+            throw std::runtime_error("Expected zero-size frame after address");
+        }
 
         std::string task_id_str = s_recv(worker);
-        assert(s_recv(worker).size() == 0);
+        if (s_recv(worker).size() != 0) {
+            throw std::runtime_error("Expected zero-size frame after address");
+        }
 
         uint64_t task_id = stoul(task_id_str);
         Task &task = wa->db->current_tasks().at(task_id);
