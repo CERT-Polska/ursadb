@@ -1,9 +1,6 @@
 #pragma once
 
-enum DBChangeOp {
-    DB_CHANGE_INSERT = 1,
-    DB_CHANGE_DROP = 2
-};
+enum DBChangeOp { DB_CHANGE_INSERT = 1, DB_CHANGE_DROP = 2 };
 
 using DBChange = std::pair<DBChangeOp, std::string>;
 
@@ -20,5 +17,6 @@ class Task {
 
     std::vector<DBChange> changes;
 
-    Task(uint64_t id, uint64_t epoch_ms) : id(id), work_estimated(0), work_done(0), epoch_ms(epoch_ms), changes() {}
+    Task(uint64_t id, uint64_t epoch_ms)
+        : id(id), work_estimated(0), work_done(0), epoch_ms(epoch_ms), changes() {}
 };

@@ -89,7 +89,7 @@ std::string OnDiskDataset::get_id() const {
 
 void OnDiskDataset::merge(
         const fs::path &db_base, const std::string &outname,
-        const std::vector<const OnDiskDataset*> &datasets, Task *task) {
+        const std::vector<const OnDiskDataset *> &datasets, Task *task) {
     std::set<IndexType> index_types;
 
     for (const OnDiskDataset *dataset : datasets) {

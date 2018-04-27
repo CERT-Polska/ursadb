@@ -2,15 +2,15 @@
 #include <fstream>
 #include <iostream>
 #include <list>
+#include <pthread.h>
+#include <queue>
 #include <sstream>
 #include <stack>
+#include <sys/types.h>
 #include <utility>
 #include <variant>
 #include <vector>
 #include <zmq.hpp>
-#include <queue>
-#include <sys/types.h>
-#include <pthread.h>
 
 #include "zhelpers.h"
 
@@ -63,7 +63,7 @@ std::string execute_command(const StatusCommand &cmd, Task *task, DatabaseSnapsh
 
 std::string execute_command(const TopologyCommand &cmd, Task *task, DatabaseSnapshot *snap) {
     std::stringstream ss;
-    const std::vector<const OnDiskDataset*> &datasets = snap->get_datasets();
+    const std::vector<const OnDiskDataset *> &datasets = snap->get_datasets();
 
     ss << "OK\n";
 
@@ -79,7 +79,8 @@ std::string execute_command(const TopologyCommand &cmd, Task *task, DatabaseSnap
 }
 
 std::string dispatch_command(const Command &cmd, Task *task, DatabaseSnapshot *snap) {
-    return std::visit([snap, task](const auto &cmd) { return execute_command(cmd, task, snap); }, cmd);
+    return std::visit(
+            [snap, task](const auto &cmd) { return execute_command(cmd, task, snap); }, cmd);
 }
 
 std::string dispatch_command_safe(const std::string &cmd_str, Task *task, DatabaseSnapshot *snap) {
@@ -98,8 +99,7 @@ struct WorkerArgs {
     std::map<std::string, DatabaseSnapshot> *snapshots;
 };
 
-static void *
-worker_thread(void *arg) {
+static void *worker_thread(void *arg) {
     auto *wa = static_cast<WorkerArgs *>(arg);
 
     zmq::context_t context(1);
@@ -112,20 +112,14 @@ worker_thread(void *arg) {
     //  Tell backend we're ready for work
     s_send(worker, "READY");
 
-    while (1) {
+    for (;;) {
         //  Read and save all frames until we get an empty frame
         //  In this example there is only 1 but it could be more
         std::string address = s_recv(worker);
-        {
-            std::string empty = s_recv(worker);
-            assert(empty.size() == 0);
-        }
+        assert(s_recv(worker).size() == 0);
 
         std::string task_id_str = s_recv(worker);
-        {
-            std::string empty = s_recv(worker);
-            assert(empty.size() == 0);
-        }
+        assert(s_recv(worker).size() == 0);
 
         uint64_t task_id = stoul(task_id_str);
         Task &task = wa->db->current_tasks().at(task_id);
@@ -144,10 +138,7 @@ worker_thread(void *arg) {
     return (NULL);
 }
 
-// LRU queue on ZMQ based on exemplary implementation by:
-// Olivier Chamoux <olivier.chamoux@fr.thalesgroup.com>
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     if (argc < 2) {
         printf("Usage:\n");
         printf("    %s database-file [bind-address]\n", argv[0]);
@@ -189,27 +180,25 @@ int main(int argc, char *argv[])
     std::queue<std::string> worker_queue;
     std::map<std::string, uint64_t> worker_task_ids;
 
-    while (1) {
-
+    for (;;) {
         //  Initialize poll set
-        zmq::pollitem_t items[] = {
-                //  Always poll for worker activity on backend
-                { static_cast<void *>(backend), 0, ZMQ_POLLIN, 0 },
-                //  Poll front-end only if we have available workers
-                { static_cast<void *>(frontend), 0, ZMQ_POLLIN, 0 }
-        };
-        if (worker_queue.size())
+        //  Always poll for worker activity on backend
+        //  Poll front-end only if we have available workers
+        zmq::pollitem_t items[] = {{static_cast<void *>(backend), 0, ZMQ_POLLIN, 0},
+                                   {static_cast<void *>(frontend), 0, ZMQ_POLLIN, 0}};
+        if (worker_queue.size()) {
             zmq::poll(&items[0], 2, -1);
-        else
+        } else {
             zmq::poll(&items[0], 1, -1);
+        }
 
         //  Handle worker activity on backend
         if (items[0].revents & ZMQ_POLLIN) {
-
             //  Queue worker address for LRU routing
             std::string worker_addr = s_recv(backend);
             uint64_t did_task = worker_task_ids[worker_addr];
-            std::cout << "worker finished: " << worker_addr << ", he was doing task " << did_task << std::endl;
+            std::cout << "worker finished: " << worker_addr << ", he was doing task " << did_task
+                      << std::endl;
             snapshots.erase(worker_addr);
 
             if (did_task != 0) {
@@ -233,7 +222,7 @@ int main(int argc, char *argv[])
                 db.current_tasks().erase(did_task);
 
                 // --- GC ---
-                std::set<const OnDiskDataset*> required_datasets;
+                std::set<const OnDiskDataset *> required_datasets;
 
                 for (const auto *ds : db.working_sets()) {
                     required_datasets.insert(ds);
@@ -263,11 +252,8 @@ int main(int argc, char *argv[])
 
             worker_queue.push(worker_addr);
 
-            {
-                //  Second frame is empty
-                std::string empty = s_recv(backend);
-                assert(empty.size() == 0);
-            }
+            //  Second frame is empty
+            assert(s_recv(backend).size() == 0);
 
             //  Third frame is READY or else a client reply address
             std::string client_addr = s_recv(backend);
@@ -275,17 +261,14 @@ int main(int argc, char *argv[])
             //  If client reply, send rest back to frontend
             if (client_addr.compare("READY") != 0) {
 
-                {
-                    std::string empty = s_recv(backend);
-                    assert(empty.size() == 0);
-                }
+                assert(s_recv(backend).size() == 0);
 
                 std::string reply = s_recv(backend);
                 s_sendmore(frontend, client_addr);
                 s_sendmore(frontend, "");
                 s_send(frontend, reply);
 
-                //if (--client_nbr == 0)
+                // if (--client_nbr == 0)
                 //    break;
             }
         }
@@ -295,14 +278,11 @@ int main(int argc, char *argv[])
             //  Client request is [address][empty][request]
             std::string client_addr = s_recv(frontend);
 
-            {
-                std::string empty = s_recv(frontend);
-                assert(empty.size() == 0);
-            }
+            assert(s_recv(frontend).size() == 0);
 
             std::string request = s_recv(frontend);
 
-            std::string worker_addr = worker_queue.front();//worker_queue [0];
+            std::string worker_addr = worker_queue.front(); // worker_queue [0];
             worker_queue.pop();
 
             Task *task = db.allocate_task();

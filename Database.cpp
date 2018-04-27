@@ -26,8 +26,7 @@ Database::Database(const std::string &fname, bool initialize) : tasks(), last_ta
     }
 }
 
-Database::Database(const std::string &fname) : Database(fname, true) {
-}
+Database::Database(const std::string &fname) : Database(fname, true) {}
 
 void Database::load_from_disk() {
     std::ifstream db_file(db_base / db_name, std::ifstream::binary);
@@ -71,7 +70,8 @@ Task *Database::allocate_task() {
     while (true) {
         uint64_t task_id = allocate_task_id();
         auto timestamp = std::chrono::steady_clock::now().time_since_epoch();
-        uint64_t epoch_ms = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp).count();
+        uint64_t epoch_ms =
+                std::chrono::duration_cast<std::chrono::milliseconds>(timestamp).count();
         if (tasks.count(task_id) == 0) {
             Task new_task(task_id, epoch_ms);
             return &tasks.emplace(task_id, new_task).first->second;
@@ -82,9 +82,7 @@ Task *Database::allocate_task() {
 void Database::save() {
     std::ofstream db_file(db_base / db_name, std::ofstream::out | std::ofstream::binary);
     json db_json;
-    db_json["config"] = {
-        {"max_mem_size", max_memory_size}
-    };
+    db_json["config"] = {{"max_mem_size", max_memory_size}};
     std::vector<std::string> dataset_names;
 
     for (const auto *ds : working_datasets) {

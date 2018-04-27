@@ -4,12 +4,14 @@
 #include "DatasetBuilder.h"
 #include "ExclusiveFile.h"
 
-DatabaseSnapshot::DatabaseSnapshot(fs::path db_name, fs::path db_base, std::vector<const OnDiskDataset *> datasets,
-                                   const std::map<uint64_t, Task> *tasks, size_t max_memory_size)
-        : db_name(db_name), db_base(db_base), datasets(datasets), tasks(tasks), max_memory_size(max_memory_size) {}
+DatabaseSnapshot::DatabaseSnapshot(
+        fs::path db_name, fs::path db_base, std::vector<const OnDiskDataset *> datasets,
+        const std::map<uint64_t, Task> *tasks, size_t max_memory_size)
+    : db_name(db_name), db_base(db_base), datasets(datasets), tasks(tasks),
+      max_memory_size(max_memory_size) {}
 
 DatabaseSnapshot Database::snapshot() {
-    std::vector<const OnDiskDataset*> cds;
+    std::vector<const OnDiskDataset *> cds;
 
     for (const auto *d : working_datasets) {
         cds.push_back(d);
@@ -18,7 +20,8 @@ DatabaseSnapshot Database::snapshot() {
     return DatabaseSnapshot(db_name, db_base, cds, &tasks, max_memory_size);
 }
 
-void DatabaseSnapshot::index_path(Task *task, const std::vector<IndexType> types, const std::string &filepath) {
+void DatabaseSnapshot::index_path(
+        Task *task, const std::vector<IndexType> types, const std::string &filepath) {
     namespace fs = std::experimental::filesystem;
     DatasetBuilder builder(types);
     fs::recursive_directory_iterator end;
