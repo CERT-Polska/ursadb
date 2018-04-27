@@ -12,7 +12,7 @@
 #include <sys/types.h>
 #include <pthread.h>
 
-#include "zhelpers.hpp"
+#include "zhelpers.h"
 
 #include "Command.h"
 #include "Database.h"
