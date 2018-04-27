@@ -210,8 +210,6 @@ int main(int argc, char *argv[])
             uint64_t did_task = worker_task_ids[worker_addr];
             std::cout << "worker finished: " << worker_addr << ", he was doing task " << did_task << std::endl;
 
-            // TODO GC condition: remove all loaded datasets which are not used in any snapshot/task
-
             if (did_task != 0) {
                 const auto &changes = db.current_tasks().at(did_task).changes;
                 for (const auto &change : changes) {
@@ -231,6 +229,35 @@ int main(int argc, char *argv[])
                 }
 
                 db.current_tasks().erase(did_task);
+
+                // --- GC ---
+                std::set<const OnDiskDataset*> required_datasets;
+
+                for (const auto *ds : db.working_sets()) {
+                    required_datasets.insert(ds);
+                }
+
+                for (const auto &p : snapshots) {
+                    // TODO this should be ran only for workers which are actually doing sth
+                    for (const auto *ds : p.second.get_datasets()) {
+                        required_datasets.insert(ds);
+                    }
+                }
+
+                std::vector<std::string> drop_list;
+
+                for (const auto &set : db.loaded_sets()) {
+                    if (required_datasets.find(set.get()) == required_datasets.end()) {
+                        // set is loaded but not required
+                        drop_list.push_back(set.get()->get_name());
+                    }
+                }
+
+                if (!drop_list.empty()) {
+                    for (const auto &ds : drop_list) {
+                        db.unload_dataset(ds);
+                    }
+                }
             }
 
             worker_queue.push(worker_addr);

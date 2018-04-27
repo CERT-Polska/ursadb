@@ -102,10 +102,23 @@ void Database::load_dataset(const std::string &ds) {
 }
 
 void Database::drop_dataset(const std::string &dsname) {
-    for (auto it = working_datasets.begin(); it != working_datasets.end(); ++it) {
+    for (auto it = working_datasets.begin(); it != working_datasets.end();) {
         if ((*it)->get_name() == dsname) {
             it = working_datasets.erase(it);
             std::cout << "drop " << dsname << std::endl;
+        } else {
+            ++it;
+        }
+    }
+}
+
+void Database::unload_dataset(const std::string &dsname) {
+    for (auto it = loaded_datasets.begin(); it != loaded_datasets.end();) {
+        if ((*it).get()->get_name() == dsname) {
+            it = loaded_datasets.erase(it);
+            std::cout << "unload ds " << dsname << std::endl;
+        } else {
+            ++it;
         }
     }
 }

@@ -45,5 +45,6 @@ class Database {
     static void create(const std::string &path);
     void load_dataset(const std::string &dsname);
     void drop_dataset(const std::string &dsname);
+    void unload_dataset(const std::string &dsname);
     DatabaseSnapshot snapshot();
 };

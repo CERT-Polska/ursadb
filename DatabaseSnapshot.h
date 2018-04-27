@@ -30,6 +30,6 @@ public:
     void index_path(Task *task, const std::vector<IndexType> types, const std::string &filepath);
     void execute(const Query &query, Task *task, std::vector<std::string> *out);
     void compact(Task *task);
-    const std::vector<const OnDiskDataset*> &get_datasets() { return datasets; };
-    const std::map<uint64_t, Task> *get_tasks() { return tasks; };
+    const std::vector<const OnDiskDataset*> &get_datasets() const { return datasets; };
+    const std::map<uint64_t, Task> *get_tasks() const { return tasks; };
 };
