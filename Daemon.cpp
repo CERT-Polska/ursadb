@@ -52,12 +52,10 @@ std::string execute_command(const StatusCommand &cmd, Task *task, DatabaseSnapsh
     const std::map<uint64_t, Task> *tasks = snap->get_tasks();
 
     ss << "OK\n";
-
     for (const auto &pair : *tasks) {
         const Task &ts = pair.second;
         ss << ts.id << ": " << ts.work_done << " " << ts.work_estimated << "\n";
     }
-
     return ss.str();
 }
 
@@ -66,7 +64,6 @@ std::string execute_command(const TopologyCommand &cmd, Task *task, DatabaseSnap
     const std::vector<const OnDiskDataset *> &datasets = snap->get_datasets();
 
     ss << "OK\n";
-
     for (const auto *dataset : datasets) {
         ss << "DATASET " << dataset->get_id() << "\n";
         for (const auto &index : dataset->get_indexes()) {
@@ -170,6 +167,7 @@ int main(int argc, char *argv[]) {
         pthread_t worker;
         pthread_create(&worker, NULL, worker_thread, (void *)wa);
     }
+
     //  Logic of LRU loop
     //  - Poll backend always, frontend only if 1+ worker ready
     //  - If worker replies, queue worker as ready and forward reply
@@ -223,7 +221,6 @@ int main(int argc, char *argv[]) {
 
                 // --- GC ---
                 std::set<const OnDiskDataset *> required_datasets;
-
                 for (const auto *ds : db.working_sets()) {
                     required_datasets.insert(ds);
                 }
@@ -235,7 +232,6 @@ int main(int argc, char *argv[]) {
                 }
 
                 std::vector<std::string> drop_list;
-
                 for (const auto &set : db.loaded_sets()) {
                     if (required_datasets.find(set.get()) == required_datasets.end()) {
                         // set is loaded but not required
@@ -260,20 +256,15 @@ int main(int argc, char *argv[]) {
 
             //  If client reply, send rest back to frontend
             if (client_addr.compare("READY") != 0) {
-
                 assert(s_recv(backend).size() == 0);
 
                 std::string reply = s_recv(backend);
                 s_sendmore(frontend, client_addr);
                 s_sendmore(frontend, "");
                 s_send(frontend, reply);
-
-                // if (--client_nbr == 0)
-                //    break;
             }
         }
         if (items[1].revents & ZMQ_POLLIN) {
-
             //  Now get next client request, route to LRU worker
             //  Client request is [address][empty][request]
             std::string client_addr = s_recv(frontend);
@@ -301,5 +292,4 @@ int main(int argc, char *argv[]) {
             s_send(backend, request);
         }
     }
-    return 0;
 }
