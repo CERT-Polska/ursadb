@@ -64,7 +64,7 @@ void DatabaseSnapshot::index_path(
             std::cout << "new dataset " << builder.estimated_size() << std::endl;
             auto dataset_name = allocate_name();
             builder.save(db_base, dataset_name);
-            task->changes.emplace_back(DB_CHANGE_INSERT, dataset_name);
+            task->changes.emplace_back(DbChangeType::Insert, dataset_name);
             builder = DatasetBuilder(types);
         }
 
@@ -74,7 +74,7 @@ void DatabaseSnapshot::index_path(
     if (!builder.empty()) {
         auto dataset_name = allocate_name();
         builder.save(db_base, dataset_name);
-        task->changes.emplace_back(DB_CHANGE_INSERT, dataset_name);
+        task->changes.emplace_back(DbChangeType::Insert, dataset_name);
     }
 
     task->work_done += 1;
@@ -123,8 +123,8 @@ void DatabaseSnapshot::compact(Task *task) {
     OnDiskDataset::merge(db_base, dataset_name, datasets, task);
 
     for (auto &dataset : datasets) {
-        task->changes.emplace_back(DB_CHANGE_DROP, dataset->get_name());
+        task->changes.emplace_back(DbChangeType::Drop, dataset->get_name());
     }
 
-    task->changes.emplace_back(DB_CHANGE_INSERT, dataset_name);
+    task->changes.emplace_back(DbChangeType::Insert, dataset_name);
 }

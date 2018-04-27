@@ -202,15 +202,16 @@ int main(int argc, char *argv[]) {
             if (did_task != 0) {
                 const auto &changes = db.current_tasks().at(did_task).changes;
                 for (const auto &change : changes) {
-                    if (change.first == DB_CHANGE_INSERT) {
+                    if (change.first == DbChangeType::Insert) {
                         db.load_dataset(change.second);
-                    } else if (change.first == DB_CHANGE_DROP) {
+                    } else if (change.first == DbChangeType::Drop
+                    ) {
                         db.drop_dataset(change.second);
                     } else {
                         std::cout << "unknown change" << std::endl;
                     }
 
-                    std::cout << change.first << " " << change.second << std::endl;
+                    std::cout << db_change_to_string(change.first) << " " << change.second << std::endl;
                 }
 
                 if (!changes.empty()) {
@@ -277,8 +278,7 @@ int main(int argc, char *argv[]) {
             worker_queue.pop();
 
             Task *task = db.allocate_task();
-            snapshots.erase(worker_addr);
-            snapshots.emplace(worker_addr, db.snapshot());
+            snapshots.insert_or_assign(worker_addr, db.snapshot());
             worker_task_ids[worker_addr] = task->id;
             std::ostringstream ss;
             ss << task->id; // TODO passing string o_O

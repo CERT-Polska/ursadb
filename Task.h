@@ -1,8 +1,13 @@
 #pragma once
 
-enum DBChangeOp { DB_CHANGE_INSERT = 1, DB_CHANGE_DROP = 2 };
+#include <string>
+#include <vector>
 
-using DBChange = std::pair<DBChangeOp, std::string>;
+enum class DbChangeType { Insert = 1, Drop = 2 };
+
+std::string db_change_to_string(DbChangeType change);
+
+using DBChange = std::pair<DbChangeType, std::string>;
 
 class Task {
   public:
