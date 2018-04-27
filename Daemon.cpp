@@ -234,16 +234,14 @@ int main(int argc, char *argv[]) {
 
                 std::vector<std::string> drop_list;
                 for (const auto &set : db.loaded_sets()) {
-                    if (required_datasets.find(set.get()) == required_datasets.end()) {
+                    if (required_datasets.count(set.get()) == 0) {
                         // set is loaded but not required
                         drop_list.push_back(set.get()->get_name());
                     }
                 }
 
-                if (!drop_list.empty()) {
-                    for (const auto &ds : drop_list) {
-                        db.unload_dataset(ds);
-                    }
+                for (const auto &ds : drop_list) {
+                    db.unload_dataset(ds);
                 }
             }
 
