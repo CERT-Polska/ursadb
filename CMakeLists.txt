@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_library(ursa STATIC Utils.cpp OnDiskDataset.cpp DatasetBuilder.cpp Database.cpp OnDiskIndex.cpp IndexBuilder.cpp MemMap.cpp Query.cpp QueryParser.cpp ExclusiveFile.cpp DatabaseSnapshot.cpp Task.cpp)
 target_link_libraries(ursa -lstdc++fs -lzmq -pthread)
 
-add_executable(ursadb Daemon.cpp)
+add_executable(ursadb Daemon.cpp NetworkService.cpp)
 target_link_libraries(ursadb ursa)
 
 add_executable(ursadb_new NewDatabase.cpp)
