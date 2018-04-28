@@ -7,7 +7,13 @@ enum class DbChangeType { Insert = 1, Drop = 2 };
 
 std::string db_change_to_string(DbChangeType change);
 
-using DBChange = std::pair<DbChangeType, std::string>;
+class DBChange {
+public:
+    DbChangeType type;
+    std::string obj_name;
+
+    DBChange(const DbChangeType &type, const std::string &obj_name) : type(type), obj_name(obj_name) {}
+};
 
 class Task {
   public:

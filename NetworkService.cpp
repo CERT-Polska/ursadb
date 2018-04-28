@@ -95,16 +95,16 @@ void NetworkService::poll_backend() {
     if (did_task != 0) {
         const auto &changes = db.current_tasks().at(did_task).get()->changes;
         for (const auto &change : changes) {
-            if (change.first == DbChangeType::Insert) {
-                db.load_dataset(change.second);
-            } else if (change.first == DbChangeType::Drop
+            if (change.type == DbChangeType::Insert) {
+                db.load_dataset(change.obj_name);
+            } else if (change.type == DbChangeType::Drop
                     ) {
-                db.drop_dataset(change.second);
+                db.drop_dataset(change.obj_name);
             } else {
                 throw std::runtime_error("unknown change type requested");
             }
 
-            std::cout << "change: " << db_change_to_string(change.first) << " " << change.second << std::endl;
+            std::cout << "change: " << db_change_to_string(change.type) << " " << change.obj_name << std::endl;
         }
 
         if (!changes.empty()) {
