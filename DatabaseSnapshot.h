@@ -14,6 +14,8 @@ namespace fs = std::experimental::filesystem;
 
 class OnDiskDataset;
 
+// Represents immutable snapshot of database state.
+// Should never change, regardless of changes in real database.
 class DatabaseSnapshot {
     fs::path db_name;
     fs::path db_base;
