@@ -83,8 +83,7 @@ void NetworkService::commit_task(WorkerContext *wctx) {
     for (const auto &change : wctx->task->changes) {
         if (change.type == DbChangeType::Insert) {
             db.load_dataset(change.obj_name);
-        } else if (change.type == DbChangeType::Drop
-                ) {
+        } else if (change.type == DbChangeType::Drop) {
             db.drop_dataset(change.obj_name);
         } else {
             throw std::runtime_error("unknown change type requested");
