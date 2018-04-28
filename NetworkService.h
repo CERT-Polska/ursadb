@@ -17,10 +17,16 @@
 
 #include "Database.h"
 
-struct WorkerArgs {
-    int worker_nbr;
-    Database *db;
-    std::map<std::string, DatabaseSnapshot> *snapshots;
+constexpr int NUM_WORKERS = 24;
+
+class WorkerContext {
+public:
+    std::string identity;
+    DatabaseSnapshot snap;
+    Task *task;
+
+    WorkerContext(std::string identity, DatabaseSnapshot snap, Task *task)
+            : identity(identity), snap(snap), task(task) {}
 };
 
 class NetworkService {
@@ -29,12 +35,15 @@ class NetworkService {
     zmq::socket_t frontend;
     zmq::socket_t backend;
 
-    std::map<std::string, DatabaseSnapshot> snapshots;
+    std::map<std::string, std::unique_ptr<WorkerContext>> wctxs;
+    // std::map<std::string, DatabaseSnapshot> snapshots;
     std::queue<std::string> worker_queue;
     std::map<std::string, uint64_t> worker_task_ids;
 
     void poll_frontend();
     void poll_backend();
+    void commit_task(WorkerContext *wctx);
+    void collect_garbage();
 
 public:
     NetworkService(Database &db, const std::string &bind_address)
