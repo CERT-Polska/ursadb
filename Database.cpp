@@ -3,6 +3,7 @@
 #include <experimental/filesystem>
 #include <fstream>
 #include <iostream>
+#include <memory>
 
 #include "ExclusiveFile.h"
 #include "lib/Json.h"
@@ -11,10 +12,6 @@ using json = nlohmann::json;
 namespace fs = std::experimental::filesystem;
 
 Database::Database(const std::string &fname, bool initialize) : tasks(), last_task_id(0) {
-    std::random_device rd;
-    std::seed_seq seed{rd(), rd(), rd(), rd()}; // A bit better than pathetic default
-    std::mt19937_64 gen(seed);
-
     db_name = fs::path(fname).filename();
     db_base = fs::path(fname).parent_path();
 
@@ -25,8 +22,7 @@ Database::Database(const std::string &fname, bool initialize) : tasks(), last_ta
     }
 }
 
-Database::Database(const std::string &fname) : Database(fname, true) {
-}
+Database::Database(const std::string &fname) : Database(fname, true) {}
 
 void Database::load_from_disk() {
     std::ifstream db_file(db_base / db_name, std::ifstream::binary);
@@ -46,8 +42,8 @@ void Database::load_from_disk() {
     // TODO(xmsm) - when not present, use default
     max_memory_size = db_json["config"]["max_mem_size"];
 
-    for (std::string dataset_fname : db_json["datasets"]) {
-        datasets.emplace_back(db_base, dataset_fname);
+    for (const std::string &dataset_fname : db_json["datasets"]) {
+        load_dataset(dataset_fname);
     }
 }
 
@@ -61,35 +57,6 @@ void Database::create(const std::string &fname) {
     empty.save();
 }
 
-std::string random_hex_string(int length, std::mt19937_64 *rd) {
-    constexpr static char charset[] = "0123456789abcdef";
-    thread_local static std::uniform_int_distribution<int> pick(0, sizeof(charset) - 2);
-
-    std::string result;
-    result.reserve(length);
-
-    for (int i = 0; i < length; i++) {
-        result += charset[pick(*rd)];
-    }
-
-    return result;
-}
-
-std::string Database::allocate_name() {
-    while (true) {
-        // TODO limit this to some sane value (like 10000 etc),
-        // to avoid infinite loop in exceptional cases.
-
-        std::stringstream ss;
-        ss << "set." << random_hex_string(8, &random) << "." << db_name.string();
-        std::string fname = ss.str();
-        ExclusiveFile lock(db_base / fname);
-        if (lock.is_ok()) {
-            return fname;
-        }
-    }
-}
-
 uint64_t Database::allocate_task_id() {
     // TODO data race
     return ++last_task_id;
@@ -99,116 +66,71 @@ Task *Database::allocate_task() {
     while (true) {
         uint64_t task_id = allocate_task_id();
         auto timestamp = std::chrono::steady_clock::now().time_since_epoch();
-        uint64_t epoch_ms = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp).count();
+        uint64_t epoch_ms =
+                std::chrono::duration_cast<std::chrono::milliseconds>(timestamp).count();
         if (tasks.count(task_id) == 0) {
-            Task new_task(task_id, epoch_ms);
-            return &tasks.emplace(task_id, new_task).first->second;
+            return tasks.emplace(task_id, std::make_unique<Task>(Task(task_id, epoch_ms))).first->second.get();
         }
-    }
-}
-
-void Database::add_dataset(DatasetBuilder &builder) {
-    auto dataset_name = allocate_name();
-    builder.save(db_base, dataset_name);
-    OnDiskDataset &ds = datasets.emplace_back(db_base, dataset_name);
-
-    for (auto &fn : ds.indexed_files()) {
-        all_files.insert(fn);
-    }
-}
-
-void Database::compact(Task *task) {
-    std::string dataset_name = allocate_name();
-    OnDiskDataset::merge(db_base, dataset_name, datasets, task);
-
-    for (auto &dataset : datasets) {
-        dataset.drop();
-    }
-
-    datasets.clear();
-
-    using json = nlohmann::json;
-    datasets.emplace_back(db_base, dataset_name);
-    save();
-}
-
-void Database::execute(const Query &query, Task *task, std::vector<std::string> *out) {
-    task->work_estimated = datasets.size();
-
-    for (const auto &ds : datasets) {
-        ds.execute(query, out);
-        task->work_done += 1;
     }
 }
 
 void Database::save() {
     std::ofstream db_file(db_base / db_name, std::ofstream::out | std::ofstream::binary);
     json db_json;
-    db_json["config"] = {
-        {"max_mem_size", max_memory_size}
-    };
+    db_json["config"] = {{"max_mem_size", max_memory_size}};
     std::vector<std::string> dataset_names;
 
-    for (const auto &ds : datasets) {
-        dataset_names.push_back(ds.get_name());
+    for (const auto *ds : working_datasets) {
+        dataset_names.push_back(ds->get_name());
     }
 
     db_json["datasets"] = dataset_names;
     db_file << std::setw(4) << db_json << std::endl;
 }
 
-void Database::index_path(
-        Task *task, const std::vector<IndexType> types, const std::string &filepath) {
-    namespace fs = std::experimental::filesystem;
-    DatasetBuilder builder(types);
-    fs::recursive_directory_iterator end;
+void Database::load_dataset(const std::string &ds) {
+    loaded_datasets.push_back(std::make_unique<OnDiskDataset>(db_base, ds));
+    working_datasets.push_back(loaded_datasets.back().get());
+    std::cout << "loaded new dataset " << ds << std::endl;
+}
 
-    if (all_files.empty()) {
-        for (auto &dataset : datasets) {
-            for (auto &fn : dataset.indexed_files()) {
-                all_files.insert(fn);
-            }
+void Database::drop_dataset(const std::string &dsname) {
+    for (auto it = working_datasets.begin(); it != working_datasets.end();) {
+        if ((*it)->get_name() == dsname) {
+            it = working_datasets.erase(it);
+            std::cout << "drop " << dsname << std::endl;
+        } else {
+            ++it;
         }
     }
+}
 
-    std::vector<std::string> targets;
-
-    for (fs::recursive_directory_iterator dir(filepath); dir != end; ++dir) {
-        if (fs::is_regular_file(dir->path())) {
-            fs::path absfn = fs::absolute(dir->path());
-
-            if (all_files.find(absfn.string()) != all_files.end()) {
-                continue;
-            }
-
-            targets.push_back(absfn.string());
+void Database::unload_dataset(const std::string &dsname) {
+    for (auto it = loaded_datasets.begin(); it != loaded_datasets.end();) {
+        if ((*it).get()->get_name() == dsname) {
+            // TODO delete dataset from fs
+            it = loaded_datasets.erase(it);
+            std::cout << "unload ds " << dsname << std::endl;
+        } else {
+            ++it;
         }
     }
+}
 
-    task->work_estimated = targets.size() + 1;
+Task *Database::get_task(uint64_t task_id) {
+    return tasks.at(task_id).get();
+}
 
-    for (const auto &target : targets) {
-        std::cout << "indexing " << target << std::endl;
+void Database::erase_task(uint64_t task_id) {
+    tasks.erase(task_id);
+}
 
-        try {
-            builder.index(target);
-        } catch (empty_file_error &e) {
-            std::cout << "empty file, skip" << std::endl;
-        }
+DatabaseSnapshot Database::snapshot() {
+    std::vector<const OnDiskDataset *> cds;
 
-        if (builder.estimated_size() > max_memory_size) {
-            std::cout << "new dataset " << builder.estimated_size() << std::endl;
-            add_dataset(builder);
-            builder = DatasetBuilder(types);
-        }
-
-        task->work_done += 1;
+    for (const auto *d : working_datasets) {
+        cds.push_back(d);
     }
 
-    if (!builder.empty()) {
-        add_dataset(builder);
-        save();
-    }
-
-    task->work_done += 1;
+    return DatabaseSnapshot(db_name, db_base, cds, &tasks, max_memory_size);
 }

@@ -1,11 +1,13 @@
 #pragma once
 
 #include <experimental/filesystem>
+#include <iostream>
 #include <map>
+#include <random>
 #include <string>
 #include <vector>
-#include <random>
 
+#include "DatabaseSnapshot.h"
 #include "DatasetBuilder.h"
 #include "OnDiskDataset.h"
 #include "Query.h"
@@ -18,14 +20,13 @@ class OnDiskDataset;
 class Database {
     fs::path db_name;
     fs::path db_base;
-    std::set<std::string> all_files;
-    std::vector<OnDiskDataset> datasets;
+    std::vector<OnDiskDataset *> working_datasets;
+    std::vector<std::unique_ptr<OnDiskDataset>> loaded_datasets;
     size_t max_memory_size;
-    uint64_t last_task_id;
-    std::map<uint64_t, Task> tasks;
-    std::mt19937_64 random;
 
-    std::string allocate_name();
+    uint64_t last_task_id;
+    std::map<uint64_t, std::unique_ptr<Task>> tasks;
+
     uint64_t allocate_task_id();
     void load_from_disk();
 
@@ -33,14 +34,19 @@ class Database {
 
   public:
     explicit Database(const std::string &fname);
-    void index_path(Task *task, const std::vector<IndexType> types, const std::string &filepath);
-    void execute(const Query &query, Task *task, std::vector<std::string> *out);
-    void add_dataset(DatasetBuilder &builder);
-    const std::map<uint64_t, Task> &current_tasks() { return tasks; }
-    void compact(Task *task);
-    void save();
+
+    const std::map<uint64_t, std::unique_ptr<Task>> &current_tasks() { return tasks; }
+    Task *get_task(uint64_t task_id);
+    void erase_task(uint64_t task_id);
     Task *allocate_task();
-    const std::vector<OnDiskDataset> &get_datasets() { return datasets; }
+
+    const std::vector<OnDiskDataset *> &working_sets() { return working_datasets; }
+    const std::vector<std::unique_ptr<OnDiskDataset>> &loaded_sets() { return loaded_datasets; }
 
     static void create(const std::string &path);
+    void load_dataset(const std::string &dsname);
+    void drop_dataset(const std::string &dsname);
+    void unload_dataset(const std::string &dsname);
+    DatabaseSnapshot snapshot();
+    void save();
 };

@@ -30,7 +30,7 @@ class OnDiskDataset {
     void execute(const Query &query, std::vector<std::string> *out) const;
     static void
     merge(const fs::path &db_base, const std::string &outname,
-          const std::vector<OnDiskDataset> &datasets, Task *task);
+          const std::vector<const OnDiskDataset *> &datasets, Task *task);
     void drop();
     std::string get_id() const;
     const std::vector<OnDiskIndex> &get_indexes() const { return indices; }
