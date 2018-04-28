@@ -38,7 +38,7 @@ static void *worker_thread(void *arg) {
 }
 
 void NetworkService::run() {
-    for (int worker_no = 0; worker_no < 24; worker_no++) {
+    for (int worker_no = 0; worker_no < NUM_WORKERS; worker_no++) {
         std::string identity = std::to_string(worker_no);
         wctxs[identity] = std::make_unique<WorkerContext>(identity, db.snapshot(), nullptr);
         pthread_t worker;

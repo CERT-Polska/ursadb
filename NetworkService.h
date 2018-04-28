@@ -17,7 +17,7 @@
 
 #include "Database.h"
 
-constexpr int NUM_WORKERS = 24;
+constexpr int NUM_WORKERS = 4;
 
 class WorkerContext {
 public:
