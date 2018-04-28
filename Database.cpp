@@ -73,8 +73,7 @@ Task *Database::allocate_task() {
         uint64_t epoch_ms =
                 std::chrono::duration_cast<std::chrono::milliseconds>(timestamp).count();
         if (tasks.count(task_id) == 0) {
-            Task new_task(task_id, epoch_ms);
-            return &tasks.emplace(task_id, new_task).first->second;
+            return tasks.emplace(task_id, std::make_unique<Task>(Task(task_id, epoch_ms))).first->second.get();
         }
     }
 }
@@ -120,4 +119,12 @@ void Database::unload_dataset(const std::string &dsname) {
             ++it;
         }
     }
+}
+
+Task *Database::get_task(uint64_t task_id) {
+    return tasks.at(task_id).get();
+}
+
+void Database::erase_task(uint64_t task_id) {
+    tasks.erase(task_id);
 }

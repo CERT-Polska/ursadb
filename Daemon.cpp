@@ -49,12 +49,12 @@ std::string execute_command(const CompactCommand &cmd, Task *task, DatabaseSnaps
 
 std::string execute_command(const StatusCommand &cmd, Task *task, DatabaseSnapshot *snap) {
     std::stringstream ss;
-    const std::map<uint64_t, Task> *tasks = snap->get_tasks();
+    const std::map<uint64_t, std::unique_ptr<Task>> *tasks = snap->get_tasks();
 
     ss << "OK\n";
     for (const auto &pair : *tasks) {
-        const Task &ts = pair.second;
-        ss << ts.id << ": " << ts.work_done << " " << ts.work_estimated << "\n";
+        const Task *ts = pair.second.get();
+        ss << ts->id << ": " << ts->work_done << " " << ts->work_estimated << "\n";
     }
     return ss.str();
 }
@@ -123,14 +123,14 @@ static void *worker_thread(void *arg) {
         }
 
         uint64_t task_id = stoul(task_id_str);
-        Task &task = wa->db->current_tasks().at(task_id);
+        Task *task = wa->db->current_tasks().at(task_id).get();
 
         //  Get request, send reply
         std::string request = s_recv(worker);
         DatabaseSnapshot *snap = &wa->snapshots->at(my_addr);
         std::cout << "Worker: " << request << std::endl;
 
-        std::string s = dispatch_command_safe(request, &task, snap);
+        std::string s = dispatch_command_safe(request, task, snap);
 
         s_sendmore(worker, address);
         s_sendmore(worker, "");
@@ -204,7 +204,7 @@ int main(int argc, char *argv[]) {
             snapshots.erase(worker_addr);
 
             if (did_task != 0) {
-                const auto &changes = db.current_tasks().at(did_task).changes;
+                const auto &changes = db.current_tasks().at(did_task).get()->changes;
                 for (const auto &change : changes) {
                     if (change.first == DbChangeType::Insert) {
                         db.load_dataset(change.second);
@@ -222,7 +222,7 @@ int main(int argc, char *argv[]) {
                     db.save();
                 }
 
-                db.current_tasks().erase(did_task);
+                db.erase_task(did_task);
 
                 // --- GC ---
                 std::set<const OnDiskDataset *> required_datasets;

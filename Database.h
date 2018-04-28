@@ -25,7 +25,7 @@ class Database {
     size_t max_memory_size;
 
     uint64_t last_task_id;
-    std::map<uint64_t, Task> tasks;
+    std::map<uint64_t, std::unique_ptr<Task>> tasks;
 
     uint64_t allocate_task_id();
     void load_from_disk();
@@ -35,10 +35,11 @@ class Database {
   public:
     explicit Database(const std::string &fname);
 
-    std::map<uint64_t, Task> &current_tasks() { return tasks; }
-
-    void save();
+    const std::map<uint64_t, std::unique_ptr<Task>> &current_tasks() { return tasks; }
+    Task *get_task(uint64_t task_id);
+    void erase_task(uint64_t task_id);
     Task *allocate_task();
+
     const std::vector<OnDiskDataset *> &working_sets() { return working_datasets; }
     const std::vector<std::unique_ptr<OnDiskDataset>> &loaded_sets() { return loaded_datasets; }
 
@@ -47,4 +48,5 @@ class Database {
     void drop_dataset(const std::string &dsname);
     void unload_dataset(const std::string &dsname);
     DatabaseSnapshot snapshot();
+    void save();
 };
