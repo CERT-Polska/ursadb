@@ -12,10 +12,6 @@ using json = nlohmann::json;
 namespace fs = std::experimental::filesystem;
 
 Database::Database(const std::string &fname, bool initialize) : tasks(), last_task_id(0) {
-    std::random_device rd;
-    std::seed_seq seed{rd(), rd(), rd(), rd()}; // A bit better than pathetic default
-    std::mt19937_64 gen(seed);
-
     db_name = fs::path(fname).filename();
     db_base = fs::path(fname).parent_path();
 
@@ -127,4 +123,14 @@ Task *Database::get_task(uint64_t task_id) {
 
 void Database::erase_task(uint64_t task_id) {
     tasks.erase(task_id);
+}
+
+DatabaseSnapshot Database::snapshot() {
+    std::vector<const OnDiskDataset *> cds;
+
+    for (const auto *d : working_datasets) {
+        cds.push_back(d);
+    }
+
+    return DatabaseSnapshot(db_name, db_base, cds, &tasks, max_memory_size);
 }

@@ -10,28 +10,16 @@ DatabaseSnapshot::DatabaseSnapshot(
     : db_name(db_name), db_base(db_base), datasets(datasets), tasks(tasks),
       max_memory_size(max_memory_size) {}
 
-DatabaseSnapshot Database::snapshot() {
-    std::vector<const OnDiskDataset *> cds;
-
-    for (const auto *d : working_datasets) {
-        cds.push_back(d);
-    }
-
-    return DatabaseSnapshot(db_name, db_base, cds, &tasks, max_memory_size);
-}
-
 void DatabaseSnapshot::index_path(
-        Task *task, const std::vector<IndexType> types, const std::string &filepath) {
+        Task *task, const std::vector<IndexType> types, const std::string &filepath) const {
     namespace fs = std::experimental::filesystem;
     DatasetBuilder builder(types);
     fs::recursive_directory_iterator end;
     std::set<std::string> all_files;
 
-    if (all_files.empty()) {
-        for (auto &dataset : datasets) {
-            for (auto &fn : dataset->indexed_files()) {
-                all_files.insert(fn);
-            }
+    for (auto &dataset : datasets) {
+        for (auto &fn : dataset->indexed_files()) {
+            all_files.insert(fn);
         }
     }
 
@@ -80,27 +68,30 @@ void DatabaseSnapshot::index_path(
     task->work_done += 1;
 }
 
-std::string random_hex_string(int length, std::mt19937_64 *rd) {
+std::string random_hex_string(int length) {
     constexpr static char charset[] = "0123456789abcdef";
+    thread_local static std::random_device rd;
+    thread_local static std::seed_seq seed{rd(), rd(), rd(), rd()}; // A bit better than pathetic default
+    thread_local static std::mt19937_64 random(seed);
     thread_local static std::uniform_int_distribution<int> pick(0, sizeof(charset) - 2);
 
     std::string result;
     result.reserve(length);
 
     for (int i = 0; i < length; i++) {
-        result += charset[pick(*rd)];
+        result += charset[pick(random)];
     }
 
     return result;
 }
 
-std::string DatabaseSnapshot::allocate_name() {
+std::string DatabaseSnapshot::allocate_name() const {
     while (true) {
         // TODO limit this to some sane value (like 10000 etc),
         // to avoid infinite loop in exceptional cases.
 
         std::stringstream ss;
-        ss << "set." << random_hex_string(8, &random) << "." << db_name.string();
+        ss << "set." << random_hex_string(8) << "." << db_name.string();
         std::string fname = ss.str();
         ExclusiveFile lock(db_base / fname);
         if (lock.is_ok()) {
@@ -109,7 +100,7 @@ std::string DatabaseSnapshot::allocate_name() {
     }
 }
 
-void DatabaseSnapshot::execute(const Query &query, Task *task, std::vector<std::string> *out) {
+void DatabaseSnapshot::execute(const Query &query, Task *task, std::vector<std::string> *out) const {
     task->work_estimated = datasets.size();
 
     for (const auto &ds : datasets) {
@@ -118,7 +109,7 @@ void DatabaseSnapshot::execute(const Query &query, Task *task, std::vector<std::
     }
 }
 
-void DatabaseSnapshot::compact(Task *task) {
+void DatabaseSnapshot::compact(Task *task) const {
     std::string dataset_name = allocate_name();
     OnDiskDataset::merge(db_base, dataset_name, datasets, task);
 
