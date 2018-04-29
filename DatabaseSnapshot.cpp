@@ -10,7 +10,7 @@ DatabaseSnapshot::DatabaseSnapshot(
     : db_name(db_name), db_base(db_base), datasets(datasets), tasks(),
       max_memory_size(max_memory_size) {
     for (const auto &entry : tasks) {
-        this->tasks.insert(std::make_pair(entry.first, *entry.second.get()));
+        this->tasks.emplace(entry.first, *entry.second.get());
     }
 }
 
