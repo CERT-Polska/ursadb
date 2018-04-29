@@ -48,12 +48,11 @@ std::string execute_command(const CompactCommand &cmd, Task *task, DatabaseSnaps
 
 std::string execute_command(const StatusCommand &cmd, Task *task, DatabaseSnapshot *snap) {
     std::stringstream ss;
-    const std::map<uint64_t, std::unique_ptr<Task>> *tasks = snap->get_tasks();
+    const std::map<uint64_t, Task> &tasks = snap->get_tasks();
 
     ss << "OK\n";
-    for (const auto &pair : *tasks) {
-        const Task *ts = pair.second.get();
-        ss << ts->id << ": " << ts->work_done << " " << ts->work_estimated << "\n";
+    for (const auto &pair : tasks) {
+        ss << pair.second.id << ": " << pair.second.work_done << " " << pair.second.work_estimated << "\n";
     }
     return ss.str();
 }

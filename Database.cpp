@@ -132,5 +132,5 @@ DatabaseSnapshot Database::snapshot() {
         cds.push_back(d);
     }
 
-    return DatabaseSnapshot(db_name, db_base, cds, &tasks, max_memory_size);
+    return DatabaseSnapshot(db_name, db_base, cds, tasks, max_memory_size);
 }
