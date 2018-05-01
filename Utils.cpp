@@ -105,6 +105,7 @@ void gen_h4grams(const uint8_t *mem, size_t size, TrigramCallback cb) {
 }
 
 uint64_t compress_run(const std::vector<FileId> &run, std::ostream &out) {
+    // be careful there, std::vector<FileId> must contain sorted and unique values
     uint64_t out_bytes = 0;
     int64_t prev = -1;
 

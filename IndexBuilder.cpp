@@ -36,8 +36,6 @@ void IndexBuilder::save(const std::string &fname) {
     std::vector<uint64_t> offsets(NUM_TRIGRAMS + 1);
 
     for (int i = 0; i < NUM_TRIGRAMS; i++) {
-        assert(std::is_sorted(raw_index[i].begin(), raw_index[i].end()));
-        assert(std::unique(raw_index[i].begin(), raw_index[i].end()) == raw_index[i].end());
         offsets[i] = offset;
         offset += compress_run(raw_index[i], out);
     }
