@@ -4,6 +4,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <cassert>
 
 #include "Utils.h"
 
@@ -31,15 +32,17 @@ void IndexBuilder::save(const std::string &fname) {
     out.write((char *)&ndx_type, 4);
     out.write((char *)&reserved, 4);
 
+    auto offset = (uint64_t)out.tellp();
     std::vector<uint64_t> offsets(NUM_TRIGRAMS + 1);
 
     for (int i = 0; i < NUM_TRIGRAMS; i++) {
-        offsets[i] = (uint64_t)out.tellp();
-        std::sort(raw_index[i].begin(), raw_index[i].end());
-        raw_index[i].erase(unique(raw_index[i].begin(), raw_index[i].end()), raw_index[i].end());
-        compress_run(raw_index[i], out);
+        assert(std::is_sorted(raw_index[i].begin(), raw_index[i].end()));
+        assert(std::unique(raw_index[i].begin(), raw_index[i].end()) == raw_index[i].end());
+        offsets[i] = offset;
+        offset += compress_run(raw_index[i], out);
     }
-    offsets[NUM_TRIGRAMS] = (uint64_t)out.tellp();
+
+    offsets[NUM_TRIGRAMS] = offset;
 
     out.write((char *)offsets.data(), (NUM_TRIGRAMS + 1) * sizeof(uint64_t));
 }
