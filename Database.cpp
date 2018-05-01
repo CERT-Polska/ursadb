@@ -117,6 +117,28 @@ void Database::unload_dataset(const std::string &dsname) {
     }
 }
 
+void Database::commit_task(uint64_t task_id) {
+    Task *task = get_task(task_id);
+
+    for (const auto &change : task->changes) {
+        if (change.type == DbChangeType::Insert) {
+            load_dataset(change.obj_name);
+        } else if (change.type == DbChangeType::Drop) {
+            drop_dataset(change.obj_name);
+        } else {
+            throw std::runtime_error("unknown change type requested");
+        }
+
+        std::cout << "change: " << db_change_to_string(change.type) << " " << change.obj_name << std::endl;
+    }
+
+    if (!task->changes.empty()) {
+        save();
+    }
+
+    erase_task(task_id);
+}
+
 Task *Database::get_task(uint64_t task_id) {
     return tasks.at(task_id).get();
 }
