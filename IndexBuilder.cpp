@@ -8,18 +8,34 @@
 
 #include "Utils.h"
 
+constexpr int max_files = 8*8;
+constexpr int file_run_size = max_files / 8;
+
+
 IndexBuilder::IndexBuilder(IndexType ntype)
-    : raw_index(NUM_TRIGRAMS), ntype(ntype), consumed_bytes(0) {}
+    : raw_data(file_run_size * NUM_TRIGRAMS), ntype(ntype) {}
 
 void IndexBuilder::add_trigram(FileId fid, TriGram val) {
-    if (raw_index[val].empty() || raw_index[val].back() != fid) {
-        // guard against indexing same (file, trigram) pair twice
-        raw_index[val].push_back(fid);
-        consumed_bytes += sizeof(TriGram);
-    }
+    int offset = fid / 8;
+    int shift = fid % 8;
+    raw_data[val * file_run_size + offset] |= (1 << shift);
 }
 
-void IndexBuilder::save(const std::string &fname) {
+std::vector<FileId> IndexBuilder::get_run(TriGram val) const {
+    int run_start = file_run_size * val;
+    int run_end = file_run_size * (val + 1);
+    std::vector<FileId> result;
+    for (int offset = 0; offset < file_run_size; offset++) {
+        for (int shift = 0; shift < 8; shift++) {
+            if (raw_data[val * file_run_size + offset] & (1 << shift)) {
+                result.push_back(offset * 8 + shift);
+            }
+        }
+    }
+    return result;
+}
+
+void IndexBuilder::save(const std::string &fname) const {
     std::ofstream out(fname, std::ofstream::binary | std::ofstream::out);
 
     uint32_t magic = DB_MAGIC;
@@ -37,7 +53,7 @@ void IndexBuilder::save(const std::string &fname) {
 
     for (int i = 0; i < NUM_TRIGRAMS; i++) {
         offsets[i] = offset;
-        offset += compress_run(raw_index[i], out);
+        offset += compress_run(get_run(i), out);
     }
 
     offsets[NUM_TRIGRAMS] = offset;
@@ -48,4 +64,8 @@ void IndexBuilder::save(const std::string &fname) {
 void IndexBuilder::add_file(FileId fid, const uint8_t *data, size_t size) {
     TrigramGenerator generator = get_generator_for(ntype);
     generator(data, size, [&](TriGram val) { add_trigram(fid, val); });
+}
+
+bool IndexBuilder::must_spill(int file_count) const {
+    return file_count >= max_files;
 }
