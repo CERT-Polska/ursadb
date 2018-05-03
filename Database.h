@@ -36,6 +36,7 @@ class Database {
     explicit Database(const std::string &fname);
 
     const std::map<uint64_t, std::unique_ptr<Task>> &current_tasks() { return tasks; }
+    void commit_task(uint64_t task_id);
     Task *get_task(uint64_t task_id);
     void erase_task(uint64_t task_id);
     Task *allocate_task();

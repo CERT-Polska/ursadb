@@ -104,18 +104,24 @@ void gen_h4grams(const uint8_t *mem, size_t size, TrigramCallback cb) {
     }
 }
 
-void compress_run(const std::vector<FileId> &run, std::ostream &out) {
+uint64_t compress_run(const std::vector<FileId> &run, std::ostream &out) {
+    // be careful there, std::vector<FileId> must contain sorted and unique values
+    uint64_t out_bytes = 0;
     int64_t prev = -1;
 
     for (FileId next : run) {
         int64_t diff = (next - prev) - 1;
         while (diff >= 0x80U) {
+            out_bytes++;
             out.put((uint8_t)(0x80U | (diff & 0x7FU)));
             diff >>= 7;
         }
+        out_bytes++;
         out.put((uint8_t)diff);
         prev = next;
     }
+
+    return out_bytes;
 }
 
 std::vector<FileId> read_compressed_run(const uint8_t *start, const uint8_t *end) {

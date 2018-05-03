@@ -15,3 +15,6 @@ target_link_libraries(ursadb_new ursa)
 
 add_executable(ursadb_test Tests.cpp)
 target_link_libraries(ursadb_test ursa)
+
+add_executable(ursadb_bench Benchmark.cpp)
+target_link_libraries(ursadb_bench ursa)

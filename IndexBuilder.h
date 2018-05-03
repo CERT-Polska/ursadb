@@ -6,17 +6,17 @@
 #include "Core.h"
 
 class IndexBuilder {
-    std::vector<std::vector<FileId>> raw_index;
+    std::vector<uint8_t> raw_data;
     IndexType ntype;
-    uint64_t consumed_bytes;
 
     void add_trigram(FileId fid, TriGram val);
+    std::vector<FileId> get_run(TriGram val) const;
 
   public:
     IndexBuilder(IndexType ntype);
 
     IndexType index_type() const { return ntype; }
     void add_file(FileId fid, const uint8_t *data, size_t size);
-    void save(const std::string &fname);
-    uint64_t estimated_size() const { return consumed_bytes; }
+    void save(const std::string &fname) const;
+    bool must_spill(int file_count) const;
 };

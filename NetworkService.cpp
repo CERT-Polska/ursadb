@@ -80,23 +80,7 @@ void NetworkService::commit_task(WorkerContext *wctx) {
     std::cout << "worker finished: " << wctx->identity << ", he was doing task " << did_task
               << std::endl;
 
-    for (const auto &change : wctx->task->changes) {
-        if (change.type == DbChangeType::Insert) {
-            db.load_dataset(change.obj_name);
-        } else if (change.type == DbChangeType::Drop) {
-            db.drop_dataset(change.obj_name);
-        } else {
-            throw std::runtime_error("unknown change type requested");
-        }
-
-        std::cout << "change: " << db_change_to_string(change.type) << " " << change.obj_name << std::endl;
-    }
-
-    if (!wctx->task->changes.empty()) {
-        db.save();
-    }
-
-    db.erase_task(did_task);
+    db.commit_task(wctx->task->id);
     wctx->task = nullptr;
 }
 

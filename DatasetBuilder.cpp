@@ -11,7 +11,7 @@
 
 using json = nlohmann::json;
 
-DatasetBuilder::DatasetBuilder(const std::vector<IndexType> &index_types) : total_bytes(0) {
+DatasetBuilder::DatasetBuilder(const std::vector<IndexType> &index_types) {
     for (const auto &index_type : index_types) {
         indices.emplace_back(index_type);
     }
@@ -42,7 +42,6 @@ void DatasetBuilder::save(const fs::path &db_base, const std::string &fname) {
 void DatasetBuilder::index(const std::string &filepath) {
     MemMap in(filepath);
 
-    total_bytes += in.size();
     FileId fid = register_fname(filepath);
 
     for (auto &ndx : indices) {
@@ -50,12 +49,11 @@ void DatasetBuilder::index(const std::string &filepath) {
     }
 }
 
-size_t DatasetBuilder::estimated_size() {
-    size_t out = sizeof(std::vector<TriGram>) * NUM_TRIGRAMS;
-
+bool DatasetBuilder::must_spill() {
     for (const auto &ndx : indices) {
-        out += ndx.estimated_size() * 2;
+        if (ndx.must_spill(fids.size())) {
+            return true;
+        }
     }
-
-    return out;
+    return false;
 }

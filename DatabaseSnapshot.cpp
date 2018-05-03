@@ -52,8 +52,8 @@ void DatabaseSnapshot::index_path(
             std::cout << "empty file, skip" << std::endl;
         }
 
-        if (builder.estimated_size() > max_memory_size) {
-            std::cout << "new dataset " << builder.estimated_size() << std::endl;
+        if (builder.must_spill()) {
+            std::cout << "new dataset" << std::endl;
             auto dataset_name = allocate_name();
             builder.save(db_base, dataset_name);
             task->changes.emplace_back(DbChangeType::Insert, dataset_name);
