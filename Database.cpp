@@ -58,20 +58,24 @@ void Database::create(const std::string &fname) {
 }
 
 uint64_t Database::allocate_task_id() {
-    // TODO data race
     return ++last_task_id;
 }
 
-Task *Database::allocate_task() {
+Task *Database::allocate_task(const std::string &request, const std::string &conn_id) {
     while (true) {
         uint64_t task_id = allocate_task_id();
         auto timestamp = std::chrono::steady_clock::now().time_since_epoch();
         uint64_t epoch_ms =
                 std::chrono::duration_cast<std::chrono::milliseconds>(timestamp).count();
         if (tasks.count(task_id) == 0) {
-            return tasks.emplace(task_id, std::make_unique<Task>(Task(task_id, epoch_ms))).first->second.get();
+            return tasks.emplace(task_id, std::make_unique<Task>(Task(task_id, epoch_ms, request, conn_id)))
+                    .first->second.get();
         }
     }
+}
+
+Task *Database::allocate_task() {
+    return allocate_task("N/A", "N/A");
 }
 
 void Database::save() {

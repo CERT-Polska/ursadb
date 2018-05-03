@@ -52,7 +52,9 @@ std::string execute_command(const StatusCommand &cmd, Task *task, DatabaseSnapsh
 
     ss << "OK\n";
     for (const auto &pair : tasks) {
-        ss << pair.second.id << ": " << pair.second.work_done << " " << pair.second.work_estimated << "\n";
+        const Task &t = pair.second;
+        ss << t.id << "\t" << t.work_done << "\t" << t.work_estimated << "\t";
+        ss << t.conn_id << "\t" << t.request_str << "\n";
     }
     return ss.str();
 }

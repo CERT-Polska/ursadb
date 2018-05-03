@@ -163,7 +163,7 @@ void NetworkService::poll_frontend() {
 
     WorkerContext *wctx = wctxs.at(worker_addr).get();
 
-    wctx->task = db.allocate_task();
+    wctx->task = db.allocate_task(request, client_addr);
     wctx->snap = db.snapshot();
 
     s_send(backend, worker_addr, ZMQ_SNDMORE);
