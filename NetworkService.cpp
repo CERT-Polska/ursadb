@@ -110,7 +110,7 @@ void NetworkService::collect_garbage() {
     }
 
     for (const auto &ds : drop_list) {
-        db.unload_dataset(ds);
+        db.destroy_dataset(ds);
     }
 }
 
