@@ -92,9 +92,26 @@ void OnDiskDataset::merge(
         const std::vector<const OnDiskDataset *> &datasets, Task *task) {
     std::set<IndexType> index_types;
 
-    for (const OnDiskDataset *dataset : datasets) {
-        for (const OnDiskIndex &index : dataset->indices) {
-            index_types.insert(index.index_type());
+    if (datasets.size() < 2) {
+        throw std::runtime_error("merge requires at least 2 datasets");
+    }
+
+    for (const OnDiskIndex &index : datasets[0]->indices) {
+        index_types.insert(index.index_type());
+    }
+
+    for (int i = 1; i < datasets.size(); i++) {
+        std::set<IndexType> tmp_types;
+
+        for (const OnDiskIndex &index : datasets[i]->indices) {
+            tmp_types.insert(index.index_type());
+        }
+
+        if (tmp_types != index_types) {
+            std::stringstream ss;
+            ss << "trying to merge \"" << datasets[0]->get_name() << "\" and \"" << datasets[i]->get_name() << "\" ";
+            ss << "but these ones contain index(es) of different type(s)";
+            throw std::runtime_error(ss.str());
         }
     }
 
