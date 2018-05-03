@@ -40,6 +40,7 @@ class Database {
     Task *get_task(uint64_t task_id);
     void erase_task(uint64_t task_id);
     Task *allocate_task();
+    Task *allocate_task(const std::string &request, const std::string &conn_id);
 
     const std::vector<OnDiskDataset *> &working_sets() { return working_datasets; }
     const std::vector<std::unique_ptr<OnDiskDataset>> &loaded_sets() { return loaded_datasets; }
