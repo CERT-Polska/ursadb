@@ -147,8 +147,7 @@ void OnDiskDataset::drop() {
         idx_names.push_back((*it).get_fname());
     }
 
-    // deallocate objects to close MemMap, otherwise Windows won't allow us to
-    // delete file
+    // deallocate objects to close MemMaps
     indices.clear();
 
     for (auto &idx_name : idx_names) {
