@@ -16,18 +16,17 @@ IndexBuilder::IndexBuilder(IndexType ntype)
     : raw_data(file_run_size * NUM_TRIGRAMS), ntype(ntype) {}
 
 void IndexBuilder::add_trigram(FileId fid, TriGram val) {
-    int offset = fid / 8;
-    int shift = fid % 8;
-    raw_data[val * file_run_size + offset] |= (1 << shift);
+    unsigned int offset = fid / 8;
+    unsigned int shift = fid % 8;
+    raw_data[val * file_run_size + offset] |= (1U << shift);
 }
 
 std::vector<FileId> IndexBuilder::get_run(TriGram val) const {
-    int run_start = file_run_size * val;
-    int run_end = file_run_size * (val + 1);
+    unsigned int run_start = file_run_size * val;
     std::vector<FileId> result;
     for (int offset = 0; offset < file_run_size; offset++) {
         for (int shift = 0; shift < 8; shift++) {
-            if (raw_data[val * file_run_size + offset] & (1 << shift)) {
+            if (raw_data[run_start + offset] & (1 << shift)) {
                 result.push_back(offset * 8 + shift);
             }
         }
@@ -62,6 +61,11 @@ void IndexBuilder::save(const std::string &fname) const {
 }
 
 void IndexBuilder::add_file(FileId fid, const uint8_t *data, size_t size) {
+    if (fid >= max_files) {
+        // IndexBuilder's bitmap can't hold more than max_files files
+        throw std::out_of_range("fid");
+    }
+
     TrigramGenerator generator = get_generator_for(ntype);
     generator(data, size, [&](TriGram val) { add_trigram(fid, val); });
 }
