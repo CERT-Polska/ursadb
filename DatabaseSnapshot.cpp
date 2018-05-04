@@ -157,13 +157,13 @@ void DatabaseSnapshot::execute(const Query &query, Task *task, std::vector<std::
 }
 
 void DatabaseSnapshot::smart_compact(Task *task) const {
-    /* std::vector<OnDiskDataset *> candidates = OnDiskDataset::get_compact_candidates(get_datasets());
+    std::vector<const OnDiskDataset *> candidates = OnDiskDataset::get_compact_candidates(datasets);
 
     if (candidates.empty()) {
         throw std::runtime_error("no candidates for smart compact");
     }
 
-    internal_compact(task, candidates); */
+    internal_compact(task, candidates);
 }
 
 void DatabaseSnapshot::compact(Task *task) const {

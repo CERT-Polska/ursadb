@@ -33,8 +33,52 @@ class OnDiskDataset {
     static void
     merge(const fs::path &db_base, const std::string &outname,
           const std::vector<const OnDiskDataset *> &datasets, Task *task);
-    static std::vector<OnDiskDataset *> get_compact_candidates(const std::vector<OnDiskDataset *> &datasets);
     void drop();
     std::string get_id() const;
     const std::vector<OnDiskIndex> &get_indexes() const { return indices; }
+
+    template <typename T>
+    static std::vector<T> get_compact_candidates(const std::vector<T> &datasets) {
+        std::vector<T> out;
+
+        struct DatasetScore {
+            T ds;
+            unsigned long size;
+
+            DatasetScore(T ds, unsigned long size) : ds(ds), size(size) {}
+        };
+
+        struct compare_size {
+            bool operator() (const DatasetScore& lhs, const DatasetScore& rhs) const {
+                return lhs.size < rhs.size;
+            }
+        };
+
+        if (datasets.size() < 2) {
+            return out;
+        }
+
+        std::set<DatasetScore, compare_size> scores;
+
+        for (auto *ds : datasets) {
+            unsigned long dataset_size = 0;
+
+            for (const auto &ndx : ds->get_indexes()) {
+                dataset_size += fs::file_size(ds->get_base() / ndx.get_fname());
+            }
+
+            scores.emplace(ds, dataset_size);
+        }
+
+        auto it = scores.begin();
+        auto &score1 = *it;
+        auto &score2 = *(++it);
+
+        if (score1.size * 2 > score2.size) {
+            out.push_back(score1.ds);
+            out.push_back(score2.ds);
+        }
+
+        return out;
+    }
 };
