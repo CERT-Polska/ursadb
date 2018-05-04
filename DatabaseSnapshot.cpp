@@ -105,8 +105,9 @@ void DatabaseSnapshot::reindex_dataset(
         throw std::runtime_error("source dataset was not found");
     }
 
-    task->work_estimated = source->indexed_files().size() * 10000 + 1;
-    task->work_estimated += types.size() * NUM_TRIGRAMS;
+    double work_done_f = 0;
+    double work_increment = (double)(types.size() * NUM_TRIGRAMS) / source->indexed_files().size();
+    task->work_estimated = 2 * types.size() * NUM_TRIGRAMS + 1;
 
     std::vector<OnDiskDataset> compactTargets;
     std::vector<const OnDiskDataset*> compactTargetsPtr;
@@ -130,8 +131,11 @@ void DatabaseSnapshot::reindex_dataset(
             builder = DatasetBuilder(types);
         }
 
-        task->work_done += 10000;
+        work_done_f += work_increment;
+        task->work_done = (uint64_t)work_done_f;
     }
+
+    task->work_done = types.size() * NUM_TRIGRAMS;
 
     if (!builder.empty()) {
         std::stringstream ss;
