@@ -149,13 +149,12 @@ const OnDiskIndex &OnDiskDataset::get_index_with_type(IndexType index_type) cons
 }
 
 void OnDiskDataset::drop_file(const std::string &fname) const {
-    if (!fs::exists(fname)) {
-        std::cout << "skip missing file " << fname << std::endl;
-        return;
-    }
+    // it may happen that dataset was reloaded and then is scheduled for removal multiple times
+    // so we have to account for that and only delete yet existing files
 
-    std::cout << "dropping file " << fname << std::endl;
-    fs::remove(fname);
+    if (fs::exists(fname)) {
+        fs::remove(fname);
+    }
 }
 
 void OnDiskDataset::drop() {
