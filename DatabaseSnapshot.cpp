@@ -217,6 +217,8 @@ void DatabaseSnapshot::execute(const Query &query, Task *task, std::vector<std::
 }
 
 std::vector<const OnDiskDataset *> DatabaseSnapshot::get_compact_candidates() const {
+    std::vector<const OnDiskDataset *> out;
+
     struct DatasetScore {
         const OnDiskDataset *ds;
         unsigned long size;
@@ -229,6 +231,10 @@ std::vector<const OnDiskDataset *> DatabaseSnapshot::get_compact_candidates() co
             return lhs.size < rhs.size;
         }
     };
+
+    if (get_datasets().size() < 2) {
+        return out;
+    }
 
     std::set<DatasetScore, compare_size> scores;
 
@@ -247,10 +253,11 @@ std::vector<const OnDiskDataset *> DatabaseSnapshot::get_compact_candidates() co
     auto &score2 = *(++it);
 
     if (score1.size * 2 > score2.size) {
-        return std::vector<const OnDiskDataset*> {score1.ds, score2.ds};
-    } else {
-        return std::vector<const OnDiskDataset*> {};
+        out.push_back(score1.ds);
+        out.push_back(score2.ds);
     }
+
+    return out;
 }
 
 void DatabaseSnapshot::smart_compact(Task *task) const {
