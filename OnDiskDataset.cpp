@@ -151,10 +151,13 @@ const OnDiskIndex &OnDiskDataset::get_index_with_type(IndexType index_type) cons
 }
 
 void OnDiskDataset::drop_file(const std::string &fname) const {
-    if (std::remove(fname.c_str()) != 0) {
-        std::perror("Failed to delete file");
-        throw std::runtime_error("Failed to delete " + fname);
+    if (!fs::exists(fname)) {
+        std::cout << "skip missing file " << fname << std::endl;
+        return;
     }
+
+    std::cout << "dropping file " << fname << std::endl;
+    fs::remove(fname);
 }
 
 void OnDiskDataset::drop() {

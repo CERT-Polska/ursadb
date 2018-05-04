@@ -84,36 +84,6 @@ void NetworkService::commit_task(WorkerContext *wctx) {
     wctx->task = nullptr;
 }
 
-void NetworkService::collect_garbage() {
-    std::set<std::string> required_datasets;
-    for (const auto *ds : db.working_sets()) {
-        required_datasets.insert(ds->get_name());
-    }
-
-    for (const auto &p : wctxs) {
-        if (p.second->task == nullptr) {
-            // this worker is not doing anything at the moment
-            continue;
-        }
-
-        for (const auto *ds : p.second->snap.get_datasets()) {
-            required_datasets.insert(ds->get_name());
-        }
-    }
-
-    std::vector<std::string> drop_list;
-    for (const auto &set : db.loaded_sets()) {
-        if (required_datasets.count(set->get_name()) == 0) {
-            // set is loaded but not required
-            drop_list.push_back(set->get_name());
-        }
-    }
-
-    for (const auto &ds : drop_list) {
-        db.destroy_dataset(ds);
-    }
-}
-
 void NetworkService::poll_backend() {
     //  Queue worker address for LRU routing
     std::string worker_addr = s_recv(backend);
@@ -121,7 +91,16 @@ void NetworkService::poll_backend() {
 
     if (wctx->task != nullptr) {
         commit_task(wctx);
-        collect_garbage();
+
+        std::set<DatabaseSnapshot*> working_snapshots;
+
+        for (const auto &p : wctxs) {
+            if (p.second->task != nullptr) {
+                working_snapshots.insert(&p.second->snap);
+            }
+        }
+
+        db.collect_garbage(working_snapshots);
     }
 
     worker_queue.push(worker_addr);

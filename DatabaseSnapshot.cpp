@@ -147,16 +147,25 @@ void DatabaseSnapshot::reindex_dataset(
         compactTargetsPtr.push_back(&ds);
     }
 
-    std::stringstream ss;
-    ss << "reindex." << reindexPrefix << ".merged.ursa";
-    OnDiskDataset::merge(db_base, ss.str(), compactTargetsPtr, task);
+    std::string mainTarget;
 
-    for (auto &ds : compactTargets) {
-        ds.drop();
+    if (compactTargets.size() > 1) {
+        std::stringstream ss;
+        ss << "reindex." << reindexPrefix << ".merged.ursa";
+        mainTarget = ss.str();
+        OnDiskDataset::merge(db_base, mainTarget, compactTargetsPtr, task);
+
+        for (auto &ds : compactTargets) {
+            ds.drop();
+        }
+    } else if (compactTargets.size() == 1) {
+        mainTarget = compactTargets[0].get_name();
+    } else {
+        throw std::runtime_error("nothing to reindex");
     }
 
     {
-        OnDiskDataset target_ds(db_base, ss.str());
+        OnDiskDataset target_ds(db_base, mainTarget);
 
         if (target_ds.indexed_files() != source->indexed_files()) {
             throw std::runtime_error("reindex produced faulty dataset, file list doesn\'t match with the source");
@@ -169,7 +178,7 @@ void DatabaseSnapshot::reindex_dataset(
     in.close();
 
     for (const auto &type : types) {
-        fs::path old_index_name = db_base / (get_index_type_name(type) + "." + ss.str());
+        fs::path old_index_name = db_base / (get_index_type_name(type) + "." + mainTarget);
         fs::path new_index_name = db_base / (get_index_type_name(type) + "." + source->get_name());
         fs::rename(old_index_name, new_index_name);
         j["indices"].emplace_back(get_index_type_name(type) + "." + source->get_name());
@@ -179,8 +188,8 @@ void DatabaseSnapshot::reindex_dataset(
     out << std::setw(4) << j;
     out.close();
 
-    fs::remove(db_base / ("files." + ss.str()));
-    fs::remove(db_base / ss.str());
+    fs::remove(db_base / ("files." + mainTarget));
+    fs::remove(db_base / mainTarget);
 
     task->changes.emplace_back(DbChangeType::Reload, source->get_name());
 

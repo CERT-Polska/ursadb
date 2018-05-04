@@ -49,6 +49,7 @@ class Database {
     void load_dataset(const std::string &dsname);
     void drop_dataset(const std::string &dsname);
     void destroy_dataset(const std::string &dsname);
+    void collect_garbage(std::set<DatabaseSnapshot*> &working_snapshots);
     DatabaseSnapshot snapshot();
     void save();
 };
