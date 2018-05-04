@@ -129,6 +129,9 @@ void Database::commit_task(uint64_t task_id) {
             load_dataset(change.obj_name);
         } else if (change.type == DbChangeType::Drop) {
             drop_dataset(change.obj_name);
+        } else if (change.type == DbChangeType::Reload) {
+            drop_dataset(change.obj_name);
+            load_dataset(change.obj_name);
         } else {
             throw std::runtime_error("unknown change type requested");
         }

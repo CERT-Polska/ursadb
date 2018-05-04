@@ -14,6 +14,7 @@ class OnDiskDataset {
     std::string name;
     fs::path db_base;
     std::string files_fname;
+    // set of indexed filenames ordered with respect to FileId
     std::vector<std::string> fnames;
     std::vector<OnDiskIndex> indices;
 

@@ -40,6 +40,13 @@ std::string execute_command(const IndexCommand &cmd, Task *task, DatabaseSnapsho
     return "OK";
 }
 
+std::string execute_command(const ReindexCommand &cmd, Task *task, DatabaseSnapshot *snap) {
+    const std::string &dataset_name = cmd.get_dataset_name();
+    snap->reindex_dataset(task, cmd.get_index_types(), dataset_name);
+
+    return "OK";
+}
+
 std::string execute_command(const CompactCommand &cmd, Task *task, DatabaseSnapshot *snap) {
     snap->compact(task);
 

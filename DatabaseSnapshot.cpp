@@ -1,8 +1,28 @@
 #include "DatabaseSnapshot.h"
 
+#include <fstream>
+
 #include "Database.h"
 #include "DatasetBuilder.h"
 #include "ExclusiveFile.h"
+#include "lib/Json.h"
+
+std::string random_hex_string(int length) {
+    constexpr static char charset[] = "0123456789abcdef";
+    thread_local static std::random_device rd;
+    thread_local static std::seed_seq seed{rd(), rd(), rd(), rd()}; // A bit better than pathetic default
+    thread_local static std::mt19937_64 random(seed);
+    thread_local static std::uniform_int_distribution<int> pick(0, sizeof(charset) - 2);
+
+    std::string result;
+    result.reserve(length);
+
+    for (int i = 0; i < length; i++) {
+        result += charset[pick(random)];
+    }
+
+    return result;
+}
 
 DatabaseSnapshot::DatabaseSnapshot(
         fs::path db_name, fs::path db_base, std::vector<const OnDiskDataset *> datasets,
@@ -72,21 +92,99 @@ void DatabaseSnapshot::index_path(
     task->work_done += 1;
 }
 
-std::string random_hex_string(int length) {
-    constexpr static char charset[] = "0123456789abcdef";
-    thread_local static std::random_device rd;
-    thread_local static std::seed_seq seed{rd(), rd(), rd(), rd()}; // A bit better than pathetic default
-    thread_local static std::mt19937_64 random(seed);
-    thread_local static std::uniform_int_distribution<int> pick(0, sizeof(charset) - 2);
+void DatabaseSnapshot::reindex_dataset(
+        Task *task, const std::vector<IndexType> types, const std::string &dataset_name) const {
+    namespace fs = std::experimental::filesystem;
+    using json = nlohmann::json;
 
-    std::string result;
-    result.reserve(length);
+    const OnDiskDataset *source = nullptr;
 
-    for (int i = 0; i < length; i++) {
-        result += charset[pick(random)];
+    for (const auto *ds : datasets) {
+        if (ds->get_id() == dataset_name) {
+            source = ds;
+        }
     }
 
-    return result;
+    if (source == nullptr) {
+        throw std::runtime_error("source dataset was not found");
+    }
+
+    task->work_estimated = source->indexed_files().size() + 1;
+
+    std::vector<OnDiskDataset> compactTargets;
+    std::vector<const OnDiskDataset*> compactTargetsPtr;
+    std::string reindexPrefix = random_hex_string(8);
+    DatasetBuilder builder(types);
+
+    for (const std::string &fname : source->indexed_files()) {
+        std::cout << "reindexing " << fname << std::endl;
+
+        try {
+            builder.index(fname);
+        } catch (empty_file_error &e) {
+            std::cout << "empty file, skip" << std::endl;
+        }
+
+        if (builder.must_spill()) {
+            std::stringstream ss;
+            ss << "reindex." << reindexPrefix << "." << compactTargets.size() << ".ursa";
+            builder.save(db_base, ss.str());
+            compactTargets.emplace_back(db_base, ss.str());
+            builder = DatasetBuilder(types);
+        }
+
+        task->work_done += 1;
+    }
+
+    if (!builder.empty()) {
+        std::stringstream ss;
+        ss << "reindex." << reindexPrefix << "." << compactTargets.size() << ".ursa";
+        builder.save(db_base, ss.str());
+        compactTargets.emplace_back(db_base, ss.str());
+    }
+
+    for (const auto &ds : compactTargets) {
+        compactTargetsPtr.push_back(&ds);
+    }
+
+    std::stringstream ss;
+    ss << "reindex." << reindexPrefix << ".merged.ursa";
+    OnDiskDataset::merge(db_base, ss.str(), compactTargetsPtr, task);
+
+    for (auto &ds : compactTargets) {
+        ds.drop();
+    }
+
+    {
+        OnDiskDataset target_ds(db_base, ss.str());
+
+        if (target_ds.indexed_files() != source->indexed_files()) {
+            throw std::runtime_error("reindex produced faulty dataset, file list doesn\'t match with the source");
+        }
+    }
+
+    std::ifstream in(db_base / source->get_name(), std::ifstream::binary);
+    json j;
+    in >> j;
+    in.close();
+
+    for (const auto &type : types) {
+        fs::path old_index_name = db_base / (get_index_type_name(type) + "." + ss.str());
+        fs::path new_index_name = db_base / (get_index_type_name(type) + "." + source->get_name());
+        fs::rename(old_index_name, new_index_name);
+        j["indices"].emplace_back(get_index_type_name(type) + "." + source->get_name());
+    }
+
+    std::ofstream out(db_base / source->get_name(), std::ofstream::binary);
+    out << std::setw(4) << j;
+    out.close();
+
+    fs::remove(db_base / ("files." + ss.str()));
+    fs::remove(db_base / ss.str());
+
+    task->changes.emplace_back(DbChangeType::Reload, source->get_name());
+
+    task->work_done += 1;
 }
 
 std::string DatabaseSnapshot::allocate_name() const {
