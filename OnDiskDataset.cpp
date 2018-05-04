@@ -113,7 +113,9 @@ void OnDiskDataset::merge(
         }
     }
 
-    task->work_estimated = NUM_TRIGRAMS * index_types.size();
+    if (!task->work_estimated) {
+        task->work_estimated = NUM_TRIGRAMS * index_types.size();
+    }
 
     json dataset;
 

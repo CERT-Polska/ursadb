@@ -105,7 +105,8 @@ void DatabaseSnapshot::reindex_dataset(
         throw std::runtime_error("source dataset was not found");
     }
 
-    task->work_estimated = source->indexed_files().size() + 1;
+    task->work_estimated = source->indexed_files().size() * 10000 + 1;
+    task->work_estimated += types.size() * NUM_TRIGRAMS;
 
     std::vector<OnDiskDataset> compactTargets;
     std::vector<const OnDiskDataset*> compactTargetsPtr;
@@ -129,7 +130,7 @@ void DatabaseSnapshot::reindex_dataset(
             builder = DatasetBuilder(types);
         }
 
-        task->work_done += 1;
+        task->work_done += 10000;
     }
 
     if (!builder.empty()) {
@@ -155,6 +156,8 @@ void DatabaseSnapshot::reindex_dataset(
             ds.drop();
         }
     } else if (compactTargets.size() == 1) {
+        // turns out that merge will be not needed, progress boost
+        task->work_done += types.size() * NUM_TRIGRAMS;
         mainTarget = compactTargets[0].get_name();
     } else {
         throw std::runtime_error("nothing to reindex");
