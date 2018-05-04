@@ -23,6 +23,9 @@ class DatabaseSnapshot {
     size_t max_memory_size;
 
     std::string allocate_name() const;
+    std::vector<std::string> build_target_list(const std::string &filepath) const;
+
+    friend class Indexer;
 
   public:
     DatabaseSnapshot(
@@ -34,7 +37,6 @@ class DatabaseSnapshot {
     void smart_compact(Task *task) const;
     void compact(Task *task) const;
     void internal_compact(Task *task, std::vector<const OnDiskDataset *> datasets) const;
-    std::vector<const OnDiskDataset *> get_compact_candidates() const;
     const std::vector<const OnDiskDataset *> &get_datasets() const { return datasets; };
     const std::map<uint64_t, Task> &get_tasks() const { return tasks; };
 };

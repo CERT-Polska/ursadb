@@ -6,6 +6,7 @@
 #include "DatasetBuilder.h"
 #include "ExclusiveFile.h"
 #include "Json.h"
+#include "Indexer.h"
 
 std::string random_hex_string(int length) {
     constexpr static char charset[] = "0123456789abcdef";
@@ -34,11 +35,9 @@ DatabaseSnapshot::DatabaseSnapshot(
     }
 }
 
-void DatabaseSnapshot::index_path(
-        Task *task, const std::vector<IndexType> types, const std::string &filepath) const {
-    DatasetBuilder builder(types);
-    fs::recursive_directory_iterator end;
+std::vector<std::string> DatabaseSnapshot::build_target_list(const std::string &filepath) const {
     std::set<std::string> all_files;
+    fs::recursive_directory_iterator end;
 
     for (auto &dataset : datasets) {
         for (auto &fn : dataset->indexed_files()) {
@@ -60,32 +59,24 @@ void DatabaseSnapshot::index_path(
         }
     }
 
+    return targets;
+}
+
+void DatabaseSnapshot::index_path(
+        Task *task, const std::vector<IndexType> types, const std::string &filepath) const {
+    std::vector<std::string> targets = build_target_list(filepath);
+    Indexer indexer(MergeStrategy::Smart, this, task, types);
+
     task->work_estimated = targets.size() + 1;
 
     for (const auto &target : targets) {
         std::cout << "indexing " << target << std::endl;
-
-        try {
-            builder.index(target);
-        } catch (empty_file_error &e) {
-            std::cout << "empty file, skip" << std::endl;
-        }
-
-        if (builder.must_spill()) {
-            std::cout << "new dataset" << std::endl;
-            auto dataset_name = allocate_name();
-            builder.save(db_base, dataset_name);
-            task->changes.emplace_back(DbChangeType::Insert, dataset_name);
-            builder = DatasetBuilder(types);
-        }
-
+        indexer.index(target);
         task->work_done += 1;
     }
 
-    if (!builder.empty()) {
-        auto dataset_name = allocate_name();
-        builder.save(db_base, dataset_name);
-        task->changes.emplace_back(DbChangeType::Insert, dataset_name);
+    for (const OnDiskDataset *ds : indexer.finalize()) {
+        task->changes.emplace_back(DbChangeType::Insert, ds->get_name());
     }
 
     task->work_done += 1;
@@ -105,74 +96,16 @@ void DatabaseSnapshot::reindex_dataset(
         throw std::runtime_error("source dataset was not found");
     }
 
-    double work_done_f = 0;
-    double work_increment = (double)(types.size() * NUM_TRIGRAMS) / source->indexed_files().size();
-    task->work_estimated = 2 * types.size() * NUM_TRIGRAMS + 1;
-
-    std::vector<OnDiskDataset> compactTargets;
-    std::vector<const OnDiskDataset*> compactTargetsPtr;
-    std::string reindexPrefix = random_hex_string(8);
-    DatasetBuilder builder(types);
+    Indexer indexer(MergeStrategy::InOrder, this, task, types);
 
     for (const std::string &fname : source->indexed_files()) {
-        std::cout << "reindexing " << fname << std::endl;
-
-        try {
-            builder.index(fname);
-        } catch (empty_file_error &e) {
-            std::cout << "empty file, skip" << std::endl;
-        }
-
-        if (builder.must_spill()) {
-            std::stringstream ss;
-            ss << "reindex." << reindexPrefix << "." << compactTargets.size() << ".ursa";
-            builder.save(db_base, ss.str());
-            compactTargets.emplace_back(db_base, ss.str());
-            builder = DatasetBuilder(types);
-        }
-
-        work_done_f += work_increment;
-        task->work_done = (uint64_t)work_done_f;
+        indexer.index(fname);
     }
 
-    task->work_done = types.size() * NUM_TRIGRAMS;
+    OnDiskDataset *outcome = indexer.force_compact();
 
-    if (!builder.empty()) {
-        std::stringstream ss;
-        ss << "reindex." << reindexPrefix << "." << compactTargets.size() << ".ursa";
-        builder.save(db_base, ss.str());
-        compactTargets.emplace_back(db_base, ss.str());
-    }
-
-    for (const auto &ds : compactTargets) {
-        compactTargetsPtr.push_back(&ds);
-    }
-
-    std::string mainTarget;
-
-    if (compactTargets.size() > 1) {
-        std::stringstream ss;
-        ss << "reindex." << reindexPrefix << ".merged.ursa";
-        mainTarget = ss.str();
-        OnDiskDataset::merge(db_base, mainTarget, compactTargetsPtr, task);
-
-        for (auto &ds : compactTargets) {
-            ds.drop();
-        }
-    } else if (compactTargets.size() == 1) {
-        // turns out that merge will be not needed, progress boost
-        task->work_done += types.size() * NUM_TRIGRAMS;
-        mainTarget = compactTargets[0].get_name();
-    } else {
-        throw std::runtime_error("nothing to reindex");
-    }
-
-    {
-        OnDiskDataset target_ds(db_base, mainTarget);
-
-        if (target_ds.indexed_files() != source->indexed_files()) {
-            throw std::runtime_error("reindex produced faulty dataset, file list doesn\'t match with the source");
-        }
+    if (outcome->indexed_files() != source->indexed_files()) {
+        throw std::runtime_error("reindex produced faulty dataset, file list doesn\'t match with the source");
     }
 
     std::ifstream in(db_base / source->get_name(), std::ifstream::binary);
@@ -181,7 +114,7 @@ void DatabaseSnapshot::reindex_dataset(
     in.close();
 
     for (const auto &type : types) {
-        fs::path old_index_name = db_base / (get_index_type_name(type) + "." + mainTarget);
+        fs::path old_index_name = db_base / (get_index_type_name(type) + "." + outcome->get_name());
         fs::path new_index_name = db_base / (get_index_type_name(type) + "." + source->get_name());
         fs::rename(old_index_name, new_index_name);
         j["indices"].emplace_back(get_index_type_name(type) + "." + source->get_name());
@@ -191,8 +124,8 @@ void DatabaseSnapshot::reindex_dataset(
     out << std::setw(4) << j;
     out.close();
 
-    fs::remove(db_base / ("files." + mainTarget));
-    fs::remove(db_base / mainTarget);
+    fs::remove(db_base / ("files." + outcome->get_name()));
+    fs::remove(db_base / outcome->get_name());
 
     task->changes.emplace_back(DbChangeType::Reload, source->get_name());
 
@@ -223,58 +156,14 @@ void DatabaseSnapshot::execute(const Query &query, Task *task, std::vector<std::
     }
 }
 
-std::vector<const OnDiskDataset *> DatabaseSnapshot::get_compact_candidates() const {
-    std::vector<const OnDiskDataset *> out;
-
-    struct DatasetScore {
-        const OnDiskDataset *ds;
-        unsigned long size;
-
-        DatasetScore(const OnDiskDataset *ds, unsigned long size) : ds(ds), size(size) {}
-    };
-
-    struct compare_size {
-        bool operator() (const DatasetScore& lhs, const DatasetScore& rhs) const {
-            return lhs.size < rhs.size;
-        }
-    };
-
-    if (get_datasets().size() < 2) {
-        return out;
-    }
-
-    std::set<DatasetScore, compare_size> scores;
-
-    for (const auto *ds : get_datasets()) {
-        unsigned long dataset_size = 0;
-
-        for (const auto &ndx : ds->get_indexes()) {
-            dataset_size += fs::file_size(db_base / ndx.get_fname());
-        }
-
-        scores.emplace(ds, dataset_size);
-    }
-
-    auto it = scores.begin();
-    auto &score1 = *it;
-    auto &score2 = *(++it);
-
-    if (score1.size * 2 > score2.size) {
-        out.push_back(score1.ds);
-        out.push_back(score2.ds);
-    }
-
-    return out;
-}
-
 void DatabaseSnapshot::smart_compact(Task *task) const {
-    std::vector<const OnDiskDataset *> candidates = get_compact_candidates();
+    /* std::vector<OnDiskDataset *> candidates = OnDiskDataset::get_compact_candidates(get_datasets());
 
     if (candidates.empty()) {
         throw std::runtime_error("no candidates for smart compact");
     }
 
-    internal_compact(task, candidates);
+    internal_compact(task, candidates); */
 }
 
 void DatabaseSnapshot::compact(Task *task) const {
