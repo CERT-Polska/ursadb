@@ -5,12 +5,9 @@
 #include <iostream>
 #include <memory>
 
-#include "lib/Json.h"
+#include "Json.h"
 #include "ExclusiveFile.h"
 #include "Utils.h"
-
-using json = nlohmann::json;
-namespace fs = std::experimental::filesystem;
 
 Database::Database(const std::string &fname, bool initialize) : tasks(), last_task_id(0) {
     db_name = fs::path(fname).filename();

@@ -12,8 +12,7 @@
 #include "OnDiskDataset.h"
 #include "Query.h"
 #include "Task.h"
-
-namespace fs = std::experimental::filesystem;
+#include "Utils.h"
 
 class OnDiskDataset;
 

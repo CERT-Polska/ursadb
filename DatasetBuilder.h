@@ -5,8 +5,7 @@
 
 #include "Core.h"
 #include "IndexBuilder.h"
-
-namespace fs = std::experimental::filesystem;
+#include "Utils.h"
 
 class DatasetBuilder {
   public:

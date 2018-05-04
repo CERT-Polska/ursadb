@@ -5,7 +5,7 @@
 #include "Database.h"
 #include "DatasetBuilder.h"
 #include "ExclusiveFile.h"
-#include "lib/Json.h"
+#include "Json.h"
 
 std::string random_hex_string(int length) {
     constexpr static char charset[] = "0123456789abcdef";
@@ -36,7 +36,6 @@ DatabaseSnapshot::DatabaseSnapshot(
 
 void DatabaseSnapshot::index_path(
         Task *task, const std::vector<IndexType> types, const std::string &filepath) const {
-    namespace fs = std::experimental::filesystem;
     DatasetBuilder builder(types);
     fs::recursive_directory_iterator end;
     std::set<std::string> all_files;
@@ -94,9 +93,6 @@ void DatabaseSnapshot::index_path(
 
 void DatabaseSnapshot::reindex_dataset(
         Task *task, const std::vector<IndexType> types, const std::string &dataset_name) const {
-    namespace fs = std::experimental::filesystem;
-    using json = nlohmann::json;
-
     const OnDiskDataset *source = nullptr;
 
     for (const auto *ds : datasets) {

@@ -5,9 +5,7 @@
 
 #include "Database.h"
 #include "Query.h"
-#include "lib/Json.h"
-
-using json = nlohmann::json;
+#include "Json.h"
 
 OnDiskDataset::OnDiskDataset(const fs::path &db_base, const std::string &fname)
     : name(fname), db_base(db_base) {

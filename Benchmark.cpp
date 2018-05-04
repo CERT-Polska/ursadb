@@ -8,8 +8,7 @@
 
 #include "Database.h"
 #include "Core.h"
-
-namespace fs = std::experimental::filesystem;
+#include "Utils.h"
 
 template<typename F, typename ...Args>
 static uint64_t benchmark_ms(F&& func, Args&&... args)
