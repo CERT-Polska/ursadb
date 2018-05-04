@@ -89,9 +89,16 @@ TEST_CASE("select operator order", "[queryparser]") {
     REQUIRE(query == q_or({q("cat"), q_and({q("dog"), q_or({q("msm"), q("monk")})})}));
 }
 
-TEST_CASE("compact command", "[queryparser]") {
-    Command cmd = parse_command("compact;");
-    REQUIRE(std::holds_alternative<CompactCommand>(cmd));
+TEST_CASE("compact all command", "[queryparser]") {
+    Command cmd = parse_command("compact all;");
+    CompactCommand compact_cmd = std::get<CompactCommand>(cmd);
+    REQUIRE(compact_cmd.get_type() == CompactType::All);
+}
+
+TEST_CASE("compact smart command", "[queryparser]") {
+    Command cmd = parse_command("compact smart;");
+    CompactCommand compact_cmd = std::get<CompactCommand>(cmd);
+    REQUIRE(compact_cmd.get_type() == CompactType::Smart);
 }
 
 TEST_CASE("index command with default types", "[queryparser]") {
