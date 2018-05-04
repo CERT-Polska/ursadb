@@ -60,6 +60,8 @@ struct gram3_token : string<'g', 'r', 'a', 'm', '3'> {};
 struct hash4_token : string<'h', 'a', 's', 'h', '4'> {};
 struct text4_token : string<'t', 'e', 'x', 't', '4'> {};
 struct wide8_token : string<'w', 'i', 'd', 'e', '8'> {};
+struct all_token : string<'a', 'l', 'l'> {};
+struct smart_token : string<'s', 'm', 'a', 'r', 't'> {};
 struct comma : seq<star<space>, comma_token, star<space>> {};
 struct index_type : sor<gram3_token, hash4_token, text4_token, wide8_token> {};
 struct index_type_list : seq<open_square, opt<list<index_type, comma>>, close_square> {};
@@ -69,7 +71,7 @@ struct status : seq<status_token> {};
 struct topology : seq<topology_token> {};
 struct index : seq<index_token, star<space>, string_like, star<space>, opt<index_with_construct>> {};
 struct reindex : seq<reindex_token, star<space>, string_like, star<space>, index_with_construct> {};
-struct compact : seq<compact_token> {};
+struct compact : seq<compact_token, star<space>, sor<all_token, smart_token>> {};
 struct command : seq<sor<select, index, reindex, compact, status, topology>, star<space>, one<';'>> {};
 struct grammar : seq<command, star<space>, eof> {};
 
@@ -94,6 +96,8 @@ template <> struct store<gram3_token> : std::true_type {};
 template <> struct store<hash4_token> : std::true_type {};
 template <> struct store<text4_token> : std::true_type {};
 template <> struct store<wide8_token> : std::true_type {};
+template <> struct store<all_token> : std::true_type {};
+template <> struct store<smart_token> : std::true_type {};
 
 constexpr int hex2int(char hexchar) {
     if (hexchar >= '0' && hexchar <= '9') {
@@ -210,7 +214,11 @@ Command transform_command(const parse_tree::node &n) {
         }
         return Command(ReindexCommand(dataset_name, types));
     } else if (n.is<compact>()) {
-        return Command(CompactCommand());
+        if (n.children[0]->is<all_token>()) {
+            return Command(CompactCommand(CompactType::All));
+        } else {
+            return Command(CompactCommand(CompactType::Smart));
+        }
     } else if (n.is<status>()) {
         return Command(StatusCommand());
     } else if (n.is<topology>()) {

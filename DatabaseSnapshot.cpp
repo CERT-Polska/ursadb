@@ -216,7 +216,58 @@ void DatabaseSnapshot::execute(const Query &query, Task *task, std::vector<std::
     }
 }
 
+std::vector<const OnDiskDataset *> DatabaseSnapshot::get_compact_candidates() const {
+    struct DatasetScore {
+        const OnDiskDataset *ds;
+        unsigned long size;
+
+        DatasetScore(const OnDiskDataset *ds, unsigned long size) : ds(ds), size(size) {}
+    };
+
+    struct compare_size {
+        bool operator() (const DatasetScore& lhs, const DatasetScore& rhs) const {
+            return lhs.size < rhs.size;
+        }
+    };
+
+    std::set<DatasetScore, compare_size> scores;
+
+    for (const auto *ds : get_datasets()) {
+        unsigned long dataset_size = 0;
+
+        for (const auto &ndx : ds->get_indexes()) {
+            dataset_size += fs::file_size(db_base / ndx.get_fname());
+        }
+
+        scores.emplace(ds, dataset_size);
+    }
+
+    auto it = scores.begin();
+    auto &score1 = *it;
+    auto &score2 = *(++it);
+
+    if (score1.size * 2 > score2.size) {
+        return std::vector<const OnDiskDataset*> {score1.ds, score2.ds};
+    } else {
+        return std::vector<const OnDiskDataset*> {};
+    }
+}
+
+void DatabaseSnapshot::smart_compact(Task *task) const {
+    std::vector<const OnDiskDataset *> candidates = get_compact_candidates();
+
+    if (candidates.empty()) {
+        throw std::runtime_error("no candidates for smart compact");
+    }
+
+    internal_compact(task, candidates);
+}
+
 void DatabaseSnapshot::compact(Task *task) const {
+    internal_compact(task, datasets);
+}
+
+void DatabaseSnapshot::internal_compact(Task *task, std::vector<const OnDiskDataset *> datasets) const {
     std::string dataset_name = allocate_name();
     OnDiskDataset::merge(db_base, dataset_name, datasets, task);
 

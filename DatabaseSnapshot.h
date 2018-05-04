@@ -31,7 +31,10 @@ class DatabaseSnapshot {
     void index_path(Task *task, const std::vector<IndexType> types, const std::string &filepath) const;
     void reindex_dataset(Task *task, const std::vector<IndexType> types, const std::string &dataset_name) const;
     void execute(const Query &query, Task *task, std::vector<std::string> *out) const;
+    void smart_compact(Task *task) const;
     void compact(Task *task) const;
+    void internal_compact(Task *task, std::vector<const OnDiskDataset *> datasets) const;
+    std::vector<const OnDiskDataset *> get_compact_candidates() const;
     const std::vector<const OnDiskDataset *> &get_datasets() const { return datasets; };
     const std::map<uint64_t, Task> &get_tasks() const { return tasks; };
 };

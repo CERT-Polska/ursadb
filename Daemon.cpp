@@ -48,7 +48,13 @@ std::string execute_command(const ReindexCommand &cmd, Task *task, DatabaseSnaps
 }
 
 std::string execute_command(const CompactCommand &cmd, Task *task, DatabaseSnapshot *snap) {
-    snap->compact(task);
+    if (cmd.get_type() == CompactType::All) {
+        snap->compact(task);
+    } else if (cmd.get_type() == CompactType::Smart) {
+        snap->smart_compact(task);
+    } else {
+        throw std::runtime_error("unhandled CompactType");
+    }
 
     return "OK";
 }

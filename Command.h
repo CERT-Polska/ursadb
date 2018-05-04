@@ -36,9 +36,14 @@ class ReindexCommand {
     const std::vector<IndexType> &get_index_types() const { return types; }
 };
 
+enum CompactType { All = 1, Smart = 2 };
+
 class CompactCommand {
+    CompactType type;
+
   public:
-    CompactCommand() {}
+    CompactCommand(CompactType type) : type(type) {}
+    const CompactType get_type() const { return type; }
 };
 
 class StatusCommand {
