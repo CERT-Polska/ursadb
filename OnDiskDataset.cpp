@@ -193,7 +193,7 @@ std::vector<const OnDiskDataset *> OnDiskDataset::get_compact_candidates(
     };
 
     struct compare_size {
-        bool operator()(const DatasetScore &lhs, const DatasetScore &rhs) const {
+        bool operator() (const DatasetScore &lhs, const DatasetScore &rhs) const {
             return lhs.size < rhs.size;
         }
     };
@@ -202,7 +202,7 @@ std::vector<const OnDiskDataset *> OnDiskDataset::get_compact_candidates(
         return out;
     }
 
-    std::set<DatasetScore, compare_size> scores;
+    std::vector<DatasetScore> scores;
 
     for (auto *ds : datasets) {
         uint64_t dataset_size = 0;
@@ -211,16 +211,14 @@ std::vector<const OnDiskDataset *> OnDiskDataset::get_compact_candidates(
             dataset_size += fs::file_size(ds->get_base() / ndx.get_fname());
         }
 
-        scores.emplace(ds, dataset_size);
+        scores.emplace_back(ds, dataset_size);
     }
 
-    auto it = scores.begin();
-    auto &score1 = *it;
-    auto &score2 = *(++it);
+    std::sort(scores.begin(), scores.end(), compare_size());
 
-    if (score1.size * 2 > score2.size) {
-        out.push_back(score1.ds);
-        out.push_back(score2.ds);
+    if (scores[0].size * 2 > scores[1].size) {
+        out.push_back(scores[0].ds);
+        out.push_back(scores[1].ds);
     }
 
     return out;
