@@ -87,6 +87,7 @@ void OnDiskIndex::on_disk_merge(
         out_offsets[trigram] = (uint64_t)out.tellp();
         std::vector<FileId> all_ids;
         FileId baseline = 0;
+
         for (const IndexMergeHelper &helper : indexes) {
             std::vector<FileId> new_ids = helper.index->query_primitive(trigram);
             for (FileId id : new_ids) {
@@ -94,8 +95,12 @@ void OnDiskIndex::on_disk_merge(
             }
             baseline += helper.file_count;
         }
+
         compress_run(all_ids, out);
-        task->work_done += 1;
+
+        if (task != nullptr) {
+            task->work_done += 1;
+        }
     }
     out_offsets[NUM_TRIGRAMS] = (uint64_t)out.tellp();
 

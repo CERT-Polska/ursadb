@@ -5,9 +5,7 @@
 
 #include "Database.h"
 #include "Query.h"
-#include "lib/Json.h"
-
-using json = nlohmann::json;
+#include "Json.h"
 
 OnDiskDataset::OnDiskDataset(const fs::path &db_base, const std::string &fname)
     : name(fname), db_base(db_base) {
@@ -115,7 +113,9 @@ void OnDiskDataset::merge(
         }
     }
 
-    task->work_estimated = NUM_TRIGRAMS * index_types.size();
+    if (task != nullptr) {
+        task->work_estimated = NUM_TRIGRAMS * index_types.size();
+    }
 
     json dataset;
 
@@ -151,10 +151,9 @@ const OnDiskIndex &OnDiskDataset::get_index_with_type(IndexType index_type) cons
 }
 
 void OnDiskDataset::drop_file(const std::string &fname) const {
-    if (std::remove(fname.c_str()) != 0) {
-        std::perror("Failed to delete file");
-        throw std::runtime_error("Failed to delete " + fname);
-    }
+    // it may happen that dataset was reloaded and then is scheduled for removal multiple times
+    // so we have to account for that and only delete yet existing files
+    fs::remove(fname);
 }
 
 void OnDiskDataset::drop() {
@@ -173,4 +172,51 @@ void OnDiskDataset::drop() {
 
     drop_file(db_base / files_fname);
     drop_file(db_base / get_name());
+}
+
+fs::path OnDiskDataset::get_base() const {
+    return db_base;
+}
+
+std::vector<const OnDiskDataset *> OnDiskDataset::get_compact_candidates(
+        const std::vector<const OnDiskDataset *> &datasets) {
+    std::vector<const OnDiskDataset *> out;
+
+    struct DatasetScore {
+        const OnDiskDataset *ds;
+        uint64_t size;
+
+        DatasetScore(const OnDiskDataset *ds, unsigned long size) : ds(ds), size(size) {}
+    };
+
+    struct compare_size {
+        bool operator() (const DatasetScore &lhs, const DatasetScore &rhs) const {
+            return lhs.size < rhs.size;
+        }
+    };
+
+    if (datasets.size() < 2) {
+        return out;
+    }
+
+    std::vector<DatasetScore> scores;
+
+    for (auto *ds : datasets) {
+        uint64_t dataset_size = 0;
+
+        for (const auto &ndx : ds->get_indexes()) {
+            dataset_size += fs::file_size(ds->get_base() / ndx.get_fname());
+        }
+
+        scores.emplace_back(ds, dataset_size);
+    }
+
+    std::sort(scores.begin(), scores.end(), compare_size());
+
+    if (scores[0].size * 2 > scores[1].size) {
+        out.push_back(scores[0].ds);
+        out.push_back(scores[1].ds);
+    }
+
+    return out;
 }

@@ -25,9 +25,25 @@ class IndexCommand {
     static std::vector<IndexType> default_types() { return {IndexType::GRAM3}; }
 };
 
-class CompactCommand {
+class ReindexCommand {
+    std::string dataset_name;
+    std::vector<IndexType> types;
+
   public:
-    CompactCommand() {}
+    ReindexCommand(const std::string &dataset_name, const std::vector<IndexType> &types)
+            : dataset_name(dataset_name), types(types) {}
+    const std::string &get_dataset_name() const { return dataset_name; }
+    const std::vector<IndexType> &get_index_types() const { return types; }
+};
+
+enum CompactType { All = 1, Smart = 2 };
+
+class CompactCommand {
+    CompactType type;
+
+  public:
+    CompactCommand(CompactType type) : type(type) {}
+    const CompactType get_type() const { return type; }
 };
 
 class StatusCommand {
@@ -41,4 +57,4 @@ class TopologyCommand {
 };
 
 using Command =
-        std::variant<SelectCommand, IndexCommand, CompactCommand, StatusCommand, TopologyCommand>;
+        std::variant<SelectCommand, IndexCommand, ReindexCommand, CompactCommand, StatusCommand, TopologyCommand>;

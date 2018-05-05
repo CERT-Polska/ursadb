@@ -4,10 +4,7 @@
 #include <set>
 
 #include "MemMap.h"
-#include "lib/Json.h"
-
-using json = nlohmann::json;
-namespace fs = std::experimental::filesystem;
+#include "Json.h"
 
 TrigramGenerator get_generator_for(IndexType type) {
     switch (type) {

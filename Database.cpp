@@ -5,11 +5,9 @@
 #include <iostream>
 #include <memory>
 
+#include "Json.h"
 #include "ExclusiveFile.h"
-#include "lib/Json.h"
-
-using json = nlohmann::json;
-namespace fs = std::experimental::filesystem;
+#include "Utils.h"
 
 Database::Database(const std::string &fname, bool initialize) : tasks(), last_task_id(0) {
     db_name = fs::path(fname).filename();
@@ -112,12 +110,38 @@ void Database::drop_dataset(const std::string &dsname) {
 void Database::destroy_dataset(const std::string &dsname) {
     for (auto it = loaded_datasets.begin(); it != loaded_datasets.end();) {
         if ((*it)->get_name() == dsname) {
+            std::cout << "destroying dataset " << dsname << std::endl;
             (*it)->drop();
             it = loaded_datasets.erase(it);
-            std::cout << "destroying dataset " << dsname << std::endl;
         } else {
             ++it;
         }
+    }
+}
+
+void Database::collect_garbage(std::set<DatabaseSnapshot*> &working_snapshots) {
+    std::set<std::string> required_datasets;
+
+    for (const auto *ds : working_sets()) {
+        required_datasets.insert(ds->get_name());
+    }
+
+    for (const auto *snap : working_snapshots) {
+        for (const auto *ds : snap->get_datasets()) {
+            required_datasets.insert(ds->get_name());
+        }
+    }
+
+    std::vector<std::string> drop_list;
+    for (const auto &set : loaded_sets()) {
+        if (required_datasets.count(set->get_name()) == 0) {
+            // set is loaded but not required
+            drop_list.push_back(set->get_name());
+        }
+    }
+
+    for (const auto &ds : drop_list) {
+        destroy_dataset(ds);
     }
 }
 
@@ -129,6 +153,9 @@ void Database::commit_task(uint64_t task_id) {
             load_dataset(change.obj_name);
         } else if (change.type == DbChangeType::Drop) {
             drop_dataset(change.obj_name);
+        } else if (change.type == DbChangeType::Reload) {
+            drop_dataset(change.obj_name);
+            load_dataset(change.obj_name);
         } else {
             throw std::runtime_error("unknown change type requested");
         }
