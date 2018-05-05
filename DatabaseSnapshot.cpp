@@ -63,7 +63,7 @@ std::vector<std::string> DatabaseSnapshot::build_target_list(const std::string &
 }
 
 void DatabaseSnapshot::index_path(
-        Task *task, const std::vector<IndexType> types, const std::string &filepath) const {
+        Task *task, const std::vector<IndexType> &types, const std::string &filepath) const {
     std::vector<std::string> targets = build_target_list(filepath);
     Indexer indexer(MergeStrategy::Smart, this, task, types);
 
@@ -83,7 +83,7 @@ void DatabaseSnapshot::index_path(
 }
 
 void DatabaseSnapshot::reindex_dataset(
-        Task *task, const std::vector<IndexType> types, const std::string &dataset_name) const {
+        Task *task, const std::vector<IndexType> &types, const std::string &dataset_name) const {
     const OnDiskDataset *source = nullptr;
 
     for (const auto *ds : datasets) {

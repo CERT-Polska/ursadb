@@ -31,8 +31,8 @@ class DatabaseSnapshot {
     DatabaseSnapshot(
             fs::path db_name, fs::path db_base, std::vector<const OnDiskDataset *> datasets,
             const std::map<uint64_t, std::unique_ptr<Task>> &tasks, size_t max_memory_size);
-    void index_path(Task *task, const std::vector<IndexType> types, const std::string &filepath) const;
-    void reindex_dataset(Task *task, const std::vector<IndexType> types, const std::string &dataset_name) const;
+    void index_path(Task *task, const std::vector<IndexType> &types, const std::string &filepath) const;
+    void reindex_dataset(Task *task, const std::vector<IndexType> &types, const std::string &dataset_name) const;
     void execute(const Query &query, Task *task, std::vector<std::string> *out) const;
     void smart_compact(Task *task) const;
     void compact(Task *task) const;
