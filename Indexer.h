@@ -16,15 +16,14 @@ class Indexer {
     const DatabaseSnapshot *snap;
     Task *task;
     DatasetBuilder builder;
-    std::map<std::string, std::unique_ptr<OnDiskDataset>> created_datasets;
+    std::vector<std::unique_ptr<OnDiskDataset>> created_datasets;
     std::vector<IndexType> types;
 
     std::vector<const OnDiskDataset *> created_dataset_ptrs();
-    std::vector<OnDiskDataset *> created_nonconst_dataset_ptrs();
-    std::vector<OnDiskDataset *> get_merge_candidates();
+    std::vector<const OnDiskDataset *> get_merge_candidates();
     void make_spill();
     void register_dataset(const std::string &dataset_name);
-    void remove_datasets(const std::vector<OnDiskDataset *> &datasets);
+    void remove_dataset(const std::string &dataset_name);
 
 public:
     Indexer(MergeStrategy strategy, const DatabaseSnapshot *snap, Task *task, const std::vector<IndexType> &types);
