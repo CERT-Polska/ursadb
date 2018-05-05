@@ -187,7 +187,7 @@ std::vector<const OnDiskDataset *> OnDiskDataset::get_compact_candidates(
 
     struct DatasetScore {
         const OnDiskDataset *ds;
-        unsigned long size;
+        uint64_t size;
 
         DatasetScore(const OnDiskDataset *ds, unsigned long size) : ds(ds), size(size) {}
     };
@@ -205,7 +205,7 @@ std::vector<const OnDiskDataset *> OnDiskDataset::get_compact_candidates(
     std::set<DatasetScore, compare_size> scores;
 
     for (auto *ds : datasets) {
-        unsigned long dataset_size = 0;
+        uint64_t dataset_size = 0;
 
         for (const auto &ndx : ds->get_indexes()) {
             dataset_size += fs::file_size(ds->get_base() / ndx.get_fname());
