@@ -23,7 +23,7 @@ class Indexer {
     std::vector<const OnDiskDataset *> get_merge_candidates();
     void make_spill();
     void register_dataset(const std::string &dataset_name);
-    void remove_dataset(const std::string &dataset_name);
+    void remove_dataset(const OnDiskDataset *dataset_ptr);
 
 public:
     Indexer(MergeStrategy strategy, const DatabaseSnapshot *snap, Task *task, const std::vector<IndexType> &types);

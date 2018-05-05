@@ -31,9 +31,9 @@ void Indexer::register_dataset(const std::string &dataset_name) {
     created_datasets.push_back(std::make_unique<OnDiskDataset>(snap->db_base, dataset_name));
 }
 
-void Indexer::remove_dataset(const std::string &dataset_name) {
+void Indexer::remove_dataset(const OnDiskDataset *dataset_ptr) {
     for (auto it = created_datasets.begin(); it != created_datasets.end(); ) {
-        if ((*it)->get_name() == dataset_name) {
+        if ((*it).get() == dataset_ptr) {
             (*it)->drop();
             it = created_datasets.erase(it);
         } else {
@@ -72,7 +72,7 @@ void Indexer::make_spill() {
             std::string merged_name = snap->allocate_name();
             OnDiskDataset::merge(snap->db_base, merged_name, candidates, task);
             for (const auto *ds : candidates) {
-                remove_dataset(ds->get_name());
+                remove_dataset(ds);
             }
             register_dataset(merged_name);
         } else {
@@ -98,7 +98,7 @@ OnDiskDataset *Indexer::force_compact() {
         std::string merged_name = snap->allocate_name();
         OnDiskDataset::merge(snap->db_base, merged_name, {candidates.begin(), candidates.end()}, task);
         for (const auto *ds : candidates) {
-            remove_dataset(ds->get_name());
+            remove_dataset(ds);
         }
         register_dataset(merged_name);
     }
