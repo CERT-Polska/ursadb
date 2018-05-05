@@ -1,7 +1,7 @@
 #include "Indexer.h"
 
-Indexer::Indexer(MergeStrategy strategy, const DatabaseSnapshot *snap, Task *task, const std::vector<IndexType> &types)
-        : strategy(strategy), snap(snap), task(task), types(types), builder(types) {
+Indexer::Indexer(MergeStrategy strategy, const DatabaseSnapshot *snap, const std::vector<IndexType> &types)
+        : strategy(strategy), snap(snap), types(types), builder(types) {
 
 }
 
@@ -70,7 +70,7 @@ void Indexer::make_spill() {
         if (!candidates.empty()) {
             std::cout << "merge stuff" << std::endl;
             std::string merged_name = snap->allocate_name();
-            OnDiskDataset::merge(snap->db_base, merged_name, candidates, task);
+            OnDiskDataset::merge(snap->db_base, merged_name, candidates, nullptr);
             for (const auto *ds : candidates) {
                 remove_dataset(ds);
             }
@@ -96,7 +96,7 @@ OnDiskDataset *Indexer::force_compact() {
     if (created_datasets.size() > 1) {
         std::vector<const OnDiskDataset *> candidates = created_dataset_ptrs();
         std::string merged_name = snap->allocate_name();
-        OnDiskDataset::merge(snap->db_base, merged_name, {candidates.begin(), candidates.end()}, task);
+        OnDiskDataset::merge(snap->db_base, merged_name, candidates, nullptr);
         for (const auto *ds : candidates) {
             remove_dataset(ds);
         }

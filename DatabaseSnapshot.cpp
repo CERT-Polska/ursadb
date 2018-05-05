@@ -65,7 +65,7 @@ std::vector<std::string> DatabaseSnapshot::build_target_list(const std::string &
 void DatabaseSnapshot::index_path(
         Task *task, const std::vector<IndexType> &types, const std::string &filepath) const {
     std::vector<std::string> targets = build_target_list(filepath);
-    Indexer indexer(MergeStrategy::Smart, this, task, types);
+    Indexer indexer(MergeStrategy::Smart, this, types);
 
     task->work_estimated = targets.size() + 1;
 
@@ -96,10 +96,13 @@ void DatabaseSnapshot::reindex_dataset(
         throw std::runtime_error("source dataset was not found");
     }
 
-    Indexer indexer(MergeStrategy::InOrder, this, task, types);
+    Indexer indexer(MergeStrategy::InOrder, this, types);
+
+    task->work_estimated = source->indexed_files().size() + 1;
 
     for (const std::string &fname : source->indexed_files()) {
         indexer.index(fname);
+        task->work_done += 1;
     }
 
     OnDiskDataset *outcome = indexer.force_compact();

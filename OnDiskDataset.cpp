@@ -113,7 +113,7 @@ void OnDiskDataset::merge(
         }
     }
 
-    if (!task->work_estimated) {
+    if (task != nullptr) {
         task->work_estimated = NUM_TRIGRAMS * index_types.size();
     }
 
