@@ -1,5 +1,7 @@
 #include "Indexer.h"
 
+#include "Core.h"
+
 Indexer::Indexer(MergeStrategy strategy, const DatabaseSnapshot *snap, const std::vector<IndexType> &types)
         : strategy(strategy), snap(snap), types(types), builder(types) {
 
@@ -64,7 +66,7 @@ void Indexer::make_spill() {
     register_dataset(dataset_name);
     bool stop = false;
 
-    while (!stop) {
+    while (created_datasets.size() > MAX_INDEXER_TEMP_DATASETS && !stop) {
         std::vector<const OnDiskDataset *> candidates = get_merge_candidates();
 
         if (!candidates.empty()) {
