@@ -22,3 +22,12 @@ class DatasetBuilder {
 
     FileId register_fname(const std::string &fname);
 };
+
+class invalid_filename_error : public std::runtime_error {
+    std::string what_message;
+
+public:
+    explicit invalid_filename_error(const std::string &__arg) : runtime_error(__arg) {}
+
+    const char *what() { return what_message.c_str(); }
+};

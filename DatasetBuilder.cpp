@@ -38,6 +38,10 @@ void DatasetBuilder::save(const fs::path &db_base, const std::string &fname) {
 }
 
 void DatasetBuilder::index(const std::string &filepath) {
+    if (filepath.find('\r') != std::string::npos || filepath.find('\n') != std::string::npos) {
+        throw invalid_filename_error(filepath);
+    }
+
     MemMap in(filepath);
 
     FileId fid = register_fname(filepath);
