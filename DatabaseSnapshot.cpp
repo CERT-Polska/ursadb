@@ -201,6 +201,6 @@ void DatabaseSnapshot::lock_dataset(const std::string &ds_name) {
     locked_datasets.insert(ds_name);
 }
 
-bool DatabaseSnapshot::is_locked(const std::string &ds_name) {
-    return locked_datasets.find(ds_name) != locked_datasets.end();
+bool DatabaseSnapshot::is_locked(const std::string &ds_name) const {
+    return locked_datasets.count(ds_name) > 0;
 }

@@ -37,7 +37,7 @@ class DatabaseSnapshot {
             const std::map<uint64_t, std::unique_ptr<Task>> &tasks, size_t max_memory_size);
     void set_db_handle(DatabaseHandle handle);
     void lock_dataset(const std::string &ds_name);
-    bool is_locked(const std::string &ds_name);
+    bool is_locked(const std::string &ds_name) const;
 
     void index_path(Task *task, const std::vector<IndexType> &types, const std::string &filepath) const;
     void reindex_dataset(Task *task, const std::vector<IndexType> &types, const std::string &dataset_name) const;
