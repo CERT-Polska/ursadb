@@ -22,6 +22,8 @@ class DatabaseSnapshot {
     std::map<uint64_t, Task> tasks;
     size_t max_memory_size;
 
+    std::function<void (const std::string&)> ds_lock_fun;
+
     std::string allocate_name() const;
     std::vector<std::string> build_target_list(const std::string &filepath) const;
 
@@ -31,6 +33,7 @@ class DatabaseSnapshot {
     DatabaseSnapshot(
             fs::path db_name, fs::path db_base, std::vector<const OnDiskDataset *> datasets,
             const std::map<uint64_t, std::unique_ptr<Task>> &tasks, size_t max_memory_size);
+    void set_ds_lock_fun(std::function<void (const std::string&)> fun);
     void index_path(Task *task, const std::vector<IndexType> &types, const std::string &filepath) const;
     void reindex_dataset(Task *task, const std::vector<IndexType> &types, const std::string &dataset_name) const;
     void execute(const Query &query, Task *task, std::vector<std::string> *out) const;

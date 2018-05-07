@@ -14,7 +14,7 @@ static void *worker_thread(void *arg) {
     worker.connect("ipc://backend.ipc");
 
     //  Tell backend we're ready for work
-    s_send(worker, "READY");
+    s_send(worker, "ready");
 
     for (;;) {
         //  Read and save all frames until we get an empty frame
@@ -28,8 +28,20 @@ static void *worker_thread(void *arg) {
         std::string request = s_recv(worker);
         std::cout << "Worker: " << request << std::endl;
 
+        wctx->snap.set_ds_lock_fun([&worker] (const std::string &ds_name) {
+            s_send(worker, "lock_req", ZMQ_SNDMORE);
+            s_send(worker, "", ZMQ_SNDMORE);
+            s_send(worker, ds_name);
+
+            if (s_recv(worker) != "lock_ok") {
+                throw std::runtime_error("failed to lock dataset");
+            }
+        });
+
         std::string s = dispatch_command_safe(request, wctx->task, &wctx->snap);
 
+        s_send(worker, "response", ZMQ_SNDMORE);
+        s_send(worker, "", ZMQ_SNDMORE);
         s_send(worker, address, ZMQ_SNDMORE);
         s_send(worker, "", ZMQ_SNDMORE);
         s_send(worker, s);
@@ -89,7 +101,53 @@ void NetworkService::poll_backend() {
     std::string worker_addr = s_recv(backend);
     WorkerContext *wctx = wctxs.at(worker_addr).get();
 
-    if (wctx->task != nullptr) {
+    if (s_recv(backend).size() != 0) {
+        throw std::runtime_error("Expected zero-size frame");
+    }
+
+    std::string resp_type = s_recv(backend);
+
+    if (resp_type == "lock_req") {
+        if (s_recv(backend).size() != 0) {
+            throw std::runtime_error("Expected zero-size frame");
+        }
+
+        std::string ds_name = s_recv(backend);
+
+        std::cout << "COORDINATOR: ASKED TO LOCK " << ds_name << std::endl;
+        // TODO actually lock
+
+        s_send(backend, worker_addr, ZMQ_SNDMORE);
+        s_send(backend, "", ZMQ_SNDMORE);
+
+        // TODO this is a simulation
+        if (random() % 2 == 0) {
+            s_send(backend, "lock_ok");
+        } else {
+            s_send(backend, "lock_denied");
+        }
+
+        return;
+    }
+
+    worker_queue.push(worker_addr);
+
+    if (resp_type == "response") {
+        if (s_recv(backend).size() != 0) {
+            throw std::runtime_error("Expected zero-size frame");
+        }
+
+        std::string client_addr = s_recv(backend);
+
+        if (s_recv(backend).size() != 0) {
+            throw std::runtime_error("Expected zero-size frame");
+        }
+
+        std::string reply = s_recv(backend);
+        s_send(frontend, client_addr, ZMQ_SNDMORE);
+        s_send(frontend, "", ZMQ_SNDMORE);
+        s_send(frontend, reply);
+
         commit_task(wctx);
 
         std::set<DatabaseSnapshot*> working_snapshots;
@@ -101,28 +159,10 @@ void NetworkService::poll_backend() {
         }
 
         db.collect_garbage(working_snapshots);
-    }
-
-    worker_queue.push(worker_addr);
-
-    //  Second frame is empty
-    if (s_recv(backend).size() != 0) {
-        throw std::runtime_error("Expected zero-size frame");
-    }
-
-    //  Third frame is READY or else a client reply address
-    std::string client_addr = s_recv(backend);
-
-    //  If client reply, send rest back to frontend
-    if (client_addr.compare("READY") != 0) {
-        if (s_recv(backend).size() != 0) {
-            throw std::runtime_error("Expected zero-size frame");
-        }
-
-        std::string reply = s_recv(backend);
-        s_send(frontend, client_addr, ZMQ_SNDMORE);
-        s_send(frontend, "", ZMQ_SNDMORE);
-        s_send(frontend, reply);
+    } else if (resp_type == "ready") {
+        // do nothing
+    } else {
+        throw std::runtime_error("unhandled response from worker");
     }
 }
 
