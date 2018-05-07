@@ -213,9 +213,17 @@ std::vector<const OnDiskDataset *> OnDiskDataset::get_compact_candidates(
 
     std::sort(scores.begin(), scores.end(), compare_size());
 
-    if (scores[0].size * 2 > scores[1].size) {
-        out.push_back(scores[0].ds);
-        out.push_back(scores[1].ds);
+    out.push_back(scores[0].ds);
+    unsigned int offset = 1;
+
+    while (offset < scores.size() && scores[offset-1].size * 2 > scores[offset].size) {
+        out.push_back(scores[offset].ds);
+        offset++;
+    }
+
+    if (out.size() < 2) {
+        // no candidate to merge with smallest dataset
+        out.clear();
     }
 
     return out;
