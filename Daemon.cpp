@@ -67,7 +67,7 @@ std::string execute_command(const StatusCommand &cmd, Task *task, const Database
     for (const auto &pair : tasks) {
         const Task &t = pair.second;
         ss << t.id << "\t" << t.work_done << "\t" << t.work_estimated << "\t";
-        ss << t.conn_id << "\t" << t.request_str << "\n";
+        ss << bin_str_to_hex(t.conn_id) << "\t" << t.request_str << "\n";
     }
     return ss.str();
 }

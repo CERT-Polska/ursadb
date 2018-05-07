@@ -188,3 +188,15 @@ void store_dataset(
     std::ofstream o(db_base / fname, std::ofstream::out | std::ofstream::binary);
     o << std::setw(4) << dataset << std::endl;
 }
+
+std::string bin_str_to_hex(const std::string& str) {
+    std::ostringstream ret;
+
+    unsigned int c;
+    for (std::string::size_type i = 0; i < str.length(); ++i)
+    {
+        c = (unsigned int)(unsigned char)str[i];
+        ret << std::hex << std::setfill('0') << std::setw(2) << std::uppercase << c;
+    }
+    return ret.str();
+}
