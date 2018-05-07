@@ -101,28 +101,37 @@ void NetworkService::poll_backend() {
     std::string resp_type = s_recv(backend);
 
     if (resp_type == "lock_req") {
-        if (s_recv(backend).size() != 0) {
-            throw std::runtime_error("Expected zero-size frame");
-        }
+        std::vector<std::string> ds_names;
+        std::string recv_ds_name;
 
-        std::string ds_name = s_recv(backend);
+        do {
+            if (s_recv(backend).size() != 0) {
+                throw std::runtime_error("Expected zero-size frame");
+            }
 
-        std::cout << "coordinator: asked to lock " << ds_name << std::endl;
+            recv_ds_name = s_recv(backend);
+            ds_names.push_back(recv_ds_name);
+        } while (!recv_ds_name.empty());
 
         s_send(backend, worker_addr, ZMQ_SNDMORE);
         s_send(backend, "", ZMQ_SNDMORE);
 
         bool already_locked = false;
 
-        for (const auto &p : wctxs) {
-            if (p.second->task != nullptr && p.second->snap.is_locked(ds_name)) {
-                already_locked = true;
-                break;
+        for (const std::string &ds_name : ds_names) {
+            for (const auto &p : wctxs) {
+                if (p.second->task != nullptr && p.second->snap.is_locked(ds_name)) {
+                    already_locked = true;
+                    break;
+                }
             }
         }
 
         if (!already_locked) {
-            wctx->snap.lock_dataset(ds_name);
+            for (const std::string &ds_name : ds_names) {
+                wctx->snap.lock_dataset(ds_name);
+            }
+
             std::cout << "coordinator: locked ok" << std::endl;
             s_send(backend, "lock_ok");
         } else {

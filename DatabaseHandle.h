@@ -8,5 +8,5 @@ class DatabaseHandle {
 public:
     DatabaseHandle();
     DatabaseHandle(zmq::socket_t *worker);
-    void request_dataset_lock(const std::string &ds_name) const;
+    void request_dataset_lock(const std::vector<std::string> &ds_names) const;
 };
