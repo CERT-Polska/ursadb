@@ -15,7 +15,7 @@ static void *worker_thread(void *arg) {
     worker.connect("ipc://backend.ipc");
 
     //  Tell backend we're ready for work
-    s_send(worker, "ready");
+    s_send_val<NetAction>(worker, Ready);
 
     for (;;) {
         //  Read and save all frames until we get an empty frame
@@ -33,7 +33,7 @@ static void *worker_thread(void *arg) {
 
         std::string s = dispatch_command_safe(request, wctx->task, &wctx->snap);
 
-        s_send(worker, "response", ZMQ_SNDMORE);
+        s_send_val<NetAction>(worker, Response, ZMQ_SNDMORE);
         s_send(worker, "", ZMQ_SNDMORE);
         s_send(worker, address, ZMQ_SNDMORE);
         s_send(worker, "", ZMQ_SNDMORE);
@@ -98,9 +98,9 @@ void NetworkService::poll_backend() {
         throw std::runtime_error("Expected zero-size frame");
     }
 
-    std::string resp_type = s_recv(backend);
+    auto resp_type = s_recv_val<NetAction>(backend);
 
-    if (resp_type == "lock_req") {
+    if (resp_type == LockReq) {
         std::vector<std::string> ds_names;
         std::string recv_ds_name;
 
@@ -133,10 +133,10 @@ void NetworkService::poll_backend() {
             }
 
             std::cout << "coordinator: locked ok" << std::endl;
-            s_send(backend, "lock_ok");
+            s_send_val<NetLockResp>(backend, LockOk);
         } else {
             std::cout << "coordinator: lock denied" << std::endl;
-            s_send(backend, "lock_denied");
+            s_send_val<NetLockResp>(backend, LockDenied);
         }
 
         return;
@@ -144,7 +144,7 @@ void NetworkService::poll_backend() {
 
     worker_queue.push(worker_addr);
 
-    if (resp_type == "response") {
+    if (resp_type == Response) {
         if (s_recv(backend).size() != 0) {
             throw std::runtime_error("Expected zero-size frame");
         }
@@ -171,7 +171,7 @@ void NetworkService::poll_backend() {
         }
 
         db.collect_garbage(working_snapshots);
-    } else if (resp_type == "ready") {
+    } else if (resp_type == Ready) {
         // do nothing
     } else {
         throw std::runtime_error("unhandled response from worker");
