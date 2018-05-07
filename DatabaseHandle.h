@@ -2,13 +2,13 @@
 
 #include <zmq.hpp>
 
-enum NetAction {
+enum class NetAction : uint32_t {
     Ready = 0,
     Response = 1,
     LockReq = 2
 };
 
-enum NetLockResp {
+enum class NetLockResp : uint32_t {
     LockOk = 0,
     LockDenied = 1
 };
