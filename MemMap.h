@@ -35,3 +35,12 @@ class empty_file_error : public std::runtime_error {
 
     const char *what() { return what_message.c_str(); }
 };
+
+class file_open_error : public std::runtime_error {
+    std::string what_message;
+
+public:
+    explicit file_open_error(const std::string &__arg) : runtime_error(__arg) {}
+
+    const char *what() { return what_message.c_str(); }
+};

@@ -12,7 +12,7 @@ MemMap::MemMap(const std::string &fname) : fname(fname) {
     fd = open(fname.c_str(), O_RDONLY, (mode_t)0600);
 
     if (fd == -1) {
-        throw std::runtime_error("file open error");
+        throw file_open_error("file open error");
     }
 
     fsize = static_cast<uint64_t>(lseek(fd, 0, SEEK_END));
@@ -24,14 +24,14 @@ MemMap::MemMap(const std::string &fname) : fname(fname) {
 
     if (fsize == -1) {
         close(fd);
-        throw std::runtime_error("lseek failed");
+        throw file_open_error("lseek failed");
     }
 
     mmap_ptr = (uint8_t *)mmap(nullptr, fsize, PROT_READ, MAP_SHARED, fd, 0);
 
     if (mmap_ptr == MAP_FAILED) {
         close(fd);
-        throw std::runtime_error("mmap failed");
+        throw file_open_error("mmap failed");
     }
 }
 
