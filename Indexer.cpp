@@ -11,7 +11,11 @@ void Indexer::index(const std::string &target) {
     try {
         builder.index(target);
     } catch (empty_file_error &e) {
-        std::cout << "empty file, skip" << std::endl;
+        std::cout << "empty file (skip): " << target << std::endl;
+    } catch (file_open_error &e) {
+        std::cout << "failed to open \"" << target << "\" (skip): " << e.what() << std::endl;
+    } catch (invalid_filename_error &e) {
+        std::cout << "illegal file name (skip): " << target << std::endl;
     }
 
     if (builder.must_spill()) {
