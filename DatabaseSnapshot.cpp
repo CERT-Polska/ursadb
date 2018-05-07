@@ -95,7 +95,7 @@ void DatabaseSnapshot::reindex_dataset(
         throw std::runtime_error("source dataset was not found");
     }
 
-    ds_lock_fun(source->get_name());
+    db_handle.request_dataset_lock(source->get_name());
 
     Indexer indexer(MergeStrategy::InOrder, this, types);
 
@@ -176,7 +176,7 @@ void DatabaseSnapshot::compact(Task *task) const {
 
 void DatabaseSnapshot::internal_compact(Task *task, std::vector<const OnDiskDataset *> datasets) const {
     for (const auto *ds : datasets) {
-        ds_lock_fun(ds->get_name());
+        db_handle.request_dataset_lock(ds->get_name());
     }
 
     std::string dataset_name = allocate_name();
@@ -189,6 +189,14 @@ void DatabaseSnapshot::internal_compact(Task *task, std::vector<const OnDiskData
     task->changes.emplace_back(DbChangeType::Insert, dataset_name);
 }
 
-void DatabaseSnapshot::set_ds_lock_fun(std::function<void(const std::string &)> fun) {
-    ds_lock_fun = fun;
+void DatabaseSnapshot::set_db_handle(DatabaseHandle handle) {
+    db_handle = handle;
+}
+
+void DatabaseSnapshot::lock_dataset(const std::string &ds_name) {
+    locked_datasets.insert(ds_name);
+}
+
+bool DatabaseSnapshot::is_locked(const std::string &ds_name) {
+    return locked_datasets.find(ds_name) != locked_datasets.end();
 }

@@ -2,6 +2,7 @@
 
 #include "Daemon.h"
 #include "zhelpers.h"
+#include "DatabaseHandle.h"
 
 
 static void *worker_thread(void *arg) {
@@ -28,15 +29,7 @@ static void *worker_thread(void *arg) {
         std::string request = s_recv(worker);
         std::cout << "Worker: " << request << std::endl;
 
-        wctx->snap.set_ds_lock_fun([&worker] (const std::string &ds_name) {
-            s_send(worker, "lock_req", ZMQ_SNDMORE);
-            s_send(worker, "", ZMQ_SNDMORE);
-            s_send(worker, ds_name);
-
-            if (s_recv(worker) != "lock_ok") {
-                throw std::runtime_error("failed to lock dataset");
-            }
-        });
+        wctx->snap.set_db_handle(DatabaseHandle(&worker));
 
         std::string s = dispatch_command_safe(request, wctx->task, &wctx->snap);
 
@@ -114,16 +107,26 @@ void NetworkService::poll_backend() {
 
         std::string ds_name = s_recv(backend);
 
-        std::cout << "COORDINATOR: ASKED TO LOCK " << ds_name << std::endl;
-        // TODO actually lock
+        std::cout << "coordinator: asked to lock " << ds_name << std::endl;
 
         s_send(backend, worker_addr, ZMQ_SNDMORE);
         s_send(backend, "", ZMQ_SNDMORE);
 
-        // TODO this is a simulation
-        if (random() % 2 == 0) {
+        bool already_locked = false;
+
+        for (const auto &p : wctxs) {
+            if (p.second->task != nullptr && p.second->snap.is_locked(ds_name)) {
+                already_locked = true;
+                break;
+            }
+        }
+
+        if (!already_locked) {
+            wctx->snap.lock_dataset(ds_name);
+            std::cout << "coordinator: locked ok" << std::endl;
             s_send(backend, "lock_ok");
         } else {
+            std::cout << "coordinator: lock denied" << std::endl;
             s_send(backend, "lock_denied");
         }
 

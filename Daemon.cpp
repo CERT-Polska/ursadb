@@ -19,7 +19,7 @@
 #include "QueryParser.h"
 #include "NetworkService.h"
 
-std::string execute_command(const SelectCommand &cmd, Task *task, DatabaseSnapshot *snap) {
+std::string execute_command(const SelectCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
     std::stringstream ss;
 
     const Query &query = cmd.get_query();
@@ -33,21 +33,21 @@ std::string execute_command(const SelectCommand &cmd, Task *task, DatabaseSnapsh
     return ss.str();
 }
 
-std::string execute_command(const IndexCommand &cmd, Task *task, DatabaseSnapshot *snap) {
+std::string execute_command(const IndexCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
     const std::string &path = cmd.get_path();
     snap->index_path(task, cmd.get_index_types(), path);
 
     return "OK";
 }
 
-std::string execute_command(const ReindexCommand &cmd, Task *task, DatabaseSnapshot *snap) {
+std::string execute_command(const ReindexCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
     const std::string &dataset_name = cmd.get_dataset_name();
     snap->reindex_dataset(task, cmd.get_index_types(), dataset_name);
 
     return "OK";
 }
 
-std::string execute_command(const CompactCommand &cmd, Task *task, DatabaseSnapshot *snap) {
+std::string execute_command(const CompactCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
     if (cmd.get_type() == CompactType::All) {
         snap->compact(task);
     } else if (cmd.get_type() == CompactType::Smart) {
@@ -59,7 +59,7 @@ std::string execute_command(const CompactCommand &cmd, Task *task, DatabaseSnaps
     return "OK";
 }
 
-std::string execute_command(const StatusCommand &cmd, Task *task, DatabaseSnapshot *snap) {
+std::string execute_command(const StatusCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
     std::stringstream ss;
     const std::map<uint64_t, Task> &tasks = snap->get_tasks();
 
@@ -72,7 +72,7 @@ std::string execute_command(const StatusCommand &cmd, Task *task, DatabaseSnapsh
     return ss.str();
 }
 
-std::string execute_command(const TopologyCommand &cmd, Task *task, DatabaseSnapshot *snap) {
+std::string execute_command(const TopologyCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
     std::stringstream ss;
     const std::vector<const OnDiskDataset *> &datasets = snap->get_datasets();
 
@@ -88,12 +88,12 @@ std::string execute_command(const TopologyCommand &cmd, Task *task, DatabaseSnap
     return ss.str();
 }
 
-std::string dispatch_command(const Command &cmd, Task *task, DatabaseSnapshot *snap) {
+std::string dispatch_command(const Command &cmd, Task *task, const DatabaseSnapshot *snap) {
     return std::visit(
             [snap, task](const auto &cmd) { return execute_command(cmd, task, snap); }, cmd);
 }
 
-std::string dispatch_command_safe(const std::string &cmd_str, Task *task, DatabaseSnapshot *snap) {
+std::string dispatch_command_safe(const std::string &cmd_str, Task *task, const DatabaseSnapshot *snap) {
     try {
         Command cmd = parse_command(cmd_str);
         return dispatch_command(cmd, task, snap);
