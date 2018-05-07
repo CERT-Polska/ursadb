@@ -89,6 +89,75 @@ void NetworkService::commit_task(WorkerContext *wctx) {
     wctx->task = nullptr;
 }
 
+void NetworkService::handle_lock_req(WorkerContext *wctx, const std::string &worker_addr) {
+    std::vector<std::string> ds_names;
+    std::string recv_ds_name;
+
+    do {
+        if (s_recv(backend).size() != 0) {
+            throw std::runtime_error("Expected zero-size frame");
+        }
+
+        recv_ds_name = s_recv(backend);
+        ds_names.push_back(recv_ds_name);
+    } while (!recv_ds_name.empty());
+
+    s_send(backend, worker_addr, ZMQ_SNDMORE);
+    s_send(backend, "", ZMQ_SNDMORE);
+
+    bool already_locked = false;
+
+    for (const std::string &ds_name : ds_names) {
+        for (const auto &p : wctxs) {
+            if (p.second->task != nullptr && p.second->snap.is_locked(ds_name)) {
+                already_locked = true;
+                break;
+            }
+        }
+    }
+
+    if (!already_locked) {
+        for (const std::string &ds_name : ds_names) {
+            wctx->snap.lock_dataset(ds_name);
+        }
+
+        std::cout << "coordinator: locked ok" << std::endl;
+        s_send_val<NetLockResp>(backend, NetLockResp::LockOk);
+    } else {
+        std::cout << "coordinator: lock denied" << std::endl;
+        s_send_val<NetLockResp>(backend, NetLockResp::LockDenied);
+    }
+}
+
+void NetworkService::handle_response(WorkerContext *wctx) {
+    if (s_recv(backend).size() != 0) {
+        throw std::runtime_error("Expected zero-size frame");
+    }
+
+    std::string client_addr = s_recv(backend);
+
+    if (s_recv(backend).size() != 0) {
+        throw std::runtime_error("Expected zero-size frame");
+    }
+
+    std::string reply = s_recv(backend);
+    s_send(frontend, client_addr, ZMQ_SNDMORE);
+    s_send(frontend, "", ZMQ_SNDMORE);
+    s_send(frontend, reply);
+
+    commit_task(wctx);
+
+    std::set<DatabaseSnapshot*> working_snapshots;
+
+    for (const auto &p : wctxs) {
+        if (p.second->task != nullptr) {
+            working_snapshots.insert(&p.second->snap);
+        }
+    }
+
+    db.collect_garbage(working_snapshots);
+}
+
 void NetworkService::poll_backend() {
     //  Queue worker address for LRU routing
     std::string worker_addr = s_recv(backend);
@@ -100,81 +169,15 @@ void NetworkService::poll_backend() {
 
     auto resp_type = s_recv_val<NetAction>(backend);
 
-    if (resp_type == NetAction::LockReq) {
-        std::vector<std::string> ds_names;
-        std::string recv_ds_name;
-
-        do {
-            if (s_recv(backend).size() != 0) {
-                throw std::runtime_error("Expected zero-size frame");
-            }
-
-            recv_ds_name = s_recv(backend);
-            ds_names.push_back(recv_ds_name);
-        } while (!recv_ds_name.empty());
-
-        s_send(backend, worker_addr, ZMQ_SNDMORE);
-        s_send(backend, "", ZMQ_SNDMORE);
-
-        bool already_locked = false;
-
-        for (const std::string &ds_name : ds_names) {
-            for (const auto &p : wctxs) {
-                if (p.second->task != nullptr && p.second->snap.is_locked(ds_name)) {
-                    already_locked = true;
-                    break;
-                }
-            }
-        }
-
-        if (!already_locked) {
-            for (const std::string &ds_name : ds_names) {
-                wctx->snap.lock_dataset(ds_name);
-            }
-
-            std::cout << "coordinator: locked ok" << std::endl;
-            s_send_val<NetLockResp>(backend, NetLockResp::LockOk);
-        } else {
-            std::cout << "coordinator: lock denied" << std::endl;
-            s_send_val<NetLockResp>(backend, NetLockResp::LockDenied);
-        }
-
-        return;
-    }
-
-    worker_queue.push(worker_addr);
-
-    if (resp_type == NetAction::Response) {
-        if (s_recv(backend).size() != 0) {
-            throw std::runtime_error("Expected zero-size frame");
-        }
-
-        std::string client_addr = s_recv(backend);
-
-        if (s_recv(backend).size() != 0) {
-            throw std::runtime_error("Expected zero-size frame");
-        }
-
-        std::string reply = s_recv(backend);
-        s_send(frontend, client_addr, ZMQ_SNDMORE);
-        s_send(frontend, "", ZMQ_SNDMORE);
-        s_send(frontend, reply);
-
-        commit_task(wctx);
-
-        std::set<DatabaseSnapshot*> working_snapshots;
-
-        for (const auto &p : wctxs) {
-            if (p.second->task != nullptr) {
-                working_snapshots.insert(&p.second->snap);
-            }
-        }
-
-        db.collect_garbage(working_snapshots);
-    } else if (resp_type == NetAction::Ready) {
-        // do nothing
-    } else {
-        throw std::runtime_error("unhandled response from worker");
+    switch (resp_type) {
+        case NetAction::LockReq:
+            handle_lock_req(wctx, worker_addr);
+            break;
+        case NetAction::Response:
+            handle_response(wctx);
+        /* fall through */
+        case NetAction::Ready:
+            worker_queue.push(worker_addr);
     }
 }
 

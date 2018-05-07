@@ -43,6 +43,8 @@ class NetworkService {
     void poll_frontend();
     void poll_backend();
     void commit_task(WorkerContext *wctx);
+    void handle_lock_req(WorkerContext *wctx, const std::string &worker_addr);
+    void handle_response(WorkerContext *wctx);
 
 public:
     NetworkService(Database &db, const std::string &bind_address)
