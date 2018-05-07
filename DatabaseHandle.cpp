@@ -1,6 +1,6 @@
 #include "DatabaseHandle.h"
 
-#include "zhelpers.h"
+#include "ZHelpers.h"
 
 
 DatabaseHandle::DatabaseHandle() : worker(nullptr) {}

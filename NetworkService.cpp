@@ -1,7 +1,7 @@
 #include "NetworkService.h"
 
 #include "Daemon.h"
-#include "zhelpers.h"
+#include "ZHelpers.h"
 #include "DatabaseHandle.h"
 
 
