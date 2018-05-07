@@ -48,7 +48,6 @@ std::vector<const OnDiskDataset *> Indexer::get_merge_candidates() {
     if (strategy == MergeStrategy::Smart) {
         return OnDiskDataset::get_compact_candidates(created_dataset_ptrs());
     } else if (strategy == MergeStrategy::InOrder) {
-        // TODO could be improved
         if (created_datasets.size() >= 2) {
             return created_dataset_ptrs();
         } else {
@@ -66,10 +65,10 @@ void Indexer::make_spill() {
     register_dataset(dataset_name);
     bool stop = false;
 
-    while (created_datasets.size() > MAX_INDEXER_TEMP_DATASETS && !stop) {
+    while (!stop) {
         std::vector<const OnDiskDataset *> candidates = get_merge_candidates();
 
-        if (!candidates.empty()) {
+        if (candidates.size() >= INDEXER_COMPACT_THRESHOLD) {
             std::cout << "merge stuff" << std::endl;
             std::string merged_name = snap->allocate_name();
             OnDiskDataset::merge(snap->db_base, merged_name, candidates, nullptr);
