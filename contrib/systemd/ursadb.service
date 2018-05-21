@@ -1,0 +1,14 @@
+[Unit]
+Description=UrsaDB
+After=network.target
+
+[Service]
+ExecStart=ursadb db.ursa
+WorkingDirectory=/opt/ursadb
+Environment="PATH=/opt/ursadb:/usr/bin"
+TimeoutStopSec=30
+Restart=always
+PIDFile=/run/ursadb.pid
+
+[Install]
+WantedBy=multi-user.target
