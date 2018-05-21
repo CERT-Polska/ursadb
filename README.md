@@ -5,6 +5,12 @@ A fast N-gram database optimized for working with executable files (malware dump
 Rewritten from Rust. Originally by Jarosław Jedynak (tailcall.net).
 
 
+Full package installation
+-------------------------
+
+This repository is only for UrsaDB project (n-gram database). In order to see instructions on how to set up the whole mquery system, see [CERT-Polska/ursadb](https://github.com/CERT-Polska/mquery).
+
+
 Installation (Docker way)
 -------------------------
 
