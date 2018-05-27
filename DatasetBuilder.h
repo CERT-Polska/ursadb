@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "Core.h"
-#include "IndexBuilder.h"
+#include "VecIndexBuilder.h"
 #include "Utils.h"
 
 class DatasetBuilder {
@@ -18,7 +18,7 @@ class DatasetBuilder {
 
   private:
     std::vector<std::string> fids;
-    std::vector<IndexBuilder> indices;
+    std::vector<VecIndexBuilder> indices;
 
     FileId register_fname(const std::string &fname);
 };
