@@ -74,10 +74,7 @@ struct select : seq<select_token, star<space>, expression> {};
 struct status : seq<status_token> {};
 struct ping : seq<ping_token> {};
 struct topology : seq<topology_token> {};
-struct bitmap_indexer_token : string<'b', 'i', 't', 'm', 'a', 'p'> {};
-struct flat_indexer_token : string<'f', 'l', 'a', 't'> {};
-struct indexer_spec : seq<one<'['>, sor<bitmap_indexer_token, flat_indexer_token>, one<']'>> {};
-struct index : seq<index_token, star<space>, opt<indexer_spec, star<space>>, list<string_like, space>, star<space>, opt<index_with_construct>> {};
+struct index : seq<index_token, star<space>, list<string_like, space>, star<space>, opt<index_with_construct>> {};
 struct reindex : seq<reindex_token, star<space>, string_like, star<space>, index_with_construct> {};
 struct compact : seq<compact_token, star<space>, sor<all_token, smart_token>> {};
 struct command : seq<sor<select, index, reindex, compact, status, topology, ping>, star<space>, one<';'>> {};
@@ -108,9 +105,6 @@ template <> struct store<text4_token> : std::true_type {};
 template <> struct store<wide8_token> : std::true_type {};
 template <> struct store<all_token> : std::true_type {};
 template <> struct store<smart_token> : std::true_type {};
-template <> struct store<indexer_spec> : std::true_type {};
-template <> struct store<bitmap_indexer_token> : std::true_type {};
-template <> struct store<flat_indexer_token> : std::true_type {};
 
 constexpr int hex2int(char hexchar) {
     if (hexchar >= '0' && hexchar <= '9') {
