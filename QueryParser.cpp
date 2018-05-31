@@ -13,6 +13,7 @@
 #include "lib/pegtl/contrib/parse_tree.hpp"
 #include "lib/pegtl/contrib/unescape.hpp"
 
+#include "Core.h"
 #include "Command.h"
 #include "Query.h"
 
@@ -73,7 +74,10 @@ struct select : seq<select_token, star<space>, expression> {};
 struct status : seq<status_token> {};
 struct ping : seq<ping_token> {};
 struct topology : seq<topology_token> {};
-struct index : seq<index_token, star<space>, list<string_like, space>, star<space>, opt<index_with_construct>> {};
+struct bitmap_indexer_token : string<'b', 'i', 't', 'm', 'a', 'p'> {};
+struct flat_indexer_token : string<'f', 'l', 'a', 't'> {};
+struct indexer_spec : seq<one<'['>, sor<bitmap_indexer_token, flat_indexer_token>, one<']'>> {};
+struct index : seq<index_token, star<space>, opt<indexer_spec, star<space>>, list<string_like, space>, star<space>, opt<index_with_construct>> {};
 struct reindex : seq<reindex_token, star<space>, string_like, star<space>, index_with_construct> {};
 struct compact : seq<compact_token, star<space>, sor<all_token, smart_token>> {};
 struct command : seq<sor<select, index, reindex, compact, status, topology, ping>, star<space>, one<';'>> {};
@@ -104,6 +108,9 @@ template <> struct store<text4_token> : std::true_type {};
 template <> struct store<wide8_token> : std::true_type {};
 template <> struct store<all_token> : std::true_type {};
 template <> struct store<smart_token> : std::true_type {};
+template <> struct store<indexer_spec> : std::true_type {};
+template <> struct store<bitmap_indexer_token> : std::true_type {};
+template <> struct store<flat_indexer_token> : std::true_type {};
 
 constexpr int hex2int(char hexchar) {
     if (hexchar >= '0' && hexchar <= '9') {
@@ -238,21 +245,34 @@ Command transform_command(const parse_tree::node &n) {
         auto &expr = n.children[0];
         return Command(SelectCommand(transform(*expr)));
     } else if (n.is<index>()) {
-        unsigned int last_child = n.children.size() - 1;
         std::vector<std::string> paths;
 
-        for (const auto &c : n.children) {
-            if (!c->is<index_type_list>()) {
-                paths.push_back(transform_string(*c));
+        auto it = n.children.cbegin();
+        BuilderType builderType = BuilderType::FLAT;
+
+        if ((*it)->is<indexer_spec>()) {
+            auto &type_token = (*it)->children[0];
+
+            if (type_token->is<flat_indexer_token>()) {
+                builderType = BuilderType::FLAT;
+            } else if (type_token->is<bitmap_indexer_token>()) {
+                builderType = BuilderType::BITMAP;
             }
+
+            ++it;
         }
 
         std::vector<IndexType> types = IndexCommand::default_types();
-        if (n.children[last_child]->is<index_type_list>()) {
-            types = transform_index_types(*n.children[last_child]);
+
+        for (; it != n.children.cend(); ++it) {
+            if ((*it)->is<index_type_list>()) {
+                types = transform_index_types(**it);
+            } else {
+                paths.push_back(transform_string(**it));
+            }
         }
 
-        return Command(IndexCommand(paths, types));
+        return Command(IndexCommand(builderType, paths, types));
     } else if (n.is<reindex>()) {
         std::string dataset_name = transform_string(*n.children[0]);
         std::vector<IndexType> types;

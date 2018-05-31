@@ -35,6 +35,11 @@ constexpr bool is_valid_index_type(uint32_t type) {
     return false;
 }
 
+enum class BuilderType {
+    FLAT = 1,
+    BITMAP = 2
+};
+
 enum class QTokenType {
     CHAR = 1, // normal byte e.g. \xAA
     WILDCARD = 2, // full wildcard \x??

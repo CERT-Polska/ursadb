@@ -4,6 +4,8 @@
 #include <variant>
 
 #include "IndexBuilder.h"
+#include "BitmapIndexBuilder.h"
+#include "FlatIndexBuilder.h"
 #include "OnDiskIndex.h"
 #include "Query.h"
 #include "QueryParser.h"
@@ -337,10 +339,7 @@ void add_test_payload(IndexBuilder &builder) {
     builder.add_file(5, (const uint8_t *)contents.data(), contents.size());
 }
 
-TEST_CASE("IndexBuilder for gram3", "[index_builder_gram3]") {
-    std::string index_fname = "_test_idx_gram3.ursa";
-
-    IndexBuilder builder(IndexType::GRAM3);
+void test_builder_gram3(IndexBuilder &builder, std::string &index_fname) {
     add_test_payload(builder);
     builder.save(index_fname);
 
@@ -384,10 +383,14 @@ TEST_CASE("IndexBuilder for gram3", "[index_builder_gram3]") {
     std::remove(index_fname.c_str());
 }
 
-TEST_CASE("IndexBuilder for text4", "[index_builder_text4]") {
-    std::string index_fname = "_test_idx_text4.ursa";
+TEST_CASE("BitmapIndexBuilder for gram3", "[index_builder_gram3]") {
+    std::string index_fname = "_test_idx_gram3.ursa";
 
-    IndexBuilder builder(IndexType::TEXT4);
+    BitmapIndexBuilder builder(IndexType::GRAM3);
+    test_builder_gram3(builder, index_fname);
+}
+
+void test_builder_text4(IndexBuilder &builder, std::string &index_fname) {
     add_test_payload(builder);
     builder.save(index_fname);
 
@@ -425,4 +428,11 @@ TEST_CASE("IndexBuilder for text4", "[index_builder_text4]") {
     REQUIRE(ndx.query_str(mqs("\xA4\xA5\xA6\xA7")).is_everything());
 
     std::remove(index_fname.c_str());
+}
+
+TEST_CASE("BitmapIndexBuilder for text4", "[index_builder_text4]") {
+    std::string index_fname = "_test_idx_text4.ursa";
+
+    BitmapIndexBuilder builder(IndexType::TEXT4);
+    test_builder_text4(builder, index_fname);
 }

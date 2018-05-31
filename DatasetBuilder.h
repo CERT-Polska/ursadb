@@ -4,12 +4,13 @@
 #include <vector>
 
 #include "Core.h"
-#include "VecIndexBuilder.h"
+#include "FlatIndexBuilder.h"
 #include "Utils.h"
 
 class DatasetBuilder {
   public:
     DatasetBuilder(const std::vector<IndexType> &index_types);
+    DatasetBuilder(BuilderType builderType, const std::vector<IndexType> &index_types);
 
     void index(const std::string &filepath);
     void save(const fs::path &db_base, const std::string &fname);
@@ -18,7 +19,7 @@ class DatasetBuilder {
 
   private:
     std::vector<std::string> fids;
-    std::vector<VecIndexBuilder> indices;
+    std::vector<std::unique_ptr<IndexBuilder>> indices;
 
     FileId register_fname(const std::string &fname);
 };

@@ -41,7 +41,8 @@ class DatabaseSnapshot {
     void lock_dataset(const std::string &ds_name);
     bool is_locked(const std::string &ds_name) const;
 
-    void index_path(Task *task, const std::vector<IndexType> &types, const std::vector<std::string> &filepaths) const;
+    void index_path(Task *task, BuilderType builderType,
+                    const std::vector<IndexType> &types, const std::vector<std::string> &filepaths) const;
     void reindex_dataset(Task *task, const std::vector<IndexType> &types, const std::string &dataset_name) const;
     void execute(const Query &query, Task *task, std::vector<std::string> *out) const;
     void smart_compact(Task *task) const;

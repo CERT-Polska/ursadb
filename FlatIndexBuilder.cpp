@@ -1,4 +1,4 @@
-#include "VecIndexBuilder.h"
+#include "FlatIndexBuilder.h"
 
 #include <algorithm>
 #include <fstream>
@@ -12,24 +12,24 @@ constexpr int reserve_ints = 1024;
 constexpr int max_files = 256;
 
 
-VecIndexBuilder::VecIndexBuilder(IndexType ntype)
-    : added_trigrams(), raw_data(), ntype(ntype) {
+FlatIndexBuilder::FlatIndexBuilder(IndexType ntype)
+    : IndexBuilder(ntype), added_trigrams(), raw_data() {
     raw_data.reserve(reserve_ints);
 }
 
-void VecIndexBuilder::add_trigram(FileId fid, TriGram val) {
+void FlatIndexBuilder::add_trigram(FileId fid, TriGram val) {
     if (!added_trigrams[val]) {
         added_trigrams[val] = true;
         raw_data.push_back((fid & 0xFFU) | (val << 8U));
     }
 }
 
-void VecIndexBuilder::save(const std::string &fname) {
+void FlatIndexBuilder::save(const std::string &fname) {
     std::ofstream out(fname, std::ofstream::binary | std::ofstream::out);
 
     uint32_t magic = DB_MAGIC;
     uint32_t version = 6;
-    uint32_t ndx_type = static_cast<uint32_t>(ntype);
+    uint32_t ndx_type = static_cast<uint32_t>(index_type());
     uint32_t reserved = 0;
 
     out.write((char *)&magic, 4);
@@ -79,17 +79,17 @@ void VecIndexBuilder::save(const std::string &fname) {
     out.write((char *)offsets.data(), (NUM_TRIGRAMS + 1) * sizeof(uint64_t));
 }
 
-void VecIndexBuilder::add_file(FileId fid, const uint8_t *data, size_t size) {
+void FlatIndexBuilder::add_file(FileId fid, const uint8_t *data, size_t size) {
     if (fid >= max_files) {
         // IndexBuilder's bitmap can't hold more than max_files files
         throw std::out_of_range("fid");
     }
 
     std::fill(added_trigrams.begin(), added_trigrams.end(), 0);
-    TrigramGenerator generator = get_generator_for(ntype);
+    TrigramGenerator generator = get_generator_for(index_type());
     generator(data, size, [&](TriGram val) { add_trigram(fid, val); });
 }
 
-bool VecIndexBuilder::must_spill(int file_count) const {
+bool FlatIndexBuilder::must_spill(int file_count) const {
     return file_count >= max_files;
 }

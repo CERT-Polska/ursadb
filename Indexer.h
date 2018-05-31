@@ -12,6 +12,7 @@ enum class MergeStrategy {
 };
 
 class Indexer {
+    BuilderType builderType;
     MergeStrategy strategy;
     const DatabaseSnapshot *snap;
     std::vector<IndexType> types;
@@ -25,7 +26,8 @@ class Indexer {
     void remove_dataset(const OnDiskDataset *dataset_ptr);
 
 public:
-    Indexer(MergeStrategy strategy, const DatabaseSnapshot *snap, const std::vector<IndexType> &types);
+    Indexer(BuilderType builderType, MergeStrategy strategy, const DatabaseSnapshot *snap,
+            const std::vector<IndexType> &types);
     void index(const std::string &target);
     OnDiskDataset *force_compact();
     std::vector<const OnDiskDataset *> finalize();

@@ -2,8 +2,9 @@
 
 #include "Core.h"
 
-Indexer::Indexer(MergeStrategy strategy, const DatabaseSnapshot *snap, const std::vector<IndexType> &types)
-        : strategy(strategy), snap(snap), types(types), builder(types) {
+Indexer::Indexer(BuilderType builderType, MergeStrategy strategy,
+                 const DatabaseSnapshot *snap, const std::vector<IndexType> &types)
+        : builderType(builderType), strategy(strategy), snap(snap), types(types), builder(builderType, types) {
 
 }
 
@@ -86,7 +87,7 @@ void Indexer::make_spill() {
         }
     }
 
-    builder = DatasetBuilder(types);
+    builder = DatasetBuilder(builderType, types);
 }
 
 OnDiskDataset *Indexer::force_compact() {

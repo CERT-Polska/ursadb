@@ -59,7 +59,8 @@ void DatabaseSnapshot::build_target_list(
 }
 
 void DatabaseSnapshot::index_path(
-        Task *task, const std::vector<IndexType> &types, const std::vector<std::string> &filepaths) const {
+        Task *task, BuilderType builderType, const std::vector<IndexType> &types,
+        const std::vector<std::string> &filepaths) const {
     std::set<std::string> existing_files;
 
     for (const auto &ds : datasets) {
@@ -77,7 +78,7 @@ void DatabaseSnapshot::index_path(
     auto last = std::unique(targets.begin(), targets.end());
     targets.erase(last, targets.end());
 
-    Indexer indexer(MergeStrategy::Smart, this, types);
+    Indexer indexer(builderType, MergeStrategy::Smart, this, types);
 
     task->work_estimated = targets.size() + 1;
 
@@ -109,7 +110,7 @@ void DatabaseSnapshot::reindex_dataset(
 
     db_handle.request_dataset_lock({ source->get_name() });
 
-    Indexer indexer(MergeStrategy::InOrder, this, types);
+    Indexer indexer(BuilderType::FLAT, MergeStrategy::InOrder, this, types);
 
     task->work_estimated = source->indexed_files().size() + 1;
 
