@@ -59,7 +59,7 @@ void DatabaseSnapshot::build_target_list(
 }
 
 void DatabaseSnapshot::index_path(
-        Task *task, BuilderType builderType, const std::vector<IndexType> &types,
+        Task *task, const std::vector<IndexType> &types,
         const std::vector<std::string> &filepaths) const {
     std::set<std::string> existing_files;
 
@@ -78,7 +78,7 @@ void DatabaseSnapshot::index_path(
     auto last = std::unique(targets.begin(), targets.end());
     targets.erase(last, targets.end());
 
-    Indexer indexer(builderType, MergeStrategy::Smart, this, types);
+    Indexer indexer(this, types);
 
     task->work_estimated = targets.size() + 1;
 
@@ -111,42 +111,21 @@ void DatabaseSnapshot::reindex_dataset(
 
     db_handle.request_dataset_lock({ source->get_name() });
 
-    Indexer indexer(BuilderType::FLAT, MergeStrategy::InOrder, this, types);
+    Indexer indexer(this, types);
 
     task->work_estimated = source->indexed_files().size() + 1;
 
-    for (const std::string &fname : source->indexed_files()) {
-        indexer.index(fname);
+    for (const auto &target : source->indexed_files()) {
+        std::cout << "reindexing " << target << std::endl;
+        indexer.index(target);
         task->work_done += 1;
     }
 
-    OnDiskDataset *outcome = indexer.force_compact();
-
-    if (outcome->indexed_files() != source->indexed_files()) {
-        throw std::runtime_error("reindex produced faulty dataset, file list doesn\'t match with the source");
+    for (const auto *ds : indexer.finalize()) {
+        task->changes.emplace_back(DbChangeType::Insert, ds->get_name());
     }
 
-    std::ifstream in(db_base / source->get_name(), std::ifstream::binary);
-    json j;
-    in >> j;
-    in.close();
-
-    for (const auto &type : types) {
-        fs::path old_index_name = db_base / (get_index_type_name(type) + "." + outcome->get_name());
-        fs::path new_index_name = db_base / (get_index_type_name(type) + "." + source->get_name());
-        fs::rename(old_index_name, new_index_name);
-        j["indices"].emplace_back(get_index_type_name(type) + "." + source->get_name());
-    }
-
-    std::ofstream out(db_base / source->get_name(), std::ofstream::binary);
-    out << std::setw(4) << j;
-    out.close();
-
-    fs::remove(db_base / ("files." + outcome->get_name()));
-    fs::remove(db_base / outcome->get_name());
-
-    task->changes.emplace_back(DbChangeType::Reload, source->get_name());
-
+    task->changes.emplace_back(DbChangeType::Drop, source->get_name());
     task->work_done += 1;
 }
 

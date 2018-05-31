@@ -245,23 +245,9 @@ Command transform_command(const parse_tree::node &n) {
         auto &expr = n.children[0];
         return Command(SelectCommand(transform(*expr)));
     } else if (n.is<index>()) {
-        std::vector<std::string> paths;
-
         auto it = n.children.cbegin();
-        BuilderType builderType = BuilderType::FLAT;
 
-        if ((*it)->is<indexer_spec>()) {
-            auto &type_token = (*it)->children[0];
-
-            if (type_token->is<flat_indexer_token>()) {
-                builderType = BuilderType::FLAT;
-            } else if (type_token->is<bitmap_indexer_token>()) {
-                builderType = BuilderType::BITMAP;
-            }
-
-            ++it;
-        }
-
+        std::vector<std::string> paths;
         std::vector<IndexType> types = IndexCommand::default_types();
 
         for (; it != n.children.cend(); ++it) {
@@ -272,7 +258,7 @@ Command transform_command(const parse_tree::node &n) {
             }
         }
 
-        return Command(IndexCommand(builderType, paths, types));
+        return Command(IndexCommand(paths, types));
     } else if (n.is<reindex>()) {
         std::string dataset_name = transform_string(*n.children[0]);
         std::vector<IndexType> types;

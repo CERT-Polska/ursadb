@@ -47,6 +47,16 @@ void DatasetBuilder::save(const fs::path &db_base, const std::string &fname) {
     store_dataset(db_base, fname, index_names, fids);
 }
 
+void DatasetBuilder::force_registered(const std::string &filepath) {
+    if (!fids.empty()) {
+        if (fids.back() == filepath) {
+            return;
+        }
+    }
+
+    register_fname(filepath);
+}
+
 void DatasetBuilder::index(const std::string &filepath) {
     if (filepath.find('\r') != std::string::npos || filepath.find('\n') != std::string::npos) {
         throw invalid_filename_error(filepath);

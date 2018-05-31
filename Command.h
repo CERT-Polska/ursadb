@@ -13,14 +13,12 @@ class SelectCommand {
 };
 
 class IndexCommand {
-    BuilderType builderType;
     std::vector<std::string> paths;
     std::vector<IndexType> types;
 
   public:
-    IndexCommand(BuilderType builderType, const std::vector<std::string> &paths, const std::vector<IndexType> &types)
-        : builderType(builderType), paths(paths), types(types) {}
-    BuilderType get_builder_type() const { return builderType; }
+    IndexCommand(const std::vector<std::string> &paths, const std::vector<IndexType> &types)
+        : paths(paths), types(types) {}
     const std::vector<std::string> &get_paths() const { return paths; }
     const std::vector<IndexType> &get_index_types() const { return types; }
 

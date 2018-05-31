@@ -2,11 +2,8 @@
 
 #include "Core.h"
 
-Indexer::Indexer(BuilderType builderType, MergeStrategy strategy,
-                 const DatabaseSnapshot *snap, const std::vector<IndexType> &types)
-        : builderType(builderType), strategy(strategy), snap(snap), types(types), builder(builderType, types) {
-
-}
+Indexer::Indexer(const DatabaseSnapshot *snap, const std::vector<IndexType> &types)
+        : snap(snap), types(types), builder(BuilderType::FLAT, types) {}
 
 void Indexer::index(const std::string &target) {
     try {
@@ -49,20 +46,7 @@ void Indexer::remove_dataset(const OnDiskDataset *dataset_ptr) {
     }
 }
 
-std::vector<const OnDiskDataset *> Indexer::get_merge_candidates() {
-    if (strategy == MergeStrategy::Smart) {
-        return OnDiskDataset::get_compact_candidates(created_dataset_ptrs());
-    } else if (strategy == MergeStrategy::InOrder) {
-        if (created_datasets.size() >= 2) {
-            return created_dataset_ptrs();
-        } else {
-            return {};
-        }
-    } else {
-        throw std::runtime_error("unhandled merge strategy");
-    }
-}
-
+// TODO use two indexers at once for index command
 void Indexer::make_spill() {
     std::cout << "new dataset" << std::endl;
     auto dataset_name = snap->allocate_name();
@@ -71,7 +55,7 @@ void Indexer::make_spill() {
     bool stop = false;
 
     while (!stop) {
-        std::vector<const OnDiskDataset *> candidates = get_merge_candidates();
+        std::vector<const OnDiskDataset *> candidates = OnDiskDataset::get_compact_candidates(created_dataset_ptrs());
 
         if (candidates.size() >= INDEXER_COMPACT_THRESHOLD) {
             std::cout << "merge stuff" << std::endl;
@@ -87,7 +71,7 @@ void Indexer::make_spill() {
         }
     }
 
-    builder = DatasetBuilder(builderType, types);
+    builder = DatasetBuilder(BuilderType::FLAT, types);
 }
 
 OnDiskDataset *Indexer::force_compact() {

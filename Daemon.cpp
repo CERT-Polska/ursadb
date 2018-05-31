@@ -30,7 +30,7 @@ Response execute_command(const SelectCommand &cmd, Task *task, const DatabaseSna
 }
 
 Response execute_command(const IndexCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
-    snap->index_path(task, cmd.get_builder_type(), cmd.get_index_types(), cmd.get_paths());
+    snap->index_path(task, cmd.get_index_types(), cmd.get_paths());
 
     return Response::ok();
 }
