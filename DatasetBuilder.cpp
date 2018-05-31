@@ -10,20 +10,10 @@
 #include "Json.h"
 #include "BitmapIndexBuilder.h"
 
-DatasetBuilder::DatasetBuilder(BuilderType builderType, const std::vector<IndexType> &index_types) {
-    for (const auto &index_type : index_types) {
-        if (builderType == BuilderType::FLAT) {
-            indices.emplace_back(new FlatIndexBuilder(index_type));
-        } else if (builderType == BuilderType::BITMAP) {
-            indices.emplace_back(new BitmapIndexBuilder(index_type));
-        } else {
-            throw std::runtime_error("unhandled builder type");
-        }
-    }
+DatasetBuilder::DatasetBuilder(BuilderType builder_type, const std::vector<IndexType> &index_types)
+        : builder_type(builder_type), index_types(index_types) {
+    clear();
 }
-
-DatasetBuilder::DatasetBuilder(const std::vector<IndexType> &index_types)
-        : DatasetBuilder(BuilderType::FLAT, index_types) {}
 
 FileId DatasetBuilder::register_fname(const std::string &fname) {
     if (fname.find('\n') != std::string::npos || fname.find('\r') != std::string::npos) {
@@ -78,6 +68,21 @@ bool DatasetBuilder::must_spill() {
         }
     }
     return false;
+}
+
+void DatasetBuilder::clear() {
+    indices.clear();
+    fids.clear();
+
+    for (const auto &index_type : index_types) {
+        if (builder_type == BuilderType::FLAT) {
+            indices.emplace_back(new FlatIndexBuilder(index_type));
+        } else if (builder_type == BuilderType::BITMAP) {
+            indices.emplace_back(new BitmapIndexBuilder(index_type));
+        } else {
+            throw std::runtime_error("unhandled builder type");
+        }
+    }
 }
 
 const char *invalid_filename_error::what() const _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_USE_NOEXCEPT {

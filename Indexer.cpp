@@ -3,11 +3,18 @@
 #include "Core.h"
 
 Indexer::Indexer(const DatabaseSnapshot *snap, const std::vector<IndexType> &types)
-        : snap(snap), types(types), builder(BuilderType::FLAT, types) {}
+        : snap(snap), types(types),
+          flat_builder(BuilderType::FLAT, types), bitmap_builder(BuilderType::BITMAP, types) {}
 
 void Indexer::index(const std::string &target) {
+    DatasetBuilder *builder = &flat_builder;
+
     try {
-        builder.index(target);
+        if (fs::file_size(target) > 1024*1024*20) {
+            builder = &bitmap_builder;
+        }
+
+        builder->index(target);
     } catch (empty_file_error &e) {
         std::cout << "empty file (skip): " << target << std::endl;
     } catch (file_open_error &e) {
@@ -16,8 +23,8 @@ void Indexer::index(const std::string &target) {
         std::cout << "illegal file name (skip): " << target << std::endl;
     }
 
-    if (builder.must_spill()) {
-        make_spill();
+    if (builder->must_spill()) {
+        make_spill(*builder);
     }
 }
 
@@ -46,8 +53,7 @@ void Indexer::remove_dataset(const OnDiskDataset *dataset_ptr) {
     }
 }
 
-// TODO use two indexers at once for index command
-void Indexer::make_spill() {
+void Indexer::make_spill(DatasetBuilder &builder) {
     std::cout << "new dataset" << std::endl;
     auto dataset_name = snap->allocate_name();
     builder.save(snap->db_base, dataset_name);
@@ -71,12 +77,16 @@ void Indexer::make_spill() {
         }
     }
 
-    builder = DatasetBuilder(BuilderType::FLAT, types);
+    builder.clear();
 }
 
 OnDiskDataset *Indexer::force_compact() {
-    if (!builder.empty()) {
-        make_spill();
+    if (!flat_builder.empty()) {
+        make_spill(flat_builder);
+    }
+
+    if (!bitmap_builder.empty()) {
+        make_spill(bitmap_builder);
     }
 
     if (created_datasets.empty()) {
@@ -97,8 +107,12 @@ OnDiskDataset *Indexer::force_compact() {
 }
 
 std::vector<const OnDiskDataset *> Indexer::finalize() {
-    if (!builder.empty()) {
-        make_spill();
+    if (!flat_builder.empty()) {
+        make_spill(flat_builder);
+    }
+
+    if (!bitmap_builder.empty()) {
+        make_spill(bitmap_builder);
     }
 
     return created_dataset_ptrs();
