@@ -88,8 +88,9 @@ void DatabaseSnapshot::index_path(
         task->work_done += 1;
     }
 
-    OnDiskDataset *ds = indexer.force_compact();
-    task->changes.emplace_back(DbChangeType::Insert, ds->get_name());
+    for (const auto *ds : indexer.finalize()) {
+        task->changes.emplace_back(DbChangeType::Insert, ds->get_name());
+    }
 
     task->work_done += 1;
 }
