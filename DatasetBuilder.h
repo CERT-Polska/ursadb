@@ -4,21 +4,26 @@
 #include <vector>
 
 #include "Core.h"
-#include "IndexBuilder.h"
+#include "FlatIndexBuilder.h"
 #include "Utils.h"
 
 class DatasetBuilder {
   public:
-    DatasetBuilder(const std::vector<IndexType> &index_types);
+    DatasetBuilder(BuilderType builder_type, const std::vector<IndexType> &index_types);
 
     void index(const std::string &filepath);
+    void force_registered(const std::string &filepath);
     void save(const fs::path &db_base, const std::string &fname);
     bool must_spill();
     bool empty() const { return fids.empty(); }
+    void clear();
 
   private:
+    BuilderType builder_type;
+    std::vector<IndexType> index_types;
+
     std::vector<std::string> fids;
-    std::vector<IndexBuilder> indices;
+    std::vector<std::unique_ptr<IndexBuilder>> indices;
 
     FileId register_fname(const std::string &fname);
 };

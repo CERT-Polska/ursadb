@@ -8,11 +8,11 @@
 #include "OnDiskDataset.h"
 #include "Utils.h"
 #include "Json.h"
+#include "BitmapIndexBuilder.h"
 
-DatasetBuilder::DatasetBuilder(const std::vector<IndexType> &index_types) {
-    for (const auto &index_type : index_types) {
-        indices.emplace_back(index_type);
-    }
+DatasetBuilder::DatasetBuilder(BuilderType builder_type, const std::vector<IndexType> &index_types)
+        : builder_type(builder_type), index_types(index_types) {
+    clear();
 }
 
 FileId DatasetBuilder::register_fname(const std::string &fname) {
@@ -29,12 +29,22 @@ void DatasetBuilder::save(const fs::path &db_base, const std::string &fname) {
     std::set<std::string> index_names;
 
     for (auto &ndx : indices) {
-        std::string ndx_name = get_index_type_name(ndx.index_type()) + "." + fname;
-        ndx.save(db_base / ndx_name);
+        std::string ndx_name = get_index_type_name(ndx->index_type()) + "." + fname;
+        ndx->save(db_base / ndx_name);
         index_names.emplace(ndx_name);
     }
 
     store_dataset(db_base, fname, index_names, fids);
+}
+
+void DatasetBuilder::force_registered(const std::string &filepath) {
+    if (!fids.empty()) {
+        if (fids.back() == filepath) {
+            return;
+        }
+    }
+
+    register_fname(filepath);
 }
 
 void DatasetBuilder::index(const std::string &filepath) {
@@ -47,17 +57,32 @@ void DatasetBuilder::index(const std::string &filepath) {
     FileId fid = register_fname(filepath);
 
     for (auto &ndx : indices) {
-        ndx.add_file(fid, in.data(), in.size());
+        ndx->add_file(fid, in.data(), in.size());
     }
 }
 
 bool DatasetBuilder::must_spill() {
     for (const auto &ndx : indices) {
-        if (ndx.must_spill(fids.size())) {
+        if (ndx->must_spill(fids.size())) {
             return true;
         }
     }
     return false;
+}
+
+void DatasetBuilder::clear() {
+    indices.clear();
+    fids.clear();
+
+    for (const auto &index_type : index_types) {
+        if (builder_type == BuilderType::FLAT) {
+            indices.emplace_back(new FlatIndexBuilder(index_type));
+        } else if (builder_type == BuilderType::BITMAP) {
+            indices.emplace_back(new BitmapIndexBuilder(index_type));
+        } else {
+            throw std::runtime_error("unhandled builder type");
+        }
+    }
 }
 
 const char *invalid_filename_error::what() const _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_USE_NOEXCEPT {

@@ -1,8 +1,71 @@
-UrsaDB2
-=======
+UrsaDB
+======
 
-A fast N-gram database optimized for working with executable files (malware dumps).
-Rewritten from Rust. Originally by Jarosław Jedynak (tailcall.net).
+A 3gram search engine for querying Terabytes of data in milliseconds. Optimized for working with binary files (for example, malware dumps).
+
+Created in [CERT.PL](https://cert.pl). Originally by Jarosław Jedynak ([tailcall.net](https://tailcall.net)), extended and improved by Michał Leszczyński.
+
+How does it work?
+-----------------
+
+### gram3 index
+
+UrsaDB is using few slightly different methods of indexing files, having `gram3` indexes as a most basic concept.
+
+When the database is about to create a `gram3` index for a given file, it extracts all possible three byte combinations from it. Index is a big map of: `3gram` => `list of files which contain it`.
+
+For instance, if we would index a text file containing ASCII string `TEST MALWARE` (ASCII: `54 45 53 54 20 4D 41 4C 57 41 52 45`), then the database would generate the following trigrams (`_` denotes space character):
+
+| # | Substring | Trigram    |
+| - | --------- | ---------- |
+| 0 | `TES`     | `544553`   |
+| 1 | `EST`     | `455354`   |
+| 2 | `ST_`     | `535420`   |
+| 3 | `T_M`     | `54204D`   |
+| 4 | `_MA`     | `204D61`   |
+| 5 | `MAL`     | `4D616C`   |
+| 6 | `ALW`     | `414C57`   |
+| 7 | `LWA`     | `4C5741`   |
+| 8 | `WAR`     | `574152`   |
+| 9 | `ARE`     | `415245`   |
+
+![](docs/gram1.png)
+
+An index maps a trigram to a list of files, so the new file will be added to the abovementioned lookups.
+
+### gram3 queries
+When querying for string `TEST MALWARE`, the database will query trigram index in order to determine which files do contain sequence `544553`, then which files contain `455354` and so on till `415245`. Such partial results will be ANDed and then the result set (list of probably matching files) is returned.
+
+The drawing presents how trigrams are mapped to file contents.
+![](docs/gram2.png)
+
+Such searching technique sometimes may yield false positives, but it's never going to yield any true negatives. Thus, it may be appropriate for quick filtering (see [mquery project](https://github.com/CERT-Polska/mquery) - we use UrsaDB there in order to accelerate the process of malware searching).
+
+### text4 index
+
+String literals are very common in binaries. Thus, it's useful to have a specialized index for ASCII characters.
+
+In `text4` index, ASCII characters are packed in a manner similiar to [base64](https://en.wikipedia.org/wiki/Base64) algorithm. Due to that, it is possible to generate a trigram out of four characters.
+
+![](docs/4gram3.png)
+
+Note that such index doesn't respond to queries containing non-ASCII bytes, so it should be combined with at least `gram3` index.
+
+### wide8
+
+Because searching for `UTF-16` is also useful, there is a special index which works similiarily to `text4`. In this case, ASCII characters interleaved with zeros are decoded.
+
+![](docs/4gram5.png)
+
+### hash4
+
+Yet another type of index is `hash4`, which creates trigrams based on hashes of 4-byte sequences in the source file.
+
+
+Full package installation
+-------------------------
+
+This repository is only for UrsaDB project (3gram database). In order to see instructions on how to set up the whole mquery system, see [CERT-Polska/ursadb](https://github.com/CERT-Polska/mquery).
 
 
 Installation (Docker way)

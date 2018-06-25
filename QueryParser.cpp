@@ -13,6 +13,7 @@
 #include "lib/pegtl/contrib/parse_tree.hpp"
 #include "lib/pegtl/contrib/unescape.hpp"
 
+#include "Core.h"
 #include "Command.h"
 #include "Query.h"
 
@@ -238,18 +239,17 @@ Command transform_command(const parse_tree::node &n) {
         auto &expr = n.children[0];
         return Command(SelectCommand(transform(*expr)));
     } else if (n.is<index>()) {
-        unsigned int last_child = n.children.size() - 1;
+        auto it = n.children.cbegin();
+
         std::vector<std::string> paths;
-
-        for (const auto &c : n.children) {
-            if (!c->is<index_type_list>()) {
-                paths.push_back(transform_string(*c));
-            }
-        }
-
         std::vector<IndexType> types = IndexCommand::default_types();
-        if (n.children[last_child]->is<index_type_list>()) {
-            types = transform_index_types(*n.children[last_child]);
+
+        for (; it != n.children.cend(); ++it) {
+            if ((*it)->is<index_type_list>()) {
+                types = transform_index_types(**it);
+            } else {
+                paths.push_back(transform_string(**it));
+            }
         }
 
         return Command(IndexCommand(paths, types));
