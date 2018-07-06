@@ -155,7 +155,7 @@ const OnDiskIndex &OnDiskDataset::get_index_with_type(IndexType index_type) cons
 void OnDiskDataset::drop_file(const std::string &fname) const {
     // it may happen that dataset was reloaded and then is scheduled for removal multiple times
     // so we have to account for that and only delete yet existing files
-    fs::remove(fname);
+    fs::remove(db_base / fname);
 }
 
 void OnDiskDataset::drop() {

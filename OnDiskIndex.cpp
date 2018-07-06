@@ -8,7 +8,7 @@
 #include "Query.h"
 #include "Utils.h"
 
-OnDiskIndex::OnDiskIndex(const std::string &fname) : disk_map(fname) {
+OnDiskIndex::OnDiskIndex(const std::string &fname) : disk_map(fname), fname(fs::path(fname).filename()) {
     constexpr uint64_t RUN_OFFSET_ARRAY_SIZE = (NUM_TRIGRAMS + 1) * sizeof(uint64_t);
     if (disk_map.size() < 16 + RUN_OFFSET_ARRAY_SIZE) {
         throw std::runtime_error("corrupted index, file is too small");

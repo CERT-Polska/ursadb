@@ -14,6 +14,7 @@ struct IndexMergeHelper;
 class OnDiskIndex {
     const uint64_t *run_offsets;
     MemMap disk_map;
+    std::string fname;
     IndexType ntype;
 
     const uint8_t *data() const { return disk_map.data(); }
@@ -26,7 +27,7 @@ class OnDiskIndex {
   public:
     explicit OnDiskIndex(const std::string &fname);
 
-    const std::string &get_fname() const { return disk_map.name(); }
+    const std::string &get_fname() const { return fname; }
     IndexType index_type() const { return ntype; }
     QueryResult query_str(const QString &str) const;
     static void on_disk_merge(
