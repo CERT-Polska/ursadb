@@ -1,0 +1,24 @@
+stages:
+  - build
+  - test
+
+make:
+  stage: build
+  artifacts:
+    name: "ursadb-$CI_COMMIT_SHA"
+    paths:
+      - build/ursadb
+      - build/ursadb_new
+      - build/ursadb_test
+      - build/ursadb_bench
+  script:
+    - mkdir build
+    - cd build
+    - cmake -D CMAKE_C_COMPILER=gcc-7 -D CMAKE_CXX_COMPILER=g++-7 ..
+    - make
+run_tests:
+  stage: test
+  dependencies:
+    - make
+  script:
+    - ./build/ursadb_test
