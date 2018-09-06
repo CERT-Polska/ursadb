@@ -1,11 +1,11 @@
 FROM debian:buster AS build
 
-RUN apt update && apt install -y gcc-7 libzmq3-dev cmake build-essential
+RUN apt update && apt install -y gcc-7 g++-7 libzmq3-dev cmake build-essential
 
 RUN mkdir src && mkdir src/build
 COPY . src/
 WORKDIR /src/build
-RUN cmake -D CMAKE_C_COMPILER=gcc-7 -D CMAKE_CXX_COMPILER=g++-7 -D CMAKE_BUILD_TYPE=Release .. && make
+RUN cmake -D CMAKE_C_COMPILER=/usr/bin/gcc-7 -D CMAKE_CXX_COMPILER=/usr/bin/g++-7 -D CMAKE_BUILD_TYPE=Release .. && make
 RUN chmod +x /src/build/ursadb_test
 RUN /src/build/ursadb_test
 
