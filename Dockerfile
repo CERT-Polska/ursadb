@@ -6,8 +6,6 @@ RUN mkdir src && mkdir src/build
 COPY . src/
 WORKDIR /src/build
 RUN cmake -D CMAKE_C_COMPILER=/usr/bin/gcc-7 -D CMAKE_CXX_COMPILER=/usr/bin/g++-7 -D CMAKE_BUILD_TYPE=Release .. && make
-RUN chmod +x /src/build/ursadb_test
-RUN /src/build/ursadb_test
 
 FROM debian:buster
 

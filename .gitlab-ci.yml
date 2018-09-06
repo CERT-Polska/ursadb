@@ -28,4 +28,4 @@ test_ursadb:
   stage: test
   script:
     - docker pull "$DOCKER_REGISTRY/ursadb:$CI_PIPELINE_ID" > /dev/null
-    - docker run -it "$DOCKER_REGISTRY/ursadb:$CI_PIPELINE_ID" /usr/bin/ursadb_test
+    - docker run --entrypoint "/usr/bin/ursadb_test" "$DOCKER_REGISTRY/ursadb:$CI_PIPELINE_ID"
