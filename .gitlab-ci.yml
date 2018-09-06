@@ -1,24 +1,31 @@
+image: naskpl/docker-compose
+
+variables:
+  DOCKER_DRIVER: overlay2
+
+services:
+  - naskpl/dind
+
 stages:
   - build
   - test
 
-make:
+before_script:
+  - echo "Start job $CI_BUILD_NAME" at `date +%Y-%m-%d-%H-%M-%S`
+  - echo "CI_PIPELINE_ID $CI_PIPELINE_ID"
+  - docker login -u "$DOCKER_REGISTRY_LOGIN" -p "$DOCKER_REGISTRY_PASSWORD" "$DOCKER_REGISTRY"
+
+build_ursadb:
   stage: build
-  artifacts:
-    name: "ursadb-$CI_COMMIT_SHA"
-    paths:
-      - build/ursadb
-      - build/ursadb_new
-      - build/ursadb_test
-      - build/ursadb_bench
   script:
-    - mkdir build
-    - cd build
-    - cmake -D CMAKE_C_COMPILER=gcc-7 -D CMAKE_CXX_COMPILER=g++-7 ..
-    - make
-run_tests:
+    - docker build -t "$DOCKER_REGISTRY/ursadb:$CI_PIPELINE_ID" .
+    - docker tag "$DOCKER_REGISTRY/ursadb:$CI_PIPELINE_ID" "$DOCKER_REGISTRY/ursadb:latest"
+
+    - docker push "$DOCKER_REGISTRY/ursadb:$CI_PIPELINE_ID"
+    - docker push "$DOCKER_REGISTRY/ursadb:latest"
+
+test_ursadb:
   stage: test
-  dependencies:
-    - make
   script:
-    - ./build/ursadb_test
+    - docker pull "$DOCKER_REGISTRY/ursadb:$CI_PIPELINE_ID" > /dev/null
+    - docker run -it "$DOCKER_REGISTRY/ursadb:$CI_PIPELINE_ID" /usr/bin/ursadb_test
