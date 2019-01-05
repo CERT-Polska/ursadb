@@ -87,7 +87,12 @@ QueryResult OnDiskDataset::pick_common(int cutoff, const std::vector<Query> &que
         // This should never happen for well-formed queries, but this check is very cheap.
         return QueryResult::empty();
     }
+    if (cutoff <= 0 && queries.size() == 0) {
+        // We consider '0 of ()' as the case of empty result.
+        return QueryResult::empty();
+    }
     if (cutoff <= 0) {
+        // '0 of (...)' is considered as matching-everything.
         return QueryResult::everything();
     }
 
