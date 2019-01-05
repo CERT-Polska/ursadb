@@ -112,7 +112,7 @@ template <> struct store<text4_token> : std::true_type {};
 template <> struct store<wide8_token> : std::true_type {};
 template <> struct store<all_token> : std::true_type {};
 template <> struct store<smart_token> : std::true_type {};
-template <> struct store<min_token> : std::true_type {};
+template <> struct store<min_of_expr> : std::true_type {};
 
 constexpr int hex2int(char hexchar) {
     if (hexchar >= '0' && hexchar <= '9') {
@@ -226,29 +226,29 @@ std::string transform_string(const parse_tree::node &n) {
 Query transform(const parse_tree::node &n) {
     if (n.is<plaintext>() || n.is<wide_plaintext>() || n.is<hexstring>()) {
         return Query(transform_qstring(n));
+    } else if (n.is<min_of_expr>()) {
+        auto &count = n.children[0];
+        unsigned int counti;
+
+    try {
+            counti = std::stoi(count->content());
+    } catch (std::out_of_range &e) {
+            throw std::runtime_error("number N is out of range in 'min N of (...)' expression");
+        }
+        auto it = n.children.cbegin() + 1;
+        std::vector<Query> subq;
+
+        for (; it != n.children.cend(); ++it) {
+            Query q = transform(**it);
+            subq.push_back(q);
+            std::cout << q << std::endl;
+        }
+
+        return Query(counti, subq);
     } else if (n.is<expression>()) {
         if (n.children.size() == 1) {
             return transform(*n.children[0]);
         }
-
-	if (n.children[0]->is<min_token>()) {
-            auto &count = n.children[1];
-	    unsigned int counti;
-	    try {
-	        counti = std::stoi(count->content());
-	    } catch (std::out_of_range &e) {
-                throw std::runtime_error("number N is out of range in 'min N of (...)' expression");
-	    }
-	    auto it = n.children.cbegin() + 2;
-	    std::vector<Query> subq;
-
-	    for (; it != n.children.cend(); ++it) {
-	        Query q = transform(**it);
-		subq.push_back(q);
-	    }
-
-            return Query(counti, subq);
-	}
 
         auto &expr = n.children[1];
         if (expr->is<op_or>()) {
@@ -265,6 +265,7 @@ Query transform(const parse_tree::node &n) {
 Command transform_command(const parse_tree::node &n) {
     if (n.is<select>()) {
         auto &expr = n.children[0];
+        print_node(*expr);
         return Command(SelectCommand(transform(*expr)));
     } else if (n.is<index>()) {
         auto it = n.children.cbegin();
