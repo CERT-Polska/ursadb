@@ -60,6 +60,36 @@ QueryResult OnDiskDataset::internal_execute(const Query &query) const {
             }
             return result;
         }
+        case QueryType::MIN_OF: {
+            std::map<FileId, unsigned int> fid_count;
+	    std::vector<FileId> res;
+	    unsigned int cutoff_count = query.as_count();
+
+            for (auto &q : query.as_queries()) {
+                QueryResult qres = internal_execute(q);
+		if (qres.is_everything() && cutoff_count > 0) {
+                    // subquery reduced to "everything", simply ignore it
+                    cutoff_count--;
+		} else {
+                    for (auto &fid : qres.vector()) {
+                        fid_count[fid]++;
+		    }
+		}
+            }
+
+	    if (cutoff_count == 0) {
+                // either query was "any 0 of (...)" or all subqueries reduced to a special value "everything"
+                return QueryResult::everything();
+	    }
+
+	    for (auto it = fid_count.begin(); it != fid_count.end(); ++it) {
+                if (it->second >= cutoff_count) {
+                    res.push_back(it->first);
+		}
+	    }
+
+            return QueryResult(res);
+        }
     }
 
     throw std::runtime_error("unhandled query type");

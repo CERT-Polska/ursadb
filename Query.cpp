@@ -29,15 +29,22 @@ void QueryResult::do_and(const QueryResult &&other) {
 }
 
 const std::vector<Query> &Query::as_queries() const {
-    if (type != QueryType::AND && type != QueryType::OR) {
+    if (type != QueryType::AND && type != QueryType::OR && type != QueryType::MIN_OF) {
         throw std::runtime_error("This query doesn\'t contain subqueries.");
     }
 
     return queries;
 }
 
+unsigned int Query::as_count() const {
+    return count;
+}
+
 Query::Query(const QueryType &type, const std::vector<Query> &queries)
     : type(type), queries(queries) {}
+
+Query::Query(unsigned int count, const std::vector<Query> &queries)
+    : type(QueryType::MIN_OF), count(count), queries(queries) {}
 
 Query::Query(const QString &qstr) : type(QueryType::PRIMITIVE), value(qstr), queries() {}
 
@@ -47,11 +54,13 @@ bool Query::operator==(Query other) const {
 
 std::ostream &operator<<(std::ostream &os, const Query &query) {
     QueryType type = query.get_type();
-    if (type == QueryType::AND || type == QueryType::OR) {
+    if (type == QueryType::AND || type == QueryType::OR || type == QueryType::MIN_OF) {
         if (type == QueryType::AND) {
             os << "AND(";
         } else if (type == QueryType::OR) {
             os << "OR(";
+        } else if (type == QueryType::MIN_OF) {
+            os << "MIN_OF(" << query.as_count() << ", ";
         }
 
         bool is_first = true;
@@ -98,3 +107,5 @@ Query q(const QString &qstr) { return Query(qstr); }
 Query q_and(const std::vector<Query> &queries) { return Query(QueryType::AND, queries); }
 
 Query q_or(const std::vector<Query> &queries) { return Query(QueryType::OR, queries); }
+
+Query q_min_of(unsigned int count, const std::vector<Query> &queries) { return Query(count, queries); }

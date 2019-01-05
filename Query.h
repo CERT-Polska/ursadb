@@ -9,7 +9,7 @@
 #include "Core.h"
 #include "Utils.h"
 
-enum QueryType { PRIMITIVE = 1, AND = 2, OR = 3 };
+enum QueryType { PRIMITIVE = 1, AND = 2, OR = 3, MIN_OF = 4 };
 
 class QueryResult {
   private:
@@ -39,21 +39,25 @@ class QueryResult {
 class Query {
   public:
     explicit Query(const QString &qstr);
+    explicit Query(unsigned int count, const std::vector<Query> &queries);
     explicit Query(const QueryType &type, const std::vector<Query> &queries);
 
     const std::vector<Query> &as_queries() const;
     const QString &as_value() const;
+    unsigned int as_count() const;
     std::string as_string_repr() const;
     const QueryType &get_type() const;
     bool operator==(Query other) const;
 
   private:
     QueryType type;
-    QString value;
-    std::vector<Query> queries;
+    unsigned int count; // used for QueryType::MIN_OF
+    QString value; // used for QueryType::PRIMITIVE
+    std::vector<Query> queries; // used for QueryType::AND/OR
 };
 
 Query q(const QString &qstr);
 Query q_and(const std::vector<Query> &queries);
 Query q_or(const std::vector<Query> &queries);
+Query q_min_of(unsigned int count, const std::vector<Query> &queries);
 std::ostream &operator<<(std::ostream &os, const Query &query);

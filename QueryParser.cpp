@@ -35,6 +35,7 @@ struct plaintext : seq<one<'"'>, must<string_content>, any> {
     using content = string_content;
 };
 struct wide_plaintext : seq<one<'w'>, plaintext> {};
+struct number : plus<abnf::DIGIT> {};
 struct op_and : pad<one<'&'>, space> {};
 struct op_or : pad<one<'|'>, space> {};
 struct open_bracket : seq<one<'('>, star<space>> {};
@@ -44,13 +45,18 @@ struct close_curly : seq<star<space>, one<'}'>> {};
 struct open_square : seq<one<'['>, star<space>> {};
 struct close_square : seq<star<space>, one<']'>> {};
 
+struct min_token : string<'m', 'i', 'n'> {};
+struct of_token : string<'o', 'f'> {};
 struct hexbytes : opt<list<sor<hexbyte, hexwildcard>, star<space>>> {};
 struct hexstring : if_must<open_curly, hexbytes, close_curly> {};
 struct string_like : sor<wide_plaintext, plaintext, hexstring> {};
 struct expression;
 struct bracketed : if_must<open_bracket, expression, close_bracket> {};
 struct value : sor<string_like, bracketed> {};
-struct expression : seq<value, star<sor<op_and, op_or>, expression>> {};
+struct comma;
+struct argument_tuple : seq<open_bracket, opt<seq<expression, star<seq<comma, expression>>>>, close_bracket> {};
+struct min_of_expr : seq<min_token, plus<space>, number, plus<space>, of_token, star<space>, argument_tuple> {};
+struct expression : seq<sor<value, min_of_expr>, star<sor<op_and, op_or>, expression>> {};
 struct comma_token : one<','> {};
 struct select_token : string<'s', 'e', 'l', 'e', 'c', 't'> {};
 struct status_token : string<'s', 't', 'a', 't', 'u', 's'> {};
@@ -91,6 +97,7 @@ template <> struct store<escaped_char> : std::true_type {};
 template <> struct store<hexbyte> : std::true_type {};
 template <> struct store<hexwildcard> : std::true_type {};
 template <> struct store<ascii_char> : std::true_type {};
+template <> struct store<number> : std::true_type {};
 template <> struct store<select> : std::true_type {};
 template <> struct store<index> : std::true_type {};
 template <> struct store<reindex> : std::true_type {};
@@ -105,6 +112,7 @@ template <> struct store<text4_token> : std::true_type {};
 template <> struct store<wide8_token> : std::true_type {};
 template <> struct store<all_token> : std::true_type {};
 template <> struct store<smart_token> : std::true_type {};
+template <> struct store<min_token> : std::true_type {};
 
 constexpr int hex2int(char hexchar) {
     if (hexchar >= '0' && hexchar <= '9') {
@@ -222,6 +230,26 @@ Query transform(const parse_tree::node &n) {
         if (n.children.size() == 1) {
             return transform(*n.children[0]);
         }
+
+	if (n.children[0]->is<min_token>()) {
+            auto &count = n.children[1];
+	    unsigned int counti;
+	    try {
+	        counti = std::stoi(count->content());
+	    } catch (std::out_of_range &e) {
+                throw std::runtime_error("number N is out of range in 'min N of (...)' expression");
+	    }
+	    auto it = n.children.cbegin() + 2;
+	    std::vector<Query> subq;
+
+	    for (; it != n.children.cend(); ++it) {
+	        Query q = transform(**it);
+		subq.push_back(q);
+	    }
+
+            return Query(counti, subq);
+	}
+
         auto &expr = n.children[1];
         if (expr->is<op_or>()) {
             return Query(QueryType::OR, {transform(*n.children[0]), transform(*n.children[2])});
