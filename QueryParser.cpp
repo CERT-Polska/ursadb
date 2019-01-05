@@ -230,18 +230,17 @@ Query transform(const parse_tree::node &n) {
         auto &count = n.children[0];
         unsigned int counti;
 
-    try {
+        try {
             counti = std::stoi(count->content());
-    } catch (std::out_of_range &e) {
+        } catch (std::out_of_range &e) {
             throw std::runtime_error("number N is out of range in 'min N of (...)' expression");
         }
+
         auto it = n.children.cbegin() + 1;
         std::vector<Query> subq;
 
         for (; it != n.children.cend(); ++it) {
-            Query q = transform(**it);
-            subq.push_back(q);
-            std::cout << q << std::endl;
+            subq.emplace_back(transform(**it));
         }
 
         return Query(counti, subq);
@@ -265,7 +264,6 @@ Query transform(const parse_tree::node &n) {
 Command transform_command(const parse_tree::node &n) {
     if (n.is<select>()) {
         auto &expr = n.children[0];
-        print_node(*expr);
         return Command(SelectCommand(transform(*expr)));
     } else if (n.is<index>()) {
         auto it = n.children.cbegin();
