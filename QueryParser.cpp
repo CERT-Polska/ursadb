@@ -54,7 +54,7 @@ struct expression;
 struct bracketed : if_must<open_bracket, expression, close_bracket> {};
 struct value : sor<string_like, bracketed> {};
 struct comma;
-struct argument_tuple : seq<open_bracket, opt<seq<expression, star<seq<comma, expression>>>>, close_bracket> {};
+struct argument_tuple : seq<open_bracket, seq<expression, star<seq<comma, expression>>>, close_bracket> {};
 struct min_of_expr : seq<min_token, plus<space>, number, plus<space>, of_token, star<space>, argument_tuple> {};
 struct expression : seq<sor<value, min_of_expr>, star<sor<op_and, op_or>, expression>> {};
 struct comma_token : one<','> {};
