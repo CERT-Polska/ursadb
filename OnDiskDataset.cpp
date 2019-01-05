@@ -87,6 +87,9 @@ QueryResult OnDiskDataset::pick_common(int cutoff, const std::vector<Query> &que
         // This should never happen for well-formed queries, but this check is very cheap.
         return QueryResult::empty();
     }
+    if (cutoff <= 0) {
+        return QueryResult::everything();
+    }
 
     std::vector<QueryResult> sources_storage;
     for (auto &query : queries) {
