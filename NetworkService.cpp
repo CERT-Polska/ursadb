@@ -28,7 +28,7 @@ static void *worker_thread(void *arg) {
 
         //  Get request, send reply
         std::string request = s_recv(worker);
-        std::cout << "Worker: " << request << std::endl;
+        std::cout << "task " << wctx->task->id << ": " << request << std::endl;
 
         wctx->snap.set_db_handle(DatabaseHandle(&worker));
 
@@ -84,8 +84,7 @@ void NetworkService::run() {
 
 void NetworkService::commit_task(WorkerContext *wctx) {
     uint64_t did_task = wctx->task->id;
-    std::cout << "worker finished: " << wctx->identity << ", he was doing task " << did_task
-              << std::endl;
+    std::cout << "task " << did_task << ": finished by worker " << wctx->identity << std::endl;
 
     db.commit_task(wctx->task->id);
     wctx->task = nullptr;
