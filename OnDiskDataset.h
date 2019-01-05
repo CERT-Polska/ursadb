@@ -23,6 +23,7 @@ class OnDiskDataset {
     QueryResult internal_execute(const Query &query) const;
     const OnDiskIndex &get_index_with_type(IndexType index_type) const;
     void drop_file(const std::string &fname) const;
+    QueryResult pick_common(int cutoff, const std::vector<Query> &queries) const;
 
   public:
     explicit OnDiskDataset(const fs::path &db_base, const std::string &fname);

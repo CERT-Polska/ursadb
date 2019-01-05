@@ -42,53 +42,94 @@ QueryResult OnDiskDataset::query_str(const QString &str) const {
     return result;
 }
 
+std::vector<FileId> internal_pick_common(int cutoff, const std::vector<const std::vector<FileId>*> &sources) {
+    using FileIdRange = std::pair<std::vector<FileId>::const_iterator, std::vector<FileId>::const_iterator>;
+    std::vector<FileId> result;
+    std::vector<FileIdRange> heads(sources.size());
+
+    for (int i = 0; i < static_cast<int>(sources.size()); i++) {
+        heads[i] = std::make_pair(sources[i]->cbegin(), sources[i]->cend());
+    }
+
+    while (static_cast<int>(heads.size()) >= cutoff) {
+        int min_index = 0;
+        FileId min_id = *heads[0].first;
+        for (int i = 1; i < static_cast<int>(heads.size()); i++) {
+            if (*heads[i].first < min_id) {
+                min_index = i; // TODO benchmark and consider removing.
+                min_id = *heads[i].first;
+            }
+        }
+
+        int repeat_count = 0;
+        for (int i = min_index; i < static_cast<int>(heads.size()); i++) {
+            if (*heads[i].first == min_id) {
+                repeat_count += 1;
+                heads[i].first++;
+                if (heads[i].first == heads[i].second) {
+                    heads.erase(heads.begin() + i);
+                    i--; // Be careful not to skip elements!
+                }
+            }
+        }
+
+        if (repeat_count >= cutoff) {
+            result.push_back(min_id);
+        }
+    }
+
+    return result;
+}
+
+QueryResult OnDiskDataset::pick_common(int cutoff, const std::vector<Query> &queries) const {
+    if (cutoff > static_cast<int>(queries.size())) {
+        // Short circuit when cutoff is too big.
+        // This should never happen for well-formed queries, but this check is very cheap.
+        return QueryResult::empty();
+    }
+
+    std::vector<QueryResult> sources_storage;
+    for (auto &query : queries) {
+        QueryResult result = internal_execute(query);
+        if (result.is_everything()) {
+            cutoff -= 1;
+            if (cutoff <= 0) {
+                // Short circuit when result is trivially everything().
+                // Do it in the loop, to potentially save expensive
+                // `internal_execute` invocations.
+                return QueryResult::everything();
+            }
+        } else {
+            sources_storage.push_back(result);
+        }
+    }
+
+    // Special case optimization for cutoff==1 and a single source.
+    if (cutoff == 1 && sources_storage.size() == 1) {
+        return sources_storage[0];
+    }
+
+    std::vector<const std::vector<FileId>*> sources;
+    for (auto &s : sources_storage) {
+        sources.push_back(&s.vector());
+    }
+
+    return QueryResult(internal_pick_common(cutoff, sources));
+}
+
+
 QueryResult OnDiskDataset::internal_execute(const Query &query) const {
     switch (query.get_type()) {
         case QueryType::PRIMITIVE:
             return query_str(query.as_value());
         case QueryType::OR: {
-            QueryResult result = QueryResult::empty();
-            for (auto &q : query.as_queries()) {
-                result.do_or(internal_execute(q));
-            }
-            return result;
+            return pick_common(1, query.as_queries());
         }
         case QueryType::AND: {
-            QueryResult result = QueryResult::everything();
-            for (auto &q : query.as_queries()) {
-                result.do_and(internal_execute(q));
-            }
-            return result;
+            return pick_common(query.as_queries().size(), query.as_queries());
         }
         case QueryType::MIN_OF: {
-            std::map<FileId, unsigned int> fid_count;
-	    std::vector<FileId> res;
-	    unsigned int cutoff_count = query.as_count();
-
-            for (auto &q : query.as_queries()) {
-                QueryResult qres = internal_execute(q);
-		if (qres.is_everything() && cutoff_count > 0) {
-                    // subquery reduced to "everything", simply ignore it
-                    cutoff_count--;
-		} else {
-                    for (auto &fid : qres.vector()) {
-                        fid_count[fid]++;
-		    }
-		}
-            }
-
-	    if (cutoff_count == 0) {
-                // either query was "any 0 of (...)" or all subqueries reduced to a special value "everything"
-                return QueryResult::everything();
-	    }
-
-	    for (auto it = fid_count.begin(); it != fid_count.end(); ++it) {
-                if (it->second >= cutoff_count) {
-                    res.push_back(it->first);
-		}
-	    }
-
-            return QueryResult(res);
+            return pick_common(query.as_count(), query.as_queries());
         }
     }
 
