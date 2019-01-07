@@ -4,7 +4,7 @@
 
 #include "Query.h"
 
-static std::vector<IndexType> default_index_types() { return {IndexType::GRAM3}; };
+std::vector<IndexType> default_index_types();
 
 class SelectCommand {
     Query query;
