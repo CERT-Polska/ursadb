@@ -122,7 +122,7 @@ TEST_CASE("index command with default types", "[queryparser]") {
     Command cmd = parse_command("index \"cat\";");
     IndexCommand index_cmd = std::get<IndexCommand>(cmd);
     REQUIRE(index_cmd.get_paths() == std::vector<std::string> {"cat"});
-    REQUIRE(index_cmd.get_index_types() == IndexCommand::default_types());
+    REQUIRE(index_cmd.get_index_types() == default_index_types());
 }
 
 TEST_CASE("index command with type override", "[queryparser]") {
