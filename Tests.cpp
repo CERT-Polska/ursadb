@@ -466,6 +466,8 @@ TEST_CASE("Query end2end test", "[e2e_test]") {
     db.commit_task(task->id);
 
     make_query(db, "select \"nonexistent\";", {});
+    make_query(db, "select min 1 of ({000000}, {010101});", {});
+    make_query(db, "select min 2 of ({000000});", {});
     make_query(db, "select \"foot\" & \"ing\";", {"ISLT", "WEEC", "GJND", "QTXN"});
     make_query(db, "select \"dragons\" & \"bridge\";", {"GJND", "QTXN"});
     make_query(db, "select min 2 of (\"wing\", \"tool\", \"less\");", {"IPVX", "GJND", "IJKZ"});
