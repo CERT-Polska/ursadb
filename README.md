@@ -131,6 +131,7 @@ index "/opt/something" with [gram3, text4, hash4, wide8];
 ```
 
 ### Select
+#### Strings ("primitives")
 Select queries could use ordinary strings, hex strings and wide strings.
 
 Query for ASCII bytes `abc`:
@@ -148,6 +149,7 @@ Query for wide string `abc` (the same as `{610062006300}`):
 select w"abc";
 ```
 
+#### Logical operators
 Elements could be AND-ed:
 ```
 select "abc" & "bcd";
@@ -161,6 +163,31 @@ select "abc" | "bcd";
 Queries may also use parenthesis:
 ```
 select ("abc" | "bcd") & "cde";
+```
+
+#### Minimum operator
+You may query for samples which contain at least N of M strings:
+```
+select min 2 of ("abcd", "bcdf", "cdef");
+```
+
+is equivalent to:
+
+```
+select ("abcd" & "bcdf") | ("abcd" & "cdef") | ("bcdf" | "cdef");
+```
+
+Note that `min N of (...)` is executed more efficiently than latter "combinatorial" example. Such syntax is directly corresponding to yara's "[sets of strings](https://yara.readthedocs.io/en/v3.4.0/writingrules.html#sets-of-strings)" feature.
+
+This operator accepts arbitrary expressions as it's arguments, e.g.:
+```
+select min 2 of ("abcd" & "bcdf", "lorem" & "ipsum", "hello" & "hi there");
+```
+in this case inner expressions like `"abcd" & "bcdf"` will be evaluated first.
+
+Minimum operator could be also nested in some expression, e.g.:
+```
+select "abcd" | ("cdef" & min 2 of ("hello", "hi there", "good morning"));
 ```
 
 ### Status
