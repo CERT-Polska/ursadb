@@ -137,7 +137,7 @@ by default it will be indexed using `gram3` index. Index types may be specified 
 index "/opt/something" with [gram3, text4, hash4, wide8];
 ```
 
-#### Paths in a list fileadd comments in
+#### Paths in a list file
 For convenience it's also possible to make UrsaDB read a file containing a list of targets to be indexed,
 each one separated by a newline.
 
