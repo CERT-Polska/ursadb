@@ -118,16 +118,44 @@ Queries
 -------
 
 ### Indexing
+#### Directly provided paths
 A filesystem path could be indexed using `index` command:
 
 ```
 index "/opt/something";
 ```
 
+or multiple paths at once:
+
+```
+index "/opt/something" "/opt/foobar";
+```
+
 by default it will be indexed using `gram3` index. Index types may be specified manually:
 
 ```
 index "/opt/something" with [gram3, text4, hash4, wide8];
+```
+
+#### Paths in a list file
+For convenience it's also possible to make UrsaDB read a file containing a list of targets to be indexed,
+each one separated by a newline.
+
+```
+index from list "/tmp/file-list.txt"
+```
+
+or
+
+```
+index from list "/tmp/file-list.txt" with [gram3, text4, hash4, wide8];
+```
+
+while exemplary contents of `/tmp/file-list.txt` is:
+
+```
+/opt/something
+/opt/foobar
 ```
 
 ### Select
