@@ -7,6 +7,7 @@
 #include "BitmapIndexBuilder.h"
 #include "FlatIndexBuilder.h"
 #include "OnDiskIndex.h"
+#include "OnDiskDataset.h"
 #include "Query.h"
 #include "QueryParser.h"
 #include "Utils.h"
@@ -471,4 +472,38 @@ TEST_CASE("Query end2end test", "[e2e_test]") {
     make_query(db, "select \"foot\" & \"ing\";", {"ISLT", "WEEC", "GJND", "QTXN"});
     make_query(db, "select \"dragons\" & \"bridge\";", {"GJND", "QTXN"});
     make_query(db, "select min 2 of (\"wing\", \"tool\", \"less\");", {"IPVX", "GJND", "IJKZ"});
+}
+
+TEST_CASE("Test internal_pick_common", "[internal_pick_common]") {
+    std::vector<FileId> source1 = {1, 2, 3};
+    REQUIRE(internal_pick_common(1, {&source1}) == std::vector<FileId> {1, 2, 3});
+    REQUIRE(internal_pick_common(2, {&source1}) == std::vector<FileId> {});
+
+    std::vector<FileId> source2 = {3, 4, 5};
+    REQUIRE(internal_pick_common(1, {&source1, &source2}) == std::vector<FileId> {1, 2, 3, 4, 5});
+    REQUIRE(internal_pick_common(2, {&source1, &source2}) == std::vector<FileId> {3});
+
+    std::vector<FileId> source3 = {1, 2, 3};
+    REQUIRE(internal_pick_common(1, {&source1, &source3}) == std::vector<FileId> {1, 2, 3});
+    REQUIRE(internal_pick_common(2, {&source1, &source3}) == std::vector<FileId> {1, 2, 3});
+
+    std::vector<FileId> source4 = {4, 5, 6};
+    REQUIRE(internal_pick_common(1, {&source1, &source4}) == std::vector<FileId> {1, 2, 3, 4, 5, 6});
+    REQUIRE(internal_pick_common(2, {&source1, &source4}) == std::vector<FileId> {});
+
+    REQUIRE(internal_pick_common(1, {&source1, &source2, &source4}) == std::vector<FileId> {1, 2, 3, 4, 5, 6});
+    REQUIRE(internal_pick_common(2, {&source1, &source2, &source4}) == std::vector<FileId> {3, 4, 5});
+    REQUIRE(internal_pick_common(3, {&source1, &source2, &source4}) == std::vector<FileId> {});
+
+    REQUIRE(internal_pick_common(1, {&source1, &source2, &source3}) == std::vector<FileId> {1, 2, 3, 4, 5});
+    REQUIRE(internal_pick_common(2, {&source1, &source2, &source3}) == std::vector<FileId> {1, 2, 3});
+    REQUIRE(internal_pick_common(3, {&source1, &source2, &source3}) == std::vector<FileId> {3});
+
+    std::vector<FileId> source5 = {};
+    REQUIRE(internal_pick_common(1, {&source5}) == std::vector<FileId> {});
+    REQUIRE(internal_pick_common(2, {&source5, &source5}) == std::vector<FileId> {});
+    REQUIRE(internal_pick_common(1, {&source1, &source5}) == std::vector<FileId> {1, 2, 3});
+    REQUIRE(internal_pick_common(1, {&source5, &source1}) == std::vector<FileId> {1, 2, 3});
+    REQUIRE(internal_pick_common(2, {&source1, &source1, &source5}) == std::vector<FileId> {1, 2, 3});
+    REQUIRE(internal_pick_common(2, {&source1, &source5, &source1}) == std::vector<FileId> {1, 2, 3});
 }

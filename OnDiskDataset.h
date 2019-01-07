@@ -39,3 +39,5 @@ class OnDiskDataset {
     const std::vector<OnDiskIndex> &get_indexes() const { return indices; }
     static std::vector<const OnDiskDataset *> get_compact_candidates(const std::vector<const OnDiskDataset *> &datasets);
 };
+
+std::vector<FileId> internal_pick_common(int cutoff, const std::vector<const std::vector<FileId>*> &sources);
