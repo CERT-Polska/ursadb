@@ -174,7 +174,7 @@ select min 2 of ("abcd", "bcdf", "cdef");
 is equivalent to:
 
 ```
-select ("abcd" & "bcdf") | ("abcd" & "cdef") | ("bcdf" | "cdef");
+select ("abcd" & "bcdf") | ("abcd" & "cdef") | ("bcdf" & "cdef");
 ```
 
 Note that `min N of (...)` is executed more efficiently than latter "combinatorial" example. Such syntax is directly corresponding to yara's "[sets of strings](https://yara.readthedocs.io/en/v3.4.0/writingrules.html#sets-of-strings)" feature.
