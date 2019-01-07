@@ -29,6 +29,32 @@ Response execute_command(const SelectCommand &cmd, Task *task, const DatabaseSna
     return Response::select(out);
 }
 
+Response execute_command(const IndexFromCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
+    const auto &path_list_fname = cmd.get_path_list_fname();
+
+    std::vector<std::string> paths;
+    std::ifstream inf(path_list_fname, std::ifstream::binary);
+
+    if (!inf) {
+        throw std::runtime_error("failed to open file");
+    }
+
+    inf.exceptions(std::ifstream::badbit);
+
+    while (!inf.eof()) {
+        std::string filename;
+        std::getline(inf, filename);
+
+        if (!filename.empty()) {
+            paths.push_back(filename);
+        }
+    }
+
+    snap->index_path(task, cmd.get_index_types(), paths);
+
+    return Response::ok();
+}
+
 Response execute_command(const IndexCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
     snap->index_path(task, cmd.get_index_types(), cmd.get_paths());
 

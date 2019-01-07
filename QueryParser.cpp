@@ -80,7 +80,10 @@ struct select : seq<select_token, star<space>, expression> {};
 struct status : seq<status_token> {};
 struct ping : seq<ping_token> {};
 struct topology : seq<topology_token> {};
-struct index : seq<index_token, star<space>, list<string_like, space>, star<space>, opt<index_with_construct>> {};
+struct paths_construct : list<string_like, space> {};
+struct from_list_token : string<'f', 'r', 'o', 'm', ' ', 'l', 'i', 's', 't'> {};
+struct from_list_construct : seq<from_list_token, plus<space>, string_like> {};
+struct index : seq<index_token, star<space>, sor<paths_construct, from_list_construct>, star<space>, opt<index_with_construct>> {};
 struct reindex : seq<reindex_token, star<space>, string_like, star<space>, index_with_construct> {};
 struct compact : seq<compact_token, star<space>, sor<all_token, smart_token>> {};
 struct command : seq<sor<select, index, reindex, compact, status, topology, ping>, star<space>, one<';'>> {};
@@ -113,6 +116,8 @@ template <> struct store<wide8_token> : std::true_type {};
 template <> struct store<all_token> : std::true_type {};
 template <> struct store<smart_token> : std::true_type {};
 template <> struct store<min_of_expr> : std::true_type {};
+template <> struct store<paths_construct> : std::true_type {};
+template <> struct store<from_list_construct> : std::true_type {};
 
 constexpr int hex2int(char hexchar) {
     if (hexchar >= '0' && hexchar <= '9') {
@@ -266,20 +271,28 @@ Command transform_command(const parse_tree::node &n) {
         auto &expr = n.children[0];
         return Command(SelectCommand(transform(*expr)));
     } else if (n.is<index>()) {
-        auto it = n.children.cbegin();
+        auto &target_n = n.children[0];
+        auto &types_n = n.children[1];
 
         std::vector<std::string> paths;
         std::vector<IndexType> types = IndexCommand::default_types();
 
-        for (; it != n.children.cend(); ++it) {
-            if ((*it)->is<index_type_list>()) {
-                types = transform_index_types(**it);
-            } else {
-                paths.push_back(transform_string(**it));
-            }
+        if (n.children.size() == 2) {
+            types = transform_index_types(*types_n);
         }
 
-        return Command(IndexCommand(paths, types));
+        if (target_n->is<paths_construct>()) {
+            for (auto it = target_n->children.cbegin(); it != target_n->children.cend(); ++it) {
+                paths.push_back(transform_string(**it));
+            }
+
+            return Command(IndexCommand(paths, types));
+        } else if (target_n->is<from_list_construct>()) {
+            std::string list_file = transform_string(*target_n->children[0]);
+            return Command(IndexFromCommand(list_file, types));
+        } else {
+            throw std::runtime_error("unexpected first node in index");
+        }
     } else if (n.is<reindex>()) {
         std::string dataset_name = transform_string(*n.children[0]);
         std::vector<IndexType> types;

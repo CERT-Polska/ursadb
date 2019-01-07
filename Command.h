@@ -4,6 +4,8 @@
 
 #include "Query.h"
 
+static std::vector<IndexType> default_index_types() { return {IndexType::GRAM3}; };
+
 class SelectCommand {
     Query query;
 
@@ -16,13 +18,26 @@ class IndexCommand {
     std::vector<std::string> paths;
     std::vector<IndexType> types;
 
-  public:
+public:
     IndexCommand(const std::vector<std::string> &paths, const std::vector<IndexType> &types)
-        : paths(paths), types(types) {}
+            : paths(paths), types(types) {}
     const std::vector<std::string> &get_paths() const { return paths; }
     const std::vector<IndexType> &get_index_types() const { return types; }
 
-    static std::vector<IndexType> default_types() { return {IndexType::GRAM3}; }
+    static std::vector<IndexType> default_types() { return default_index_types(); }
+};
+
+class IndexFromCommand {
+    std::string path_list_fname;
+    std::vector<IndexType> types;
+
+public:
+    IndexFromCommand(const std::string &path_list_fname, const std::vector<IndexType> &types)
+            : path_list_fname(path_list_fname), types(types) {}
+    const std::string &get_path_list_fname() const { return path_list_fname; }
+    const std::vector<IndexType> &get_index_types() const { return types; }
+
+    static std::vector<IndexType> default_types() { return default_index_types(); }
 };
 
 class ReindexCommand {
@@ -62,4 +77,4 @@ class PingCommand {
 };
 
 using Command = std::variant<
-        SelectCommand, IndexCommand, ReindexCommand, CompactCommand, StatusCommand, TopologyCommand, PingCommand>;
+        SelectCommand, IndexCommand, IndexFromCommand, ReindexCommand, CompactCommand, StatusCommand, TopologyCommand, PingCommand>;
