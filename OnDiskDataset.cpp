@@ -43,6 +43,7 @@ QueryResult OnDiskDataset::query_str(const QString &str) const {
 }
 
 std::vector<FileId> internal_pick_common(int cutoff, const std::vector<const std::vector<FileId>*> &sources) {
+    // returns all FileIds which appear at least `cutoff` times among provided `sources`
     using FileIdRange = std::pair<std::vector<FileId>::const_iterator, std::vector<FileId>::const_iterator>;
     std::vector<FileId> result;
     std::vector<FileIdRange> heads(sources.size());
@@ -52,6 +53,7 @@ std::vector<FileId> internal_pick_common(int cutoff, const std::vector<const std
     }
 
     while (static_cast<int>(heads.size()) >= cutoff) {
+        // pick lowest possible FileId value among all current heads
         int min_index = 0;
         FileId min_id = *heads[0].first;
         for (int i = 1; i < static_cast<int>(heads.size()); i++) {
@@ -61,11 +63,14 @@ std::vector<FileId> internal_pick_common(int cutoff, const std::vector<const std
             }
         }
 
+        // fix on that particular value selected in previous step and count number of repetitions among heads
+        // note that it's implementation-defined that std::vector<FileId> is always sorted and we use this fact here
         int repeat_count = 0;
         for (int i = min_index; i < static_cast<int>(heads.size()); i++) {
             if (*heads[i].first == min_id) {
                 repeat_count += 1;
                 heads[i].first++;
+                // head ended, we may get rid of it
                 if (heads[i].first == heads[i].second) {
                     heads.erase(heads.begin() + i);
                     i--; // Be careful not to skip elements!
@@ -73,6 +78,7 @@ std::vector<FileId> internal_pick_common(int cutoff, const std::vector<const std
             }
         }
 
+        // this value has enough repetitions among different heads to add it to the result set
         if (repeat_count >= cutoff) {
             result.push_back(min_id);
         }
