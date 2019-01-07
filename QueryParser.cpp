@@ -272,13 +272,12 @@ Command transform_command(const parse_tree::node &n) {
         return Command(SelectCommand(transform(*expr)));
     } else if (n.is<index>()) {
         auto &target_n = n.children[0];
-        auto &types_n = n.children[1];
 
         std::vector<std::string> paths;
         std::vector<IndexType> types = IndexCommand::default_types();
 
         if (n.children.size() == 2) {
-            types = transform_index_types(*types_n);
+            types = transform_index_types(*n.children[1]);
         }
 
         if (target_n->is<paths_construct>()) {
