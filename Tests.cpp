@@ -444,7 +444,15 @@ void make_query(Database &db, std::string query_str, std::set<std::string> expec
     db.snapshot().execute(query, task, &out);
     db.commit_task(task->id);
 
-    std::set<std::string> out_set(out.begin(), out.end());
+    std::vector<std::string> out_fixed;
+
+    for (const auto &x : out) {
+        std::string xx = x.substr(x.find_last_of("/") + 1);
+        xx.resize(xx.size() - 4);
+        out_fixed.push_back(xx);
+    }
+
+    std::set<std::string> out_set(out_fixed.begin(), out_fixed.end());
     REQUIRE(out_set == expected_out);
 }
 
@@ -457,7 +465,8 @@ TEST_CASE("Query end2end test", "[e2e_test]") {
     db.snapshot().index_path(task, {IndexType::GRAM3, IndexType::HASH4, IndexType::TEXT4, IndexType::WIDE8}, {"test/"});
     db.commit_task(task->id);
 
-    make_query(db, "select \"aaa\";", {"/src/build/test/test10.txt"});
-    make_query(db, "select \"aaa\" | \"abc\";", {"/src/build/test/test7.txt", "/src/build/test/test10.txt"});
-    make_query(db, "select min 2 of \"aaa\" | \"abc\";", {"/src/build/test/test7.txt", "/src/build/test/test10.txt"});
+    make_query(db, "select \"nonexistent\";", {});
+    make_query(db, "select \"foot\" & \"ing\";", {"ISLT", "WEEC", "GJND", "QTXN"});
+    make_query(db, "select \"dragons\" & \"bridge\";", {"GJND", "QTXN"});
+    make_query(db, "select min 2 of (\"wing\", \"tool\", \"less\");", {"IPVX", "GJND", "IJKZ"});
 }
