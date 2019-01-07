@@ -46,10 +46,13 @@ std::vector<FileId> internal_pick_common(int cutoff, const std::vector<const std
     // returns all FileIds which appear at least `cutoff` times among provided `sources`
     using FileIdRange = std::pair<std::vector<FileId>::const_iterator, std::vector<FileId>::const_iterator>;
     std::vector<FileId> result;
-    std::vector<FileIdRange> heads(sources.size());
+    std::vector<FileIdRange> heads;
+    heads.reserve(sources.size());
 
-    for (int i = 0; i < static_cast<int>(sources.size()); i++) {
-        heads[i] = std::make_pair(sources[i]->cbegin(), sources[i]->cend());
+    for (auto source : sources) {
+        if (!source->empty()) {
+            heads.emplace_back(std::make_pair(source->cbegin(), source->cend()));
+        }
     }
 
     while (static_cast<int>(heads.size()) >= cutoff) {
