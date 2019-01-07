@@ -23,8 +23,6 @@ public:
             : paths(paths), types(types) {}
     const std::vector<std::string> &get_paths() const { return paths; }
     const std::vector<IndexType> &get_index_types() const { return types; }
-
-    static std::vector<IndexType> default_types() { return default_index_types(); }
 };
 
 class IndexFromCommand {
@@ -36,8 +34,6 @@ public:
             : path_list_fname(path_list_fname), types(types) {}
     const std::string &get_path_list_fname() const { return path_list_fname; }
     const std::vector<IndexType> &get_index_types() const { return types; }
-
-    static std::vector<IndexType> default_types() { return default_index_types(); }
 };
 
 class ReindexCommand {

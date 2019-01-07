@@ -274,7 +274,7 @@ Command transform_command(const parse_tree::node &n) {
         auto &target_n = n.children[0];
 
         std::vector<std::string> paths;
-        std::vector<IndexType> types = IndexCommand::default_types();
+        std::vector<IndexType> types = default_index_types();
 
         if (n.children.size() == 2) {
             types = transform_index_types(*n.children[1]);
