@@ -224,10 +224,7 @@ Query for status of tasks running in the database:
 status;
 ```
 
-Output format is `\t` separated table where columns mean:
-```
-task_id    work_done    work_estimated    conn_id    command_str
-```
+Output format is a JSON object with the details of all tasks. Exact format of these sub-objects is defined in [Responses.cpp](https://github.com/CERT-Polska/ursadb/blob/master/Responses.cpp). See `ursadb-cli` for a working implementation.
 
 ### Topology
 Check current database topology - what datasets are loaded and which index types they use.
