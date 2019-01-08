@@ -8,7 +8,6 @@ services:
 
 stages:
   - build
-  - test
 
 before_script:
   - echo "Start job $CI_BUILD_NAME" at `date +%Y-%m-%d-%H-%M-%S`
@@ -23,9 +22,3 @@ build_ursadb:
 
     - docker push "$DOCKER_REGISTRY/ursadb:$CI_PIPELINE_ID"
     - docker push "$DOCKER_REGISTRY/ursadb:latest"
-
-test_ursadb:
-  stage: test
-  script:
-    - docker pull "$DOCKER_REGISTRY/ursadb:$CI_PIPELINE_ID" > /dev/null
-    - docker run --entrypoint "/usr/bin/ursadb_test" "$DOCKER_REGISTRY/ursadb:$CI_PIPELINE_ID"
