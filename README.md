@@ -12,7 +12,7 @@ How does it work?
 
 UrsaDB is using few slightly different methods of indexing files, having `gram3` indexes as a most basic concept.
 
-When the database is about to create a `gram3` index for a given file, it extracts all possible three byte combinations from it. Index is a big map of: `3gram` => `list of files which contain it`.
+When the database is about to create a `gram3` index for a given file, it extracts all possible three-byte combinations from it. An index is a big map of: `3gram` => `list of files which contain it`.
 
 For instance, if we would index a text file containing ASCII string `TEST MALWARE` (ASCII: `54 45 53 54 20 4D 41 4C 57 41 52 45`), then the database would generate the following trigrams (`_` denotes space character):
 
@@ -45,15 +45,15 @@ Such searching technique sometimes may yield false positives, but it's never goi
 
 String literals are very common in binaries. Thus, it's useful to have a specialized index for ASCII characters.
 
-In `text4` index, ASCII characters are packed in a manner similiar to [base64](https://en.wikipedia.org/wiki/Base64) algorithm. Due to that, it is possible to generate a trigram out of four characters.
+In `text4` index, ASCII characters are packed in a manner similar to [base64](https://en.wikipedia.org/wiki/Base64) algorithm. Due to that, it is possible to generate a trigram out of four characters.
 
 ![](docs/4gram3.png)
 
-Note that such index doesn't respond to queries containing non-ASCII bytes, so it should be combined with at least `gram3` index.
+Note that such an index doesn't respond to queries containing non-ASCII bytes, so it should be combined with at least `gram3` index.
 
 ### wide8
 
-Because searching for `UTF-16` is also useful, there is a special index which works similiarily to `text4`. In this case, ASCII characters interleaved with zeros are decoded.
+Because searching for `UTF-16` is also useful, there is a special index which works similarily to `text4`. In this case, ASCII characters interleaved with zeros are decoded.
 
 ![](docs/4gram5.png)
 
@@ -219,12 +219,12 @@ select "abcd" | ("cdef" & min 2 of ("hello", "hi there", "good morning"));
 ```
 
 ### Status
-Query for status of tasks running in the database:
+Query for the status of tasks running in the database:
 ```
 status;
 ```
 
-Output format is a JSON object with the details of all tasks. Exact format of these sub-objects is defined in [Responses.cpp](https://github.com/CERT-Polska/ursadb/blob/master/Responses.cpp). See `ursadb-cli` for a working implementation.
+The output format is a JSON object with the details of all tasks. Exact format of these sub-objects is defined in [Responses.cpp](https://github.com/CERT-Polska/ursadb/blob/master/Responses.cpp). See `ursadb-cli` for a working implementation.
 
 ### Topology
 Check current database topology - what datasets are loaded and which index types they use.
@@ -248,7 +248,7 @@ INDEX bc43a921 text4
 Means that there are two datasets (partitions), both backed with indexes of type `gram3` and `text4`.
 
 ### Reindex
-Add new index type to the existing dataset. Before reindexing, you need to determine the ID of dataset
+Add new index type to the existing dataset. Before reindexing, you need to determine the ID of the dataset
 which has to be indexed (may be done using `topology` command).
 
 Example:
@@ -261,7 +261,7 @@ will reindex already existing dataset `bc43a921` with `hash4` type index.
 ### Compact
 Force database compacting.
 
-In order to force compacting of all datasets into single one:
+In order to force compacting of all datasets into a single one:
 ```
 compact all;
 ```
