@@ -111,7 +111,7 @@ systemctl enable ursadb
 Usage
 -----
 
-Interaction with the database could be done using `ursadb2-client` (see another repository).
+Interaction with the database could be done using `ursadb-cli` (see another repository).
 
 
 Queries
