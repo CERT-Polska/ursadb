@@ -15,6 +15,7 @@ class FlatIndexBuilder : public IndexBuilder {
 
   public:
     FlatIndexBuilder(IndexType ntype);
+    virtual ~FlatIndexBuilder() = default;
 
     void add_file(FileId fid, const uint8_t *data, size_t size);
     void save(const std::string &fname);

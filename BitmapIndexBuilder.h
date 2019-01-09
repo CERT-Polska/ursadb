@@ -14,6 +14,7 @@ class BitmapIndexBuilder : public IndexBuilder {
 
   public:
     BitmapIndexBuilder(IndexType ntype);
+    virtual ~BitmapIndexBuilder() = default;
 
     void add_file(FileId fid, const uint8_t *data, size_t size);
     void save(const std::string &fname);
