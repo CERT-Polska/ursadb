@@ -1,4 +1,4 @@
-image: naskpl/docker-compose
+image: certpl/docker-ci-base:latest
 
 variables:
   DOCKER_DRIVER: overlay2
@@ -8,6 +8,7 @@ services:
 
 stages:
   - build
+  - deploy
 
 before_script:
   - echo "Start job $CI_BUILD_NAME" at `date +%Y-%m-%d-%H-%M-%S`
@@ -19,6 +20,25 @@ build_ursadb:
   script:
     - docker build -t "$DOCKER_REGISTRY/ursadb:$CI_PIPELINE_ID" .
     - docker tag "$DOCKER_REGISTRY/ursadb:$CI_PIPELINE_ID" "$DOCKER_REGISTRY/ursadb:latest"
+    - docker tag "$DOCKER_REGISTRY/ursadb:$CI_PIPELINE_ID" "$DOCKER_REGISTRY/ursadb:build-$CI_COMMIT_SHA"
 
     - docker push "$DOCKER_REGISTRY/ursadb:$CI_PIPELINE_ID"
+    - docker push "$DOCKER_REGISTRY/ursadb:build-$CI_COMMIT_SHA"
     - docker push "$DOCKER_REGISTRY/ursadb:latest"
+
+deploy_ursadb:
+  stage: deploy
+  when: manual
+  only:
+    - master
+  environment:
+    name: prod
+  script:
+    - eval $(ssh-agent -s)
+    - echo "$GIT_DEPLOY_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo "$VCS_SSH_KEYS" >> ~/.ssh/known_hosts
+    - git clone "$VCS_DEPLOY_REPO_URL"
+    - cd "$VCS_DEPLOY_REPO_NAME"
+    - sh deploy_ursadb.sh
