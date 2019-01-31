@@ -105,15 +105,19 @@ Response execute_command(const TopologyCommand &cmd, Task *task, const DatabaseS
 
     std::vector<DatasetEntry> result;
     for (const auto *dataset : datasets) {
-        DatasetEntry dataset_entry{
+        DatasetEntry dataset_entry {
             /*.id:*/ dataset->get_id(),
+            /*.size:*/ 0
         };
+
         for (const auto &index : dataset->get_indexes()) {
             IndexEntry index_entry{
                 /*.type:*/ index.index_type(),
             };
             dataset_entry.indexes.push_back(index_entry);
+            dataset_entry.size += index.real_size();
         }
+
         result.push_back(dataset_entry);
     }
 

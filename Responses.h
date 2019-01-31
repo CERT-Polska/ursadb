@@ -18,10 +18,12 @@ struct TaskEntry {
 
 struct IndexEntry {
     IndexType type;
+    unsigned long size;
 };
 
 struct DatasetEntry {
     std::string id;
+    unsigned long size;
     std::vector<IndexEntry> indexes;
 };
 

@@ -8,7 +8,8 @@
 #include "Query.h"
 #include "Utils.h"
 
-OnDiskIndex::OnDiskIndex(const std::string &fname) : disk_map(fname), fname(fs::path(fname).filename()) {
+OnDiskIndex::OnDiskIndex(const std::string &fname)
+        : disk_map(fname), fname(fs::path(fname).filename()), fpath(fs::path(fname)) {
     constexpr uint64_t RUN_OFFSET_ARRAY_SIZE = (NUM_TRIGRAMS + 1) * sizeof(uint64_t);
     if (disk_map.size() < 16 + RUN_OFFSET_ARRAY_SIZE) {
         throw std::runtime_error("corrupted index, file is too small");
@@ -124,6 +125,10 @@ std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram) const {
     }
 
     return read_compressed_run(&data[ptr], &data[next_ptr]);
+}
+
+unsigned long OnDiskIndex::real_size() const {
+    return fs::file_size(fpath);
 }
 
 void OnDiskIndex::on_disk_merge(

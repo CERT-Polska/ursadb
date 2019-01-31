@@ -15,6 +15,7 @@ class OnDiskIndex {
     const uint64_t *run_offsets;
     MemMap disk_map;
     std::string fname;
+    fs::path fpath;
     IndexType ntype;
 
     const uint8_t *data() const { return disk_map.data(); }
@@ -30,6 +31,7 @@ class OnDiskIndex {
     const std::string &get_fname() const { return fname; }
     IndexType index_type() const { return ntype; }
     QueryResult query_str(const QString &str) const;
+    unsigned long real_size() const;
     static void on_disk_merge(
             const fs::path &db_base, const std::string &fname, IndexType merge_type,
             const std::vector<IndexMergeHelper> &indexes, Task *task);
