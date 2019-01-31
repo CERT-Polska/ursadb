@@ -25,7 +25,9 @@ void FlatIndexBuilder::add_trigram(FileId fid, TriGram val) {
 }
 
 void FlatIndexBuilder::save(const std::string &fname) {
-    std::ofstream out(fname, std::ofstream::binary | std::ofstream::out);
+    std::ofstream out;
+    out.exceptions(std::ofstream::badbit);
+    out.open(fname, std::ofstream::binary);
 
     uint32_t magic = DB_MAGIC;
     uint32_t version = 6;

@@ -35,7 +35,9 @@ std::vector<FileId> BitmapIndexBuilder::get_run(TriGram val) const {
 }
 
 void BitmapIndexBuilder::save(const std::string &fname) {
-    std::ofstream out(fname, std::ofstream::binary | std::ofstream::out);
+    std::ofstream out;
+    out.exceptions(std::ofstream::badbit);
+    out.open(fname, std::ofstream::binary);
 
     uint32_t magic = DB_MAGIC;
     uint32_t version = 6;

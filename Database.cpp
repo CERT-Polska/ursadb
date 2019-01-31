@@ -77,9 +77,14 @@ Task *Database::allocate_task() {
 }
 
 void Database::save() {
-    std::ofstream db_file(db_base / db_name, std::ofstream::out | std::ofstream::binary);
+    std::string tmp_db_name = "tmp-" + random_hex_string(8) + "-" + db_name.string();
+    std::ofstream db_file;
+    db_file.exceptions(std::ofstream::badbit);
+    db_file.open(db_base / tmp_db_name, std::ofstream::binary);
+
     json db_json;
     db_json["config"] = {{"max_mem_size", max_memory_size}};
+
     std::vector<std::string> dataset_names;
 
     for (const auto *ds : working_datasets) {
@@ -87,7 +92,12 @@ void Database::save() {
     }
 
     db_json["datasets"] = dataset_names;
+
     db_file << std::setw(4) << db_json << std::endl;
+    db_file.flush();
+    db_file.close();
+
+    fs::rename(db_base / tmp_db_name, db_base / db_name);
 }
 
 void Database::load_dataset(const std::string &ds) {

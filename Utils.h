@@ -13,6 +13,8 @@ using TrigramCallback = std::function<void(TriGram)>;
 using TrigramGenerator = void (*)(const uint8_t *mem, size_t size, TrigramCallback callback);
 namespace fs = std::experimental::filesystem;
 
+std::string random_hex_string(unsigned long length);
+
 TrigramGenerator get_generator_for(IndexType type);
 void gen_trigrams(const uint8_t *mem, size_t size, TrigramCallback callback);
 void gen_b64grams(const uint8_t *mem, size_t size, TrigramCallback callback);

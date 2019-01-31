@@ -1,10 +1,28 @@
 #include "Utils.h"
 
+#include <random>
 #include <fstream>
 #include <set>
 
 #include "MemMap.h"
 #include "Json.h"
+
+std::string random_hex_string(unsigned long length) {
+    constexpr static char charset[] = "0123456789abcdef";
+    thread_local static std::random_device rd;
+    thread_local static std::seed_seq seed{rd(), rd(), rd(), rd()}; // A bit better than pathetic default
+    thread_local static std::mt19937_64 random(seed);
+    thread_local static std::uniform_int_distribution<int> pick(0, sizeof(charset) - 2);
+
+    std::string result;
+    result.reserve(length);
+
+    for (unsigned long i = 0; i < length; i++) {
+        result += charset[pick(random)];
+    }
+
+    return result;
+}
 
 TrigramGenerator get_generator_for(IndexType type) {
     switch (type) {
@@ -178,10 +196,16 @@ void store_dataset(
         const fs::path &db_base, const std::string &fname, const std::set<std::string> &index_names,
         const std::vector<std::string> &fids) {
     std::string fname_list = "files." + fname;
-    std::ofstream of(db_base / fname_list, std::ofstream::out | std::ofstream::binary);
+
+    std::ofstream of;
+    of.exceptions(std::ofstream::badbit);
+    of.open(db_base / fname_list, std::ofstream::binary);
+
     for (auto &fn : fids) {
         of << fn << "\n";
     }
+
+    of.flush();
 
     json dataset;
     json j_indices(index_names);
@@ -189,8 +213,12 @@ void store_dataset(
     dataset["indices"] = j_indices;
     dataset["files"] = fname_list;
 
-    std::ofstream o(db_base / fname, std::ofstream::out | std::ofstream::binary);
+    std::ofstream o;
+    o.exceptions(std::ofstream::badbit);
+    o.open(db_base / fname, std::ofstream::binary);
+
     o << std::setw(4) << dataset << std::endl;
+    o.flush();
 }
 
 std::string bin_str_to_hex(const std::string& str) {

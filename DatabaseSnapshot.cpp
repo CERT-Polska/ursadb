@@ -8,23 +8,6 @@
 #include "Json.h"
 #include "Indexer.h"
 
-std::string random_hex_string(int length) {
-    constexpr static char charset[] = "0123456789abcdef";
-    thread_local static std::random_device rd;
-    thread_local static std::seed_seq seed{rd(), rd(), rd(), rd()}; // A bit better than pathetic default
-    thread_local static std::mt19937_64 random(seed);
-    thread_local static std::uniform_int_distribution<int> pick(0, sizeof(charset) - 2);
-
-    std::string result;
-    result.reserve(length);
-
-    for (int i = 0; i < length; i++) {
-        result += charset[pick(random)];
-    }
-
-    return result;
-}
-
 DatabaseSnapshot::DatabaseSnapshot(
         fs::path db_name, fs::path db_base, std::vector<const OnDiskDataset *> datasets,
         const std::map<uint64_t, std::unique_ptr<Task>> &tasks, size_t max_memory_size)
