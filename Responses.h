@@ -37,6 +37,7 @@ class Response {
 public:
     static Response select(const std::vector<std::string> &files);
     static Response ok();
+    static Response ping(const std::string &connection_id);
     static Response error(const std::string &message);
     static Response topology(const std::vector<DatasetEntry> &datasets);
     static Response status(const std::vector<TaskEntry> &tasks);

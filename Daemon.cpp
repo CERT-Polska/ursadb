@@ -125,7 +125,7 @@ Response execute_command(const TopologyCommand &cmd, Task *task, const DatabaseS
 }
 
 Response execute_command(const PingCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
-    return Response::ok();
+    return Response::ping(bin_str_to_hex(task->conn_id));
 }
 
 Response dispatch_command(const Command &cmd, Task *task, const DatabaseSnapshot *snap) {

@@ -12,6 +12,13 @@ Response Response::ok() {
     return r;
 }
 
+Response Response::ping(const std::string &connection_id) {
+    Response r("ping");
+    r.content["result"]["status"] = "ok";
+    r.content["result"]["connection_id"] = connection_id;
+    return r;
+}
+
 Response Response::error(const std::string &message) {
     Response r("error");
     r.content["error"]["message"] = message;
