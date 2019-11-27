@@ -61,7 +61,9 @@ constexpr int get_b64_value(uint8_t character) {
 }
 
 void store_dataset(
-        const fs::path &db_base, const std::string &fname, const std::set<std::string> &index_names,
-        const std::vector<std::string> &fids);
+        const fs::path &db_base,
+        const std::string &fname,
+        const std::set<std::string> &index_names,
+        const std::string &fname_list);
 
 std::string bin_str_to_hex(const std::string& str);

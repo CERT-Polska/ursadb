@@ -193,20 +193,10 @@ std::optional<IndexType> index_type_from_string(const std::string &type) {
 }
 
 void store_dataset(
-        const fs::path &db_base, const std::string &fname, const std::set<std::string> &index_names,
-        const std::vector<std::string> &fids) {
-    std::string fname_list = "files." + fname;
-
-    std::ofstream of;
-    of.exceptions(std::ofstream::badbit);
-    of.open(db_base / fname_list, std::ofstream::binary);
-
-    for (auto &fn : fids) {
-        of << fn << "\n";
-    }
-
-    of.flush();
-
+        const fs::path &db_base,
+        const std::string &fname,
+        const std::set<std::string> &index_names,
+        const std::string &fname_list) {
     json dataset;
     json j_indices(index_names);
 

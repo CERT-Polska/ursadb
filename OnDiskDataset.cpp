@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <set>
+#include <array>
 
 #include "Database.h"
 #include "Query.h"
@@ -217,14 +218,21 @@ void OnDiskDataset::merge(
         OnDiskIndex::on_disk_merge(db_base, index_name, index_type, indexes, task);
     }
 
-    std::vector<std::string> file_names;
-    for (const OnDiskDataset *dataset : datasets) {
-        for (const std::string &fname : dataset->fnames) {
-            file_names.push_back(fname);
+    std::string fname_list = "files." + outname;
+
+    std::ofstream of;
+    of.exceptions(std::ofstream::badbit);
+    of.open(db_base / fname_list, std::ofstream::binary);
+
+    for (const OnDiskDataset *ds : datasets) {
+        for (const std::string &fname : ds->fnames) {
+            of << fname << "\n";
         }
     }
 
-    store_dataset(db_base, outname, index_names, file_names);
+    of.flush();
+
+    store_dataset(db_base, outname, index_names, fname_list);
 }
 
 const OnDiskIndex &OnDiskDataset::get_index_with_type(IndexType index_type) const {
