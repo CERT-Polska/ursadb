@@ -34,7 +34,18 @@ void DatasetBuilder::save(const fs::path &db_base, const std::string &fname) {
         index_names.emplace(ndx_name);
     }
 
-    store_dataset(db_base, fname, index_names, fids);
+    std::string fname_list = "files." + fname;
+
+    std::ofstream of;
+    of.exceptions(std::ofstream::badbit);
+    of.open(db_base / fname_list, std::ofstream::binary);
+
+    for (const std::string &filename : fids) {
+        of << filename << "\n";
+    }
+
+    of.flush();
+    store_dataset(db_base, fname, index_names, fname_list);
 }
 
 void DatasetBuilder::force_registered(const std::string &filepath) {
