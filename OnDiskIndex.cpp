@@ -139,8 +139,8 @@ void OnDiskIndex::on_disk_merge(
     out.open(db_base / fname, std::ofstream::binary);
 
     if (!std::all_of(indexes.begin(), indexes.end(), [merge_type](const IndexMergeHelper &ndx) {
-            return ndx.index->ntype == merge_type;
-        })) {
+        return ndx.index->ntype == merge_type;
+    })) {
         throw std::runtime_error("Unexpected index type during merge");
     }
 
@@ -159,18 +159,16 @@ void OnDiskIndex::on_disk_merge(
 
     for (TriGram trigram = 0; trigram < NUM_TRIGRAMS; trigram++) {
         out_offsets[trigram] = (uint64_t)out.tellp();
-        std::vector<FileId> all_ids;
         FileId baseline = 0;
 
+        RunWriter run_writer(&out);
         for (const IndexMergeHelper &helper : indexes) {
             std::vector<FileId> new_ids = helper.index->query_primitive(trigram);
             for (FileId id : new_ids) {
-                all_ids.push_back(id + baseline);
+                run_writer.write(id + baseline);
             }
             baseline += helper.file_count;
         }
-
-        compress_run(all_ids, out);
 
         if (task != nullptr) {
             task->work_done += 1;
