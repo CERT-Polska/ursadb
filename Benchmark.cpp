@@ -5,6 +5,7 @@
 #include <vector>
 #include <chrono>
 #include <ctime>
+#include <unistd.h>
 
 #include "Database.h"
 #include "Core.h"

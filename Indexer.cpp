@@ -1,6 +1,7 @@
 #include "Indexer.h"
 
 #include "Core.h"
+#include "MemMap.h"
 
 Indexer::Indexer(const DatabaseSnapshot *snap, const std::vector<IndexType> &types)
         : snap(snap), types(types),
@@ -39,7 +40,7 @@ std::vector<const OnDiskDataset *> Indexer::created_dataset_ptrs() {
 }
 
 void Indexer::register_dataset(const std::string &dataset_name) {
-    created_datasets.push_back(std::make_unique<OnDiskDataset>(snap->db_base, dataset_name));
+    created_datasets.emplace_back(std::make_unique<OnDiskDataset>(snap->db_base, dataset_name));
 }
 
 void Indexer::remove_dataset(const OnDiskDataset *dataset_ptr) {

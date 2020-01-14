@@ -4,7 +4,6 @@
 #include <fstream>
 #include <set>
 
-#include "MemMap.h"
 #include "Json.h"
 
 std::string random_hex_string(unsigned long length) {

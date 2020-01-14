@@ -14,7 +14,7 @@ OnDiskDataset::OnDiskDataset(const fs::path &db_base, const std::string &fname)
     json j;
     in >> j;
 
-    for (std::string index_fname : j["indices"]) {
+    for (const std::string &index_fname : j["indices"]) {
         indices.emplace_back(db_base / index_fname);
     }
 

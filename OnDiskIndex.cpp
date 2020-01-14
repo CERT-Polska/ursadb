@@ -8,34 +8,51 @@
 #include "Query.h"
 #include "Utils.h"
 
+#pragma pack(1)
+struct OnDiskIndexHeader {
+    uint32_t magic;
+    uint32_t version;
+    uint32_t raw_type;
+    uint32_t reserved;
+};
+#pragma pack()
+
+constexpr int DATA_OFFSET = 16;
+
 OnDiskIndex::OnDiskIndex(const std::string &fname)
-        : disk_map(fname), fname(fs::path(fname).filename()), fpath(fs::path(fname)) {
-    constexpr uint64_t RUN_OFFSET_ARRAY_SIZE = (NUM_TRIGRAMS + 1) * sizeof(uint64_t);
-    if (disk_map.size() < 16 + RUN_OFFSET_ARRAY_SIZE) {
+        : fname(fs::path(fname).filename())
+        , fpath(fs::path(fname))
+        , ndxfile(fname)
+        , run_offsets(NUM_TRIGRAMS + 1) {
+    OnDiskIndexHeader header;
+
+    index_size = ndxfile.size();
+
+    constexpr uint64_t RUN_ARRAY_SIZE = (NUM_TRIGRAMS + 1) * sizeof(uint64_t);
+    if (index_size < DATA_OFFSET + RUN_ARRAY_SIZE) {
         throw std::runtime_error("corrupted index, file is too small");
     }
 
-    const uint8_t *data = disk_map.data();
-    uint32_t magic, version, raw_type, reserved;
-    memcpy(&magic,    data +  0, sizeof(uint32_t));
-    memcpy(&version,  data +  4, sizeof(uint32_t));
-    memcpy(&raw_type, data +  8, sizeof(uint32_t));
-    memcpy(&reserved, data + 12, sizeof(uint32_t));
+    ndxfile.pread(&header, sizeof(OnDiskIndexHeader), 0);
+    ndxfile.pread(run_offsets.data(), RUN_ARRAY_SIZE, index_size - RUN_ARRAY_SIZE);
 
-    if (magic != DB_MAGIC) {
+    if (header.magic != DB_MAGIC) {
         throw std::runtime_error("invalid magic, not a catdata");
     }
 
-    if (version != OnDiskIndex::VERSION) {
+    if (header.version != OnDiskIndex::VERSION) {
         throw std::runtime_error("unsupported version");
     }
 
-    if (!is_valid_index_type(raw_type)) {
+    if (!is_valid_index_type(header.raw_type)) {
         throw std::runtime_error("invalid index type");
     }
 
-    ntype = static_cast<IndexType>(raw_type);
-    run_offsets = (uint64_t *)&data[disk_map.size() - RUN_OFFSET_ARRAY_SIZE];
+    if (header.reserved != 0) {
+        throw std::runtime_error("reserved field != 0");
+    }
+
+    ntype = static_cast<IndexType>(header.raw_type);
 }
 
 bool OnDiskIndex::internal_expand(QString::const_iterator qit, uint8_t *out, size_t pos, size_t comb_len,
@@ -95,6 +112,7 @@ QueryResult OnDiskIndex::expand_wildcards(const QString &qstr, size_t len, const
     return total;
 }
 
+
 QueryResult OnDiskIndex::query_str(const QString &str) const {
     TrigramGenerator generator = get_generator_for(ntype);
 
@@ -117,14 +135,19 @@ QueryResult OnDiskIndex::query_str(const QString &str) const {
 std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram) const {
     uint64_t ptr = run_offsets[trigram];
     uint64_t next_ptr = run_offsets[trigram + 1];
-    const uint8_t *data = disk_map.data();
+    uint64_t run_length = next_ptr - ptr;
 
-    if (ptr > next_ptr || next_ptr > disk_map.size()) {
+    if (ptr > next_ptr || next_ptr > index_size) {
         // TODO() - Which index? Which run?
         throw std::runtime_error("internal error: index is corrupted, invalid run");
     }
 
-    return read_compressed_run(&data[ptr], &data[next_ptr]);
+    std::vector<uint8_t> run_bytes(run_length);
+    ndxfile.pread(run_bytes.data(), run_length, ptr);
+    return read_compressed_run(
+        run_bytes.data(),
+        run_bytes.data() + run_bytes.size()
+    );
 }
 
 unsigned long OnDiskIndex::real_size() const {
