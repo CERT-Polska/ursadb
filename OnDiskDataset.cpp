@@ -204,8 +204,6 @@ void OnDiskDataset::merge(
         task->work_estimated = NUM_TRIGRAMS * index_types.size();
     }
 
-    json dataset;
-
     std::set<std::string> index_names;
     for (IndexType index_type : index_types) {
         std::string index_name = get_index_type_name(index_type) + "." + outname;
@@ -219,7 +217,6 @@ void OnDiskDataset::merge(
     }
 
     std::string fname_list = "files." + outname;
-
     std::ofstream of;
     of.exceptions(std::ofstream::badbit);
     of.open(db_base / fname_list, std::ofstream::binary);
@@ -229,7 +226,6 @@ void OnDiskDataset::merge(
             of << fname << "\n";
         }
     }
-
     of.flush();
 
     store_dataset(db_base, outname, index_names, fname_list);

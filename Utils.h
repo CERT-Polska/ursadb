@@ -38,6 +38,29 @@ constexpr TrigramGetter get_b64grams = get_trigrams_eager<gen_b64grams>;
 constexpr TrigramGetter get_wide_b64grams = get_trigrams_eager<gen_wide_b64grams>;
 constexpr TrigramGetter get_h4grams = get_trigrams_eager<gen_h4grams>;
 
+/* Represents an object that can be used to writre runs (increasing sequences
+of integers - in our case, FileIds. Runs are written in a compressed way -
+only differences between consecutive values are saved, and variable length
+encoding is used.
+*/
+class RunWriter {
+    std::ostream *out;
+    uint64_t out_bytes;
+    int64_t prev;
+
+public:
+    /* Create a new clean instance of RunWriter. */
+    RunWriter(std::ostream *out) :out(out), out_bytes(0), prev(-1) {}
+
+    /* Write next FileId to the output stream */
+    void write(FileId next);
+
+    /* How many bytes was written by this RunWriter object so far */
+    uint64_t written_bytes() {
+        return out_bytes;
+    }
+};
+
 uint64_t compress_run(const std::vector<FileId> &run, std::ostream &out);
 std::vector<FileId> read_compressed_run(const uint8_t *start, const uint8_t *end);
 std::string get_index_type_name(IndexType type);

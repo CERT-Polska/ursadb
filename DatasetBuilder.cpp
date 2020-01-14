@@ -43,8 +43,8 @@ void DatasetBuilder::save(const fs::path &db_base, const std::string &fname) {
     for (const std::string &filename : fids) {
         of << filename << "\n";
     }
-
     of.flush();
+
     store_dataset(db_base, fname, index_names, fname_list);
 }
 
