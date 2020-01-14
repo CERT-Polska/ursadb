@@ -178,7 +178,6 @@ void OnDiskIndex::on_disk_merge(
     out.write((char *)&reserved, 4);
 
     std::vector<uint64_t> out_offsets(NUM_TRIGRAMS + 1);
-    std::vector<uint64_t> in_offsets(indexes.size());
 
     for (TriGram trigram = 0; trigram < NUM_TRIGRAMS; trigram++) {
         out_offsets[trigram] = (uint64_t)out.tellp();
