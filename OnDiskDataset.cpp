@@ -18,20 +18,13 @@ OnDiskDataset::OnDiskDataset(const fs::path &db_base, const std::string &fname)
         indices.emplace_back(db_base / index_fname);
     }
 
-    files_fname = j["files"];
-    std::string filename;
-    std::ifstream inf(db_base / files_fname, std::ifstream::binary);
-
-    while (!inf.eof()) {
-        std::getline(inf, filename);
-
-        if (!filename.empty()) {
-            fnames.push_back(filename);
-        }
-    }
+    std::string files_fname = j["files"];
+    files_index.emplace(db_base, files_fname);
 }
 
-const std::string &OnDiskDataset::get_file_name(FileId fid) const { return fnames.at(fid); }
+std::string OnDiskDataset::get_file_name(FileId fid) const {
+    return files_index->get_file_name(fid);
+}
 
 QueryResult OnDiskDataset::query_str(const QString &str) const {
     QueryResult result = QueryResult::everything();
@@ -153,7 +146,9 @@ QueryResult OnDiskDataset::internal_execute(const Query &query) const {
 void OnDiskDataset::execute(const Query &query, std::vector<std::string> *out) const {
     QueryResult result = internal_execute(query);
     if (result.is_everything()) {
-        std::copy(fnames.begin(), fnames.end(), std::back_inserter(*out));
+        files_index->for_each_filename([&out](const std::string &fname) {
+            out->push_back(fname);
+        });
     } else {
         for (const auto &fid : result.vector()) {
             out->push_back(get_file_name(fid));
@@ -210,8 +205,12 @@ void OnDiskDataset::merge(
         index_names.insert(index_name);
         std::vector<IndexMergeHelper> indexes;
         for (const OnDiskDataset *dataset : datasets) {
-            indexes.push_back(IndexMergeHelper(
-                    &dataset->get_index_with_type(index_type), dataset->fnames.size()));
+            indexes.push_back(
+                IndexMergeHelper(
+                    &dataset->get_index_with_type(index_type),
+                    dataset->files_index->get_file_count()
+                )
+            );
         }
         OnDiskIndex::on_disk_merge(db_base, index_name, index_type, indexes, task);
     }
@@ -222,9 +221,9 @@ void OnDiskDataset::merge(
     of.open(db_base / fname_list, std::ofstream::binary);
 
     for (const OnDiskDataset *ds : datasets) {
-        for (const std::string &fname : ds->fnames) {
+        ds->files_index->for_each_filename([&of](const std::string &fname) {
             of << fname << "\n";
-        }
+        });
     }
     of.flush();
 
@@ -260,7 +259,7 @@ void OnDiskDataset::drop() {
         drop_file(idx_name);
     }
 
-    drop_file(db_base / files_fname);
+    drop_file(db_base / files_index->get_files_fname());
     drop_file(db_base / get_name());
 }
 

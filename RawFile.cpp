@@ -7,7 +7,9 @@
 RawFile::RawFile(const std::string &fname) {
     fd = ::open(fname.c_str(), O_RDONLY);
     if (fd < 0) {
-        throw new std::runtime_error("RawFile::RawFile: open failed");
+        std::string message;
+        message += "RawFile::RawFile: open for " + fname + " failed";
+        throw std::runtime_error(message);
     }
 }
 
@@ -25,14 +27,14 @@ RawFile::~RawFile() {
 uint64_t RawFile::size() const {
     struct stat st;
     if (::fstat(fd, &st)) {
-        throw new std::runtime_error("RawFile::size: fstat failed");
+        throw std::runtime_error("RawFile::size: fstat failed");
     }
     return st.st_size;
 }
 
 void RawFile::pread(void *buf, size_t count, off_t offset) const {
     if (::pread(fd, buf, count, offset) != static_cast<ssize_t>(count)) {
-        throw new std::runtime_error("RawFile::pread: pread failed");
+        throw std::runtime_error("RawFile::pread: pread failed");
     }
 }
 

@@ -47,13 +47,12 @@ void DatabaseSnapshot::index_path(
     std::set<std::string> existing_files;
 
     for (const auto &ds : datasets) {
-        for (const auto &fname : ds->indexed_files()) {
+        ds->for_each_filename([&existing_files](const std::string fname) {
             existing_files.insert(fname);
-        }
+        });
     }
 
     std::vector<std::string> targets;
-
     for (const auto &filepath : filepaths) {
         build_target_list(filepath, existing_files, targets);
     }
@@ -96,13 +95,13 @@ void DatabaseSnapshot::reindex_dataset(
 
     Indexer indexer(this, types);
 
-    task->work_estimated = source->indexed_files().size() + 1;
+    task->work_estimated = source->get_file_count() + 1;
 
-    for (const auto &target : source->indexed_files()) {
+    source->for_each_filename([&indexer, &task](const std::string &target) {
         std::cout << "reindexing " << target << std::endl;
         indexer.index(target);
         task->work_done += 1;
-    }
+    });
 
     for (const auto *ds : indexer.finalize()) {
         task->changes.emplace_back(DbChangeType::Insert, ds->get_name());

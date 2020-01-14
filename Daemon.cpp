@@ -150,15 +150,20 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    Database db(argv[1]);
-    std::string bind_address = "tcp://127.0.0.1:9281";
+    try {
+        Database db(argv[1]);
 
-    if (argc > 3) {
-        std::cout << "Too many command line arguments." << std::endl;
-    } else if (argc == 3) {
-        bind_address = std::string(argv[2]);
+        std::string bind_address = "tcp://127.0.0.1:9281";
+
+        if (argc > 3) {
+            std::cout << "Too many command line arguments." << std::endl;
+        } else if (argc == 3) {
+            bind_address = std::string(argv[2]);
+        }
+
+        NetworkService service(db, bind_address);
+        service.run();
+    } catch (const std::runtime_error& ex) {
+        std::cout << "Runtime error: " << ex.what() << std::endl;
     }
-
-    NetworkService service(db, bind_address);
-    service.run();
 }
