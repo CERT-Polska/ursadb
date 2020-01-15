@@ -26,9 +26,15 @@ class DatabaseSnapshot {
     DatabaseHandle db_handle;
 
     std::string allocate_name() const;
+
+    void build_new_target_list(
+        const std::vector<std::string> &filepaths,
+        std::vector<std::string> *targets
+    ) const;
     void build_target_list(
-            const std::string &filepath, const std::set<std::string> &existing_files,
-            std::vector<std::string> &targets) const;
+        const std::string &filepath, const std::set<std::string> &existing_files,
+        std::vector<std::string> *targets
+    ) const;
 
     friend class Indexer;
 
