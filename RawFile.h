@@ -4,7 +4,6 @@
 
 class RawFile {
     int fd;
-    // mutable std::ifstream fd;
 
 public:
     explicit RawFile(const std::string &fname);

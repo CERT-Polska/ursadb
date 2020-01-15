@@ -47,7 +47,7 @@ void DatabaseSnapshot::index_path(
     std::set<std::string> existing_files;
 
     for (const auto &ds : datasets) {
-        ds->for_each_filename([&existing_files](const std::string fname) {
+        ds->for_each_filename([&existing_files](const std::string &fname) {
             existing_files.insert(fname);
         });
     }

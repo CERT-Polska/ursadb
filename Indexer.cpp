@@ -44,10 +44,8 @@ void Indexer::register_dataset(const std::string &dataset_name) {
 }
 
 void Indexer::remove_dataset(const OnDiskDataset *dataset_ptr) {
-    std::cout << "erasing dataset " << dataset_ptr->get_name() << std::endl;
     for (auto it = created_datasets.begin(); it != created_datasets.end(); ) {
         if ((*it).get() == dataset_ptr) {
-            std::cout << "dropping it! " << dataset_ptr->get_name() << std::endl;
             (*it)->drop();
             it = created_datasets.erase(it);
         } else {

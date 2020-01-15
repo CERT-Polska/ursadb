@@ -10,7 +10,7 @@ using TriGram = uint32_t;
 constexpr uint32_t NUM_TRIGRAMS = 16777216;
 constexpr uint32_t DB_MAGIC = 0xCA7DA7A;
 constexpr size_t DEFAULT_MAX_MEM_SIZE = 1024L * 1024L * 1024L * 2L; // 2 GB
-constexpr size_t INDEXER_COMPACT_THRESHOLD = 3;
+constexpr size_t INDEXER_COMPACT_THRESHOLD = 20;
 
 enum class IndexType : uint32_t {
     // Trigrams. "abcdefgh" -> "abc", "bcd", "cde", "def", "efg"
