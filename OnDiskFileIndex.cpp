@@ -23,7 +23,6 @@ OnDiskFileIndex::OnDiskFileIndex(fs::path db_base, const std::string &files_fnam
     , cache_fname("namecache." + files_fname)
     , files_file(db_base / files_fname) { // <- cool race condition here
 
-    std::cout << "generating namecache file for " << files_fname << std::endl;
     generate_namecache_file();
     cache_file.emplace(db_base / cache_fname);
 }
