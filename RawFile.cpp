@@ -33,8 +33,15 @@ uint64_t RawFile::size() const {
 }
 
 void RawFile::pread(void *buf, size_t count, off_t offset) const {
-    if (::pread(fd, buf, count, offset) != static_cast<ssize_t>(count)) {
-        throw std::runtime_error("RawFile::pread: pread failed");
+    char *buf_raw = reinterpret_cast<char*>(buf);
+    while (count > 0) {
+        ssize_t result = ::pread(fd, buf_raw, count, offset);
+        if (result < 0) {
+            throw std::runtime_error("RawFile::pread: pread failed");
+        }
+        buf_raw += result;
+        offset += result;
+        count -= result;
     }
 }
 
