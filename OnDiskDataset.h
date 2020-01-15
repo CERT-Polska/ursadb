@@ -29,6 +29,7 @@ public:
     explicit OnDiskDataset(const fs::path &db_base, const std::string &fname);
     const std::string &get_name() const;
     fs::path get_base() const;
+    const std::string &get_files_fname() const { return files_index->get_files_fname(); }
     void execute(const Query &query, std::vector<std::string> *out) const;
     uint64_t get_file_count() const { return files_index->get_file_count(); }
     void for_each_filename(std::function<void(const std::string&)> cb) const {

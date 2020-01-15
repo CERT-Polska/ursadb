@@ -252,15 +252,15 @@ void OnDiskDataset::drop() {
         idx_names.push_back((*it).get_fname());
     }
 
-    // deallocate objects to close MemMaps
+    // deallocate objects to close FDs
     indices.clear();
 
     for (auto &idx_name : idx_names) {
         drop_file(idx_name);
     }
 
-    drop_file(db_base / files_index->get_files_fname());
-    drop_file(db_base / get_name());
+    drop_file(files_index->get_files_fname());
+    drop_file(get_name());
 }
 
 fs::path OnDiskDataset::get_base() const {
