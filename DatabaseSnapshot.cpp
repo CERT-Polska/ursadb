@@ -19,47 +19,54 @@ DatabaseSnapshot::DatabaseSnapshot(
 }
 
 void DatabaseSnapshot::build_target_list(
-        const std::string &filepath, const std::set<std::string> &existing_files,
-        std::vector<std::string> &targets) const {
+        const std::string &filepath,
+    const std::set<std::string> &existing_files,
+        std::vector<std::string> *targets) const {
     fs::recursive_directory_iterator end;
 
     if (fs::is_regular_file(filepath)) {
         fs::path absfn = fs::absolute(filepath);
 
         if (existing_files.count(absfn) == 0) {
-            targets.push_back(absfn);
+            targets->push_back(absfn);
         }
     } else {
         for (fs::recursive_directory_iterator dir(filepath); dir != end; ++dir) {
             if (fs::is_regular_file(dir->path())) {
                 fs::path absfn = fs::absolute(dir->path());
                 if (existing_files.count(absfn) == 0) {
-                    targets.push_back(absfn);
+                    targets->push_back(absfn);
                 }
             }
         }
     }
 }
 
-void DatabaseSnapshot::index_path(
-        Task *task, const std::vector<IndexType> &types,
-        const std::vector<std::string> &filepaths) const {
+void DatabaseSnapshot::build_new_target_list(
+    const std::vector<std::string> &filepaths,
+    std::vector<std::string> *targets
+) const {
     std::set<std::string> existing_files;
 
     for (const auto &ds : datasets) {
-        for (const auto &fname : ds->indexed_files()) {
+        ds->for_each_filename([&existing_files](const std::string &fname) {
             existing_files.insert(fname);
-        }
+        });
     }
-
-    std::vector<std::string> targets;
 
     for (const auto &filepath : filepaths) {
         build_target_list(filepath, existing_files, targets);
     }
 
-    auto last = std::unique(targets.begin(), targets.end());
-    targets.erase(last, targets.end());
+    auto last = std::unique(targets->begin(), targets->end());
+    targets->erase(last, targets->end());
+}
+
+void DatabaseSnapshot::index_path(
+        Task *task, const std::vector<IndexType> &types,
+        const std::vector<std::string> &filepaths) const {
+    std::vector<std::string> targets;
+    build_new_target_list(filepaths, &targets);
 
     Indexer indexer(this, types);
 
@@ -96,13 +103,13 @@ void DatabaseSnapshot::reindex_dataset(
 
     Indexer indexer(this, types);
 
-    task->work_estimated = source->indexed_files().size() + 1;
+    task->work_estimated = source->get_file_count() + 1;
 
-    for (const auto &target : source->indexed_files()) {
+    source->for_each_filename([&indexer, &task](const std::string &target) {
         std::cout << "reindexing " << target << std::endl;
         indexer.index(target);
         task->work_done += 1;
-    }
+    });
 
     for (const auto *ds : indexer.finalize()) {
         task->changes.emplace_back(DbChangeType::Insert, ds->get_name());

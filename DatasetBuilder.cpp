@@ -8,6 +8,7 @@
 #include "OnDiskDataset.h"
 #include "Utils.h"
 #include "Json.h"
+#include "MemMap.h"
 #include "BitmapIndexBuilder.h"
 
 DatasetBuilder::DatasetBuilder(BuilderType builder_type, const std::vector<IndexType> &index_types)
