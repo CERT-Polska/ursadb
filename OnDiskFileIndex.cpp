@@ -17,7 +17,7 @@ void OnDiskFileIndex::generate_namecache_file() {
     of.flush();
 }
 
-OnDiskFileIndex::OnDiskFileIndex(fs::path db_base, const std::string &files_fname)
+OnDiskFileIndex::OnDiskFileIndex(const fs::path &db_base, const std::string &files_fname)
     : db_base(db_base)
     , files_fname(files_fname)
     , cache_fname("namecache." + files_fname)

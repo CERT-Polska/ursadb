@@ -22,7 +22,7 @@ class OnDiskFileIndex {
     void generate_namecache_file();
 
 public:
-    OnDiskFileIndex(fs::path db_base, const std::string &files_fname);
+    OnDiskFileIndex(const fs::path &db_base, const std::string &files_fname);
     OnDiskFileIndex(const OnDiskFileIndex &) = delete;
     OnDiskFileIndex(OnDiskFileIndex &&) = default;
     ~OnDiskFileIndex();
