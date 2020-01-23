@@ -132,7 +132,7 @@ std::pair<uint64_t, uint64_t>  OnDiskIndex::get_run_offsets(TriGram trigram) con
     uint64_t ptrs[2];
     uint64_t offset = index_size - RUN_ARRAY_SIZE + trigram * sizeof(uint64_t);
     ndxfile.pread(ptrs, sizeof(ptrs), offset);
-    return std::pair<uint64_t, uint64_t>(ptrs[0], ptrs[1]);
+    return std::make_pair(ptrs[0], ptrs[1]);
 }
 
 std::vector<FileId> OnDiskIndex::get_run(uint64_t ptr, uint64_t next_ptr) const {
