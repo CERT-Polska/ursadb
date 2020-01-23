@@ -128,16 +128,11 @@ QueryResult OnDiskIndex::query_str(const QString &str) const {
     return expand_wildcards(str, input_len, generator);
 }
 
-void OnDiskIndex::get_run_offsets(
-    TriGram trigram,
-    uint64_t *ptr0,
-    uint64_t *ptr1
-) const {
+std::pair<uint64_t, uint64_t>  OnDiskIndex::get_run_offsets(TriGram trigram) const {
     uint64_t ptrs[2];
     uint64_t offset = index_size - RUN_ARRAY_SIZE + trigram * sizeof(uint64_t);
     ndxfile.pread(ptrs, sizeof(ptrs), offset);
-    *ptr0 = ptrs[0];
-    *ptr1 = ptrs[1];
+    return std::pair<uint64_t, uint64_t>(ptrs[0], ptrs[1]);
 }
 
 std::vector<FileId> OnDiskIndex::get_run(uint64_t ptr, uint64_t next_ptr) const {
@@ -157,9 +152,8 @@ std::vector<FileId> OnDiskIndex::get_run(uint64_t ptr, uint64_t next_ptr) const 
 }
 
 std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram) const {
-    uint64_t ptr, next_ptr;
-    get_run_offsets(trigram, &ptr, &next_ptr);
-    return get_run(ptr, next_ptr);
+    std::pair<uint64_t, uint64_t> offsets = get_run_offsets(trigram);
+    return get_run(offsets.first, offsets.second);
 }
 
 unsigned long OnDiskIndex::real_size() const {
