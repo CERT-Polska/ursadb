@@ -17,7 +17,7 @@ Response Response::ping(const std::string &connection_id) {
     Response r("ping");
     r.content["result"]["status"] = "ok";
     r.content["result"]["connection_id"] = connection_id;
-    r.content["result"]["ursadb_version"] = ursadb_version;
+    r.content["result"]["ursadb_version"] = std::string(ursadb_version);
     return r;
 }
 
