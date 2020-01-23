@@ -18,23 +18,21 @@ struct OnDiskIndexHeader {
 #pragma pack()
 
 constexpr int DATA_OFFSET = 16;
+constexpr uint64_t RUN_ARRAY_SIZE = (NUM_TRIGRAMS + 1) * sizeof(uint64_t);
 
 OnDiskIndex::OnDiskIndex(const std::string &fname)
         : fname(fs::path(fname).filename())
         , fpath(fs::path(fname))
-        , ndxfile(fname)
-        , run_offsets(NUM_TRIGRAMS + 1) {
+        , ndxfile(fname) {
     OnDiskIndexHeader header;
 
     index_size = ndxfile.size();
 
-    constexpr uint64_t RUN_ARRAY_SIZE = (NUM_TRIGRAMS + 1) * sizeof(uint64_t);
     if (index_size < DATA_OFFSET + RUN_ARRAY_SIZE) {
         throw std::runtime_error("corrupted index, file is too small");
     }
 
     ndxfile.pread(&header, sizeof(OnDiskIndexHeader), 0);
-    ndxfile.pread(run_offsets.data(), RUN_ARRAY_SIZE, index_size - RUN_ARRAY_SIZE);
 
     if (header.magic != DB_MAGIC) {
         throw std::runtime_error("invalid magic, not a catdata");
@@ -112,7 +110,6 @@ QueryResult OnDiskIndex::expand_wildcards(const QString &qstr, size_t len, const
     return total;
 }
 
-
 QueryResult OnDiskIndex::query_str(const QString &str) const {
     TrigramGenerator generator = get_generator_for(ntype);
 
@@ -124,7 +121,6 @@ QueryResult OnDiskIndex::query_str(const QString &str) const {
         case IndexType::TEXT4: input_len = 4; break;
         case IndexType::WIDE8: input_len = 8; break;
     }
-
     if (input_len == 0) {
         throw std::runtime_error("unhandled index type");
     }
@@ -132,9 +128,14 @@ QueryResult OnDiskIndex::query_str(const QString &str) const {
     return expand_wildcards(str, input_len, generator);
 }
 
-std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram) const {
-    uint64_t ptr = run_offsets[trigram];
-    uint64_t next_ptr = run_offsets[trigram + 1];
+std::pair<uint64_t, uint64_t>  OnDiskIndex::get_run_offsets(TriGram trigram) const {
+    uint64_t ptrs[2];
+    uint64_t offset = index_size - RUN_ARRAY_SIZE + trigram * sizeof(uint64_t);
+    ndxfile.pread(ptrs, sizeof(ptrs), offset);
+    return std::pair<uint64_t, uint64_t>(ptrs[0], ptrs[1]);
+}
+
+std::vector<FileId> OnDiskIndex::get_run(uint64_t ptr, uint64_t next_ptr) const {
     uint64_t run_length = next_ptr - ptr;
 
     if (ptr > next_ptr || next_ptr > index_size) {
@@ -148,6 +149,11 @@ std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram) const {
         run_bytes.data(),
         run_bytes.data() + run_bytes.size()
     );
+}
+
+std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram) const {
+    std::pair<uint64_t, uint64_t> offsets = get_run_offsets(trigram);
+    return get_run(offsets.first, offsets.second);
 }
 
 unsigned long OnDiskIndex::real_size() const {
@@ -185,7 +191,9 @@ void OnDiskIndex::on_disk_merge(
 
         RunWriter run_writer(&out);
         for (const IndexMergeHelper &helper : indexes) {
-            std::vector<FileId> new_ids = helper.index->query_primitive(trigram);
+            uint64_t ptr = helper.run_offset_cache[trigram];
+            uint64_t next_ptr = helper.run_offset_cache[trigram + 1];
+            std::vector<FileId> new_ids = helper.index->get_run(ptr, next_ptr);
             for (FileId id : new_ids) {
                 run_writer.write(id + baseline);
             }
@@ -199,4 +207,10 @@ void OnDiskIndex::on_disk_merge(
     out_offsets[NUM_TRIGRAMS] = (uint64_t)out.tellp();
 
     out.write((char *)out_offsets.data(), (NUM_TRIGRAMS + 1) * sizeof(uint64_t));
+}
+
+std::vector<uint64_t> OnDiskIndex::read_run_offsets() const {
+    std::vector<uint64_t> run_offsets(NUM_TRIGRAMS + 1);
+    ndxfile.pread(run_offsets.data(), RUN_ARRAY_SIZE, index_size - RUN_ARRAY_SIZE);
+    return run_offsets;
 }

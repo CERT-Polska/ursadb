@@ -205,10 +205,12 @@ void OnDiskDataset::merge(
         index_names.insert(index_name);
         std::vector<IndexMergeHelper> indexes;
         for (const OnDiskDataset *dataset : datasets) {
-            indexes.push_back(
+            const OnDiskIndex &index = dataset->get_index_with_type(index_type);
+            indexes.emplace_back(
                 IndexMergeHelper(
-                    &dataset->get_index_with_type(index_type),
-                    dataset->files_index->get_file_count()
+                    &index,
+                    dataset->files_index->get_file_count(),
+                    index.read_run_offsets()
                 )
             );
         }
