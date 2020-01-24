@@ -68,7 +68,7 @@ Full package installation
 This repository is only for UrsaDB project (3gram database). In order to see instructions on how to set up the whole mquery system, see [CERT-Polska/ursadb](https://github.com/CERT-Polska/mquery).
 
 
-Installation (Docker way)
+Installation (with Docker)
 -------------------------
 
 Docker image may be built by executing `docker build -t ursadb .` on the source code pulled from this repo.
@@ -77,7 +77,9 @@ Docker image may be built by executing `docker build -t ursadb .` on the source 
 Installation (standard way)
 ---------------------------
 
-1. Compile from sources:
+1. First, you need a compiled version of the code. You can get one from
+[github releases](https://github.com/CERT-Polska/ursadb/releases), or compile it yourself:
+
 ```
 $ mkdir build
 $ cd build
@@ -85,7 +87,7 @@ $ cmake -D CMAKE_C_COMPILER=gcc-7 -D CMAKE_CXX_COMPILER=g++-7 -D CMAKE_BUILD_TYP
 $ make
 ```
 
-2. Deploy output binaries (`ursadb`, `ursadb_new`) to appropriate place, e.g:
+2. Copy the binaries (`ursadb`, `ursadb_new`) to appropriate place, e.g:
 ```
 # cp ursadb ursadb_new /usr/local/bin/
 ```
