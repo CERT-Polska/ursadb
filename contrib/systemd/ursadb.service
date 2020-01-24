@@ -3,9 +3,9 @@ Description=UrsaDB
 After=network.target
 
 [Service]
-ExecStart=ursadb db.ursa
+ExecStart=/usr/local/bin/ursadb db.ursa
 WorkingDirectory=/opt/ursadb
-Environment="PATH=/opt/ursadb:/usr/bin"
+Environment="PATH=/opt/ursadb:/usr/bin:/usr/local/bin/"
 TimeoutStopSec=30
 Restart=always
 PIDFile=/run/ursadb.pid
