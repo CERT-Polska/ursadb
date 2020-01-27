@@ -16,7 +16,7 @@ FlatIndexBuilder::FlatIndexBuilder(IndexType ntype)
 }
 
 void FlatIndexBuilder::add_trigram(FileId fid, TriGram val) {
-    raw_data.push_back((fid & 0xFFU) | (val << 8U));
+    raw_data.push_back(fid | (uint64_t{val} << 40U));
 }
 
 void FlatIndexBuilder::save(const std::string &fname) {
@@ -44,9 +44,9 @@ void FlatIndexBuilder::save(const std::string &fname) {
     TriGram last_trigram = 0;
     int64_t prev = -1;
 
-    for (const uint32_t &d : raw_data) {
-        TriGram val = (d >> 8U) & (0xFFFFFFU);
-        FileId next = (d & 0xFFU);
+    for (const uint64_t &d : raw_data) {
+        TriGram val = (d >> 40ULL) & (0xFFFFFFU);
+        FileId next = (d & 0xFFFFFFFFFFULL);
 
         // adjust offsets for [last_trigram+1, val)
         if (last_trigram != val) {

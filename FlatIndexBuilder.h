@@ -8,7 +8,7 @@
 #include "IndexBuilder.h"
 
 class FlatIndexBuilder : public IndexBuilder {
-    std::vector<uint32_t> raw_data;
+    std::vector<uint64_t> raw_data;
 
     void add_trigram(FileId fid, TriGram val);
 
