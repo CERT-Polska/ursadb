@@ -8,7 +8,6 @@
 #include "IndexBuilder.h"
 
 class FlatIndexBuilder : public IndexBuilder {
-    std::array<bool, NUM_TRIGRAMS> added_trigrams;
     std::vector<uint32_t> raw_data;
 
     void add_trigram(FileId fid, TriGram val);
