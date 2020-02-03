@@ -18,6 +18,8 @@ FlatIndexBuilder::FlatIndexBuilder(IndexType ntype)
 }
 
 void FlatIndexBuilder::add_trigram(FileId fid, TriGram val) {
+    // Consider packing the data in more memory efficient ways
+    // At least if it's worth it (TODO: measure performance).
     raw_data.push_back(fid | (uint64_t{val} << 40U));
 }
 
