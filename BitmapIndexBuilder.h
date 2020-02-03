@@ -18,5 +18,5 @@ class BitmapIndexBuilder : public IndexBuilder {
 
     void add_file(FileId fid, const uint8_t *data, size_t size);
     void save(const std::string &fname);
-    bool must_spill(int file_count) const;
+    bool can_still_add(uint64_t bytes, int file_count) const;
 };

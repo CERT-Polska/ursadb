@@ -11,8 +11,14 @@ void Indexer::index(const std::string &target) {
     DatasetBuilder *builder = &flat_builder;
 
     try {
-        if (fs::file_size(target) > 1024*1024*20) {
+        uint64_t file_size = fs::file_size(target);
+
+        if (file_size > 1024*1024*20) {
             builder = &bitmap_builder;
+        }
+
+        if (!builder->can_still_add(file_size)) {
+            make_spill(*builder);
         }
 
         builder->index(target);
@@ -22,10 +28,6 @@ void Indexer::index(const std::string &target) {
         std::cout << "failed to open \"" << target << "\" (skip): " << e.what() << std::endl;
     } catch (invalid_filename_error &e) {
         std::cout << "illegal file name (skip): " << target << std::endl;
-    }
-
-    if (builder->must_spill()) {
-        make_spill(*builder);
     }
 }
 

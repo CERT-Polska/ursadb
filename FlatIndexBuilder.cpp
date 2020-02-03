@@ -8,6 +8,8 @@
 
 #include "Utils.h"
 
+// raw_data will occupy at most 762 MB (MAX_TRIGRAMS*8/1024/1024)
+// TODO(): this should be parametrised by user somehow.
 constexpr int MAX_TRIGRAMS = 100000000;
 
 FlatIndexBuilder::FlatIndexBuilder(IndexType ntype)
@@ -38,7 +40,11 @@ void FlatIndexBuilder::save(const std::string &fname) {
     std::vector<uint64_t> offsets(NUM_TRIGRAMS + 1);
     offsets[0] = offset;
 
+    // Sort raw_data by trigrams (higher part of raw_data contains the
+    // trigram value and lower part has the file ID).
     std::sort(raw_data.begin(), raw_data.end());
+
+    // Remove the duplicates (Files will often contain duplicated trigrams).
     raw_data.erase(std::unique(raw_data.begin(), raw_data.end()), raw_data.end());
 
     TriGram last_trigram = 0;
@@ -82,6 +88,7 @@ void FlatIndexBuilder::add_file(FileId fid, const uint8_t *data, size_t size) {
     generator(data, size, [&](TriGram val) { add_trigram(fid, val); });
 }
 
-bool FlatIndexBuilder::must_spill(int file_count) const {
-    return raw_data.size() > 90000000;
+bool FlatIndexBuilder::can_still_add(uint64_t bytes, int file_count) const {
+    uint64_t max_number_of_trigrams_produced = bytes - 2;
+    return raw_data.size() + max_number_of_trigrams_produced < MAX_TRIGRAMS;
 }
