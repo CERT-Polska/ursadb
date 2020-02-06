@@ -73,13 +73,11 @@ void DatasetBuilder::index(const std::string &filepath) {
     }
 }
 
-bool DatasetBuilder::must_spill() {
-    for (const auto &ndx : indices) {
-        if (ndx->must_spill(fids.size())) {
-            return true;
-        }
-    }
-    return false;
+bool DatasetBuilder::can_still_add(uint64_t bytes) const {
+    auto can_add_bytes = [bytes, fcount=fids.size()](const auto &ndx) {
+        return ndx->can_still_add(bytes, fcount);
+    };
+    return std::all_of(std::cbegin(indices), std::cend(indices), can_add_bytes);
 }
 
 void DatasetBuilder::clear() {

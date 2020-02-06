@@ -8,8 +8,9 @@
 #include "IndexBuilder.h"
 
 class FlatIndexBuilder : public IndexBuilder {
-    std::array<bool, NUM_TRIGRAMS> added_trigrams;
-    std::vector<uint32_t> raw_data;
+    // Contains uint64_t values in the following format:
+    // [trigram: 24 bits] [file_id: 40 bits]
+    std::vector<uint64_t> raw_data;
 
     void add_trigram(FileId fid, TriGram val);
 
@@ -19,5 +20,5 @@ class FlatIndexBuilder : public IndexBuilder {
 
     void add_file(FileId fid, const uint8_t *data, size_t size);
     void save(const std::string &fname);
-    bool must_spill(int file_count) const;
+    bool can_still_add(uint64_t bytes, int file_count) const;
 };

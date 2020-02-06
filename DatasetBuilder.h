@@ -14,7 +14,7 @@ class DatasetBuilder {
     void index(const std::string &filepath);
     void force_registered(const std::string &filepath);
     void save(const fs::path &db_base, const std::string &fname);
-    bool must_spill();
+    bool can_still_add(uint64_t bytes) const;
     bool empty() const { return fids.empty(); }
     void clear();
 

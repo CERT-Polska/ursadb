@@ -8,20 +8,19 @@
 
 #include "Utils.h"
 
-constexpr int reserve_ints = 1024;
-constexpr int max_files = 256;
-
+// raw_data will occupy at most 762 MB (MAX_TRIGRAMS*8/1024/1024)
+// TODO(): this should be parametrised by user somehow.
+constexpr int MAX_TRIGRAMS = 100000000;
 
 FlatIndexBuilder::FlatIndexBuilder(IndexType ntype)
-    : IndexBuilder(ntype), added_trigrams(), raw_data() {
-    raw_data.reserve(reserve_ints);
+    : IndexBuilder(ntype), raw_data() {
+    raw_data.reserve(MAX_TRIGRAMS);
 }
 
 void FlatIndexBuilder::add_trigram(FileId fid, TriGram val) {
-    if (!added_trigrams[val]) {
-        added_trigrams[val] = true;
-        raw_data.push_back((fid & 0xFFU) | (val << 8U));
-    }
+    // Consider packing the data in more memory efficient ways
+    // At least if it's worth it (TODO: measure performance).
+    raw_data.push_back(fid | (uint64_t{val} << 40ULL));
 }
 
 void FlatIndexBuilder::save(const std::string &fname) {
@@ -43,14 +42,19 @@ void FlatIndexBuilder::save(const std::string &fname) {
     std::vector<uint64_t> offsets(NUM_TRIGRAMS + 1);
     offsets[0] = offset;
 
+    // Sort raw_data by trigrams (higher part of raw_data contains the
+    // trigram value and lower part has the file ID).
     std::sort(raw_data.begin(), raw_data.end());
+
+    // Remove the duplicates (Files will often contain duplicated trigrams).
+    raw_data.erase(std::unique(raw_data.begin(), raw_data.end()), raw_data.end());
 
     TriGram last_trigram = 0;
     int64_t prev = -1;
 
-    for (const uint32_t &d : raw_data) {
-        TriGram val = (d >> 8U) & (0xFFFFFFU);
-        FileId next = (d & 0xFFU);
+    for (uint64_t d : raw_data) {
+        TriGram val = (d >> 40ULL) & 0xFFFFFFU;
+        FileId next = d & 0xFFFFFFFFFFULL;
 
         // adjust offsets for [last_trigram+1, val)
         if (last_trigram != val) {
@@ -82,16 +86,12 @@ void FlatIndexBuilder::save(const std::string &fname) {
 }
 
 void FlatIndexBuilder::add_file(FileId fid, const uint8_t *data, size_t size) {
-    if (fid >= max_files) {
-        // IndexBuilder's bitmap can't hold more than max_files files
-        throw std::out_of_range("fid");
-    }
-
-    std::fill(added_trigrams.begin(), added_trigrams.end(), 0);
     TrigramGenerator generator = get_generator_for(index_type());
     generator(data, size, [&](TriGram val) { add_trigram(fid, val); });
 }
 
-bool FlatIndexBuilder::must_spill(int file_count) const {
-    return file_count >= max_files;
+bool FlatIndexBuilder::can_still_add(uint64_t bytes, int file_count) const {
+    uint64_t max_number_of_trigrams_produced = bytes - 2;
+    uint64_t max_trigrams_after_add = raw_data.size() + max_number_of_trigrams_produced;
+    return max_trigrams_after_add < MAX_TRIGRAMS;
 }
