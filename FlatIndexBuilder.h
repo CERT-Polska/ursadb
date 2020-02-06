@@ -8,6 +8,8 @@
 #include "IndexBuilder.h"
 
 class FlatIndexBuilder : public IndexBuilder {
+    // Contains uint64_t values in the following format:
+    // [trigram: 24 bits] [file_id: 40 bits]
     std::vector<uint64_t> raw_data;
 
     void add_trigram(FileId fid, TriGram val);
