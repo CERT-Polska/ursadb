@@ -52,7 +52,7 @@ void FlatIndexBuilder::save(const std::string &fname) {
     TriGram last_trigram = 0;
     int64_t prev = -1;
 
-    for (const uint64_t &d : raw_data) {
+    for (uint64_t d : raw_data) {
         TriGram val = (d >> 40ULL) & (0xFFFFFFU);
         FileId next = d & 0xFFFFFFFFFFULL;
 
