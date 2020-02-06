@@ -54,7 +54,7 @@ void FlatIndexBuilder::save(const std::string &fname) {
 
     for (const uint64_t &d : raw_data) {
         TriGram val = (d >> 40ULL) & (0xFFFFFFU);
-        FileId next = (d & 0xFFFFFFFFFFULL);
+        FileId next = d & 0xFFFFFFFFFFULL;
 
         // adjust offsets for [last_trigram+1, val)
         if (last_trigram != val) {
@@ -92,5 +92,6 @@ void FlatIndexBuilder::add_file(FileId fid, const uint8_t *data, size_t size) {
 
 bool FlatIndexBuilder::can_still_add(uint64_t bytes, int file_count) const {
     uint64_t max_number_of_trigrams_produced = bytes - 2;
-    return raw_data.size() + max_number_of_trigrams_produced < MAX_TRIGRAMS;
+    uint64_t max_trigrams_after_add = raw_data.size() + max_number_of_trigrams_produced;
+    return max_trigrams_after_add < MAX_TRIGRAMS;
 }

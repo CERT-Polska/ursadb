@@ -74,12 +74,10 @@ void DatasetBuilder::index(const std::string &filepath) {
 }
 
 bool DatasetBuilder::can_still_add(uint64_t bytes) const {
-    for (const auto &ndx : indices) {
-        if (!ndx->can_still_add(bytes, fids.size())) {
-            return false;
-        }
-    }
-    return true;
+    auto can_add_bytes = [bytes, fcount=fids.size()](const auto &ndx) {
+        return ndx->can_still_add(bytes, fcount);
+    };
+    return std::all_of(std::cbegin(indices), std::cend(indices), can_add_bytes);
 }
 
 void DatasetBuilder::clear() {
