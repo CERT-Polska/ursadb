@@ -58,6 +58,8 @@ Response Response::status(const std::vector<TaskEntry> &tasks) {
         tasks_json.push_back(task_json);
     }
     r.content["result"]["tasks"] = tasks_json;
+    r.content["result"]["ursadb_version"] = std::string(ursadb_version);
+
     return r;
 }
 
