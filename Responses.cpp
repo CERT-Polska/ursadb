@@ -36,9 +36,11 @@ Response Response::topology(const std::vector<DatasetEntry> &datasets) {
             std::string type_name = get_index_type_name(index.type);
             json index_entry;
             index_entry["type"] = type_name;
+            index_entry["size"] = index.size;
             datasets_json[dataset.id]["indexes"].push_back(index_entry);
         }
         datasets_json[dataset.id]["size"] = dataset.size;
+        datasets_json[dataset.id]["file_count"] = dataset.file_count;
     }
     r.content["result"]["datasets"] = datasets_json;
     return r;
