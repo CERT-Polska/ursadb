@@ -107,15 +107,17 @@ Response execute_command(const TopologyCommand &cmd, Task *task, const DatabaseS
     for (const auto *dataset : datasets) {
         DatasetEntry dataset_entry {
             /*.id:*/ dataset->get_id(),
-            /*.size:*/ 0
+            /*.size:*/ 0,
+            /*.file_count:*/ dataset->get_file_count()
         };
 
         for (const auto &index : dataset->get_indexes()) {
             IndexEntry index_entry{
                 /*.type:*/ index.index_type(),
+                /*.size:*/ index.real_size()
             };
             dataset_entry.indexes.push_back(index_entry);
-            dataset_entry.size += index.real_size();
+            dataset_entry.size += index_entry.size;
         }
 
         result.push_back(dataset_entry);

@@ -24,6 +24,7 @@ struct IndexEntry {
 struct DatasetEntry {
     std::string id;
     unsigned long size;
+    unsigned long file_count;
     std::vector<IndexEntry> indexes;
 };
 
