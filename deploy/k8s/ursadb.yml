@@ -1,0 +1,55 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: ursadb
+  name: ursadb
+  namespace: mquery-prod
+spec:
+  progressDeadlineSeconds: 2147483647
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: ursadb
+  template:
+    metadata:
+      labels:
+        app: ursadb
+    spec:
+      containers:
+        - image: dr.cert.pl/mquery/ursadb:master
+          imagePullPolicy: Always
+          name: ursadb
+          ports:
+            - containerPort: 9281
+              protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /var/lib/ursadb
+              name: ursadb-pv-volume-prod
+            - mountPath: /mnt/samples
+              name: mquery-nfs-volume-prod
+            - mountPath: /mnt/ursadb-shared
+              name: ursadb-index-pv-volume-prod
+      dnsPolicy: ClusterFirst
+      imagePullSecrets:
+        - name: regcred
+      nodeSelector:
+        kubernetes.io/hostname: mquery-supernode.cert.pl
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: ursadb-pv-volume-prod
+          persistentVolumeClaim:
+            claimName: ursadb-pv-claim-prod
+        - name: ursadb-index-pv-volume-prod
+          persistentVolumeClaim:
+            claimName: ursadb-index-pv-claim-prod
+        - name: mquery-nfs-volume-prod
+          persistentVolumeClaim:
+            claimName: mquery-nfs-claim-prod

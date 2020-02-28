@@ -1,0 +1,14 @@
+{
+    "ursadb": {
+        "docker": {
+            "image": "dr.cert.pl/mquery/ursadb",
+            "dockerfile": "deploy/docker/Dockerfile",
+            "dir": "."
+        },
+        "k8s": {
+            "namespace": "mquery-prod",
+            "deployment": "ursadb",
+            "container": "ursadb"
+        }
+    }
+}
