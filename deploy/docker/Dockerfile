@@ -18,6 +18,7 @@ COPY --from=build /src/build/ursadb /usr/bin/ursadb
 COPY --from=build /src/build/ursadb_new /usr/bin/ursadb_new
 COPY --from=build /src/build/ursadb_bench /usr/bin/ursadb_bench
 COPY --from=build /src/build/ursadb_test /usr/bin/ursadb_test
+COPY --from=build /src/build/ursadb_trim /usr/bin/ursadb_trim
 
 COPY entrypoint.sh /entrypoint.sh
 
