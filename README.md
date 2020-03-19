@@ -272,3 +272,5 @@ In order to force smart compact (database will decide which datasets do need com
 ```
 compact smart;
 ```
+
+![Co-financed by the Connecting Europe Facility by of the European Union](https://www.cert.pl/wp-content/uploads/2019/02/en_horizontal_cef_logo-1.png)
