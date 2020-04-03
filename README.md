@@ -65,7 +65,7 @@ Yet another type of index is `hash4`, which creates trigrams based on hashes of 
 Full package installation
 -------------------------
 
-This repository is only for UrsaDB project (3gram database). In order to see instructions on how to set up the whole mquery system, see [CERT-Polska/ursadb](https://github.com/CERT-Polska/mquery).
+This repository is only for UrsaDB project (3gram database). In order to see instructions on how to set up the whole mquery system, see [CERT-Polska/mquery](https://github.com/CERT-Polska/mquery).
 
 
 Installation (with Docker)
