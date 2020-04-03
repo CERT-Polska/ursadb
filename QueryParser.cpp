@@ -21,7 +21,33 @@ using namespace tao::TAO_PEGTL_NAMESPACE; // NOLINT
 
 namespace queryparse {
 
+// tokens
+struct comma_token : one<','> {};
+struct select_token : string<'s', 'e', 'l', 'e', 'c', 't'> {};
+struct status_token : string<'s', 't', 'a', 't', 'u', 's'> {};
+struct index_token : string<'i', 'n', 'd', 'e', 'x'> {};
+struct reindex_token : string<'r', 'e', 'i', 'n', 'd', 'e', 'x'> {};
+struct compact_token : string<'c', 'o', 'm', 'p', 'a', 'c', 't'> {};
+struct topology_token : string<'t', 'o', 'p', 'o', 'l', 'o', 'g', 'y'> {};
+struct with_token : string<'w', 'i', 't', 'h'> {};
+struct gram3_token : string<'g', 'r', 'a', 'm', '3'> {};
+struct hash4_token : string<'h', 'a', 's', 'h', '4'> {};
+struct text4_token : string<'t', 'e', 'x', 't', '4'> {};
+struct wide8_token : string<'w', 'i', 'd', 'e', '8'> {};
+struct all_token : string<'a', 'l', 'l'> {};
+struct smart_token : string<'s', 'm', 'a', 'r', 't'> {};
+struct ping_token : string<'p', 'i', 'n', 'g'> {};
+struct taint_token : string<'t', 'a', 'i', 'n', 't'> {};
+struct taints_token : string<'t', 'a', 'i', 'n', 't', 's'> {};
+struct add_token : string<'a', 'd', 'd'> {};
+struct clear_token : string<'c', 'l', 'e', 'a', 'r'> {};
+struct from_token : string<'f', 'r', 'o', 'm'> {};
+struct list_token : string<'l', 'i', 's', 't'> {};
+struct min_token : string<'m', 'i', 'n'> {};
+struct of_token : string<'o', 'f'> {};
 struct hexdigit : abnf::HEXDIG {};
+
+// utils
 struct hexbyte : seq<hexdigit, hexdigit> {};
 struct wildcard : seq<one<'?'>> {};
 struct hexwildcard : seq<sor<hexdigit, wildcard>, sor<hexdigit, wildcard>> {};
@@ -40,13 +66,10 @@ struct op_and : pad<one<'&'>, space> {};
 struct op_or : pad<one<'|'>, space> {};
 struct open_bracket : seq<one<'('>, star<space>> {};
 struct close_bracket : seq<star<space>, one<')'>> {};
-struct open_curly : seq<one<'{'>, star<space>> {};
+struct open_curly : seq<one<'{'>, star<space>> {}; // '
 struct close_curly : seq<star<space>, one<'}'>> {};
 struct open_square : seq<one<'['>, star<space>> {};
 struct close_square : seq<star<space>, one<']'>> {};
-
-struct min_token : string<'m', 'i', 'n'> {};
-struct of_token : string<'o', 'f'> {};
 struct hexbytes : opt<list<sor<hexbyte, hexwildcard>, star<space>>> {};
 struct hexstring : if_must<open_curly, hexbytes, close_curly> {};
 struct string_like : sor<wide_plaintext, plaintext, hexstring> {};
@@ -57,40 +80,36 @@ struct comma;
 struct argument_tuple : seq<open_bracket, seq<expression, star<seq<comma, expression>>>, close_bracket> {};
 struct min_of_expr : seq<min_token, plus<space>, number, plus<space>, of_token, star<space>, argument_tuple> {};
 struct expression : seq<sor<value, min_of_expr>, star<sor<op_and, op_or>, expression>> {};
-struct comma_token : one<','> {};
-struct select_token : string<'s', 'e', 'l', 'e', 'c', 't'> {};
-struct status_token : string<'s', 't', 'a', 't', 'u', 's'> {};
-struct index_token : string<'i', 'n', 'd', 'e', 'x'> {};
-struct reindex_token : string<'r', 'e', 'i', 'n', 'd', 'e', 'x'> {};
-struct compact_token : string<'c', 'o', 'm', 'p', 'a', 'c', 't'> {};
-struct topology_token : string<'t', 'o', 'p', 'o', 'l', 'o', 'g', 'y'> {};
-struct with_token : string<'w', 'i', 't', 'h'> {};
-struct gram3_token : string<'g', 'r', 'a', 'm', '3'> {};
-struct hash4_token : string<'h', 'a', 's', 'h', '4'> {};
-struct text4_token : string<'t', 'e', 'x', 't', '4'> {};
-struct wide8_token : string<'w', 'i', 'd', 'e', '8'> {};
-struct all_token : string<'a', 'l', 'l'> {};
-struct smart_token : string<'s', 'm', 'a', 'r', 't'> {};
-struct ping_token : string<'p', 'i', 'n', 'g'> {};
 struct comma : seq<star<space>, comma_token, star<space>> {};
 struct index_type : sor<gram3_token, hash4_token, text4_token, wide8_token> {};
 struct index_type_list : seq<open_square, opt<list<index_type, comma>>, close_square> {};
 struct index_with_construct : seq<with_token, star<space>, index_type_list> {};
-struct select : seq<select_token, star<space>, expression> {};
-struct status : seq<status_token> {};
-struct ping : seq<ping_token> {};
-struct topology : seq<topology_token> {};
 struct paths_construct : list<string_like, space> {};
-struct from_list_token : string<'f', 'r', 'o', 'm', ' ', 'l', 'i', 's', 't'> {};
-struct from_list_construct : seq<from_list_token, plus<space>, string_like> {};
+struct from_list_construct : seq<from_token, plus<space>, list_token, plus<space>, string_like> {};
+struct add_or_clear : sor<add_token, clear_token> {};
+struct taint_name_list : seq<open_square, opt<list<plaintext, comma>>, close_square> {};
+struct with_taints : seq<with_token, plus<space>, taints_token> {};
+struct with_taints_construct : seq<with_taints, plus<space>, taint_name_list> {};
+
+
+// commands
+struct select : seq<select_token, opt<seq<plus<space>, with_taints_construct>>, star<space>, expression> {};
+struct taint : seq<taint_token, plus<space>, plaintext, plus<space>, add_or_clear, plus<space>, plaintext> {};
 struct index : seq<index_token, star<space>, sor<paths_construct, from_list_construct>, star<space>, opt<index_with_construct>> {};
 struct reindex : seq<reindex_token, star<space>, string_like, star<space>, index_with_construct> {};
 struct compact : seq<compact_token, star<space>, sor<all_token, smart_token>> {};
-struct command : seq<sor<select, index, reindex, compact, status, topology, ping>, star<space>, one<';'>> {};
+struct status : seq<status_token> {};
+struct topology : seq<topology_token> {};
+struct ping : seq<ping_token> {};
+
+// api
+struct command : seq<sor<select, index, reindex, compact, status, topology, ping, taint>, star<space>, one<';'>> {};
 struct grammar : seq<command, star<space>, eof> {};
 
+// store configuration (what to keep and what to drop)
 template <typename> struct store : std::false_type {};
 template <> struct store<plaintext> : std::true_type {};
+template <> struct store<with_taints> : std::true_type {};
 template <> struct store<wide_plaintext> : std::true_type {};
 template <> struct store<op_and> : parse_tree::remove_content {};
 template <> struct store<op_or> : parse_tree::remove_content {};
@@ -102,6 +121,7 @@ template <> struct store<hexwildcard> : std::true_type {};
 template <> struct store<ascii_char> : std::true_type {};
 template <> struct store<number> : std::true_type {};
 template <> struct store<select> : std::true_type {};
+template <> struct store<taint> : std::true_type {};
 template <> struct store<index> : std::true_type {};
 template <> struct store<reindex> : std::true_type {};
 template <> struct store<compact> : std::true_type {};
@@ -109,6 +129,9 @@ template <> struct store<topology> : std::true_type {};
 template <> struct store<status> : std::true_type {};
 template <> struct store<ping> : std::true_type {};
 template <> struct store<index_type_list> : std::true_type {};
+template <> struct store<taint_name_list> : std::true_type {};
+template <> struct store<add_token> : std::true_type {};
+template <> struct store<clear_token> : std::true_type {};
 template <> struct store<gram3_token> : std::true_type {};
 template <> struct store<hash4_token> : std::true_type {};
 template <> struct store<text4_token> : std::true_type {};
@@ -268,8 +291,16 @@ Query transform(const parse_tree::node &n) {
 
 Command transform_command(const parse_tree::node &n) {
     if (n.is<select>()) {
-        auto &expr = n.children[0];
-        return Command(SelectCommand(transform(*expr)));
+        std::vector<std::string> taints;
+        parse_tree::node *expr = &*n.children[0];
+
+        if (expr->is<with_taints>()) {
+            for (auto &taint : n.children[1]->children) {
+                taints.push_back(transform_string(*taint));
+            }
+            expr = &*n.children[2];
+        }
+        return Command(SelectCommand(transform(*expr), taints));
     } else if (n.is<index>()) {
         auto &target_n = n.children[0];
 
@@ -311,6 +342,16 @@ Command transform_command(const parse_tree::node &n) {
         return Command(TopologyCommand());
     } else if (n.is<ping>()) {
         return Command(PingCommand());
+    } else if (n.is<taint>()) {
+        TaintMode mode;
+        if (n.children[1]->is<add_token>()) {
+            mode = TaintMode::Add;
+        } else {
+            mode = TaintMode::Clear;
+        }
+        std::string dataset = transform_string(*n.children[0]);
+        std::string taint = transform_string(*n.children[2]);
+        return Command(TaintCommand(dataset, mode, taint));
     }
 
     throw std::runtime_error("Unknown parse_tree node, can not create Command.");

@@ -24,8 +24,12 @@ Response execute_command(const SelectCommand &cmd, Task *task, const DatabaseSna
     std::stringstream ss;
 
     const Query &query = cmd.get_query();
+    const std::vector<std::string> &taints = cmd.get_taints();
+    for (auto taint: taints) {
+        std::cout << "taint " << taint << std::endl;
+    }
     std::vector<std::string> out;
-    snap->execute(query, task, &out);
+    snap->execute(query, taints, task, &out);
     return Response::select(out);
 }
 
@@ -108,7 +112,8 @@ Response execute_command(const TopologyCommand &cmd, Task *task, const DatabaseS
         DatasetEntry dataset_entry {
             /*.id:*/ dataset->get_id(),
             /*.size:*/ 0,
-            /*.file_count:*/ dataset->get_file_count()
+            /*.file_count:*/ dataset->get_file_count(),
+            /*.taints:*/ dataset->get_taints()
         };
 
         for (const auto &index : dataset->get_indexes()) {
@@ -128,6 +133,22 @@ Response execute_command(const TopologyCommand &cmd, Task *task, const DatabaseS
 
 Response execute_command(const PingCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
     return Response::ping(bin_str_to_hex(task->conn_id));
+}
+
+Response execute_command(const TaintCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
+    const OnDiskDataset *ds = snap->find_dataset(cmd.get_dataset());
+    if (!ds) {
+        throw std::runtime_error("can't taint non-existend dataset");
+    }
+    const std::string &taint = cmd.get_taint();
+    bool has_taint = ds->get_taints().count(taint) > 0;
+    bool should_have_taint = cmd.get_mode() == TaintMode::Add;
+
+    if (has_taint != should_have_taint) {
+        task->changes.emplace_back(DbChangeType::ToggleTaint, cmd.get_dataset(), taint);
+    }
+
+    return Response::ok();
 }
 
 Response dispatch_command(const Command &cmd, Task *task, const DatabaseSnapshot *snap) {
