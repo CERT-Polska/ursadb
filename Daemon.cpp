@@ -24,12 +24,8 @@ Response execute_command(const SelectCommand &cmd, Task *task, const DatabaseSna
     std::stringstream ss;
 
     const Query &query = cmd.get_query();
-    const std::vector<std::string> &taints = cmd.get_taints();
-    for (auto taint: taints) {
-        std::cout << "taint " << taint << std::endl;
-    }
     std::vector<std::string> out;
-    snap->execute(query, taints, task, &out);
+    snap->execute(query, cmd.get_taints(), task, &out);
     return Response::select(out);
 }
 

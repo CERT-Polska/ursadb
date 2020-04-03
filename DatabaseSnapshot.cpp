@@ -19,7 +19,7 @@ DatabaseSnapshot::DatabaseSnapshot(
 }
 
 const OnDiskDataset *DatabaseSnapshot::find_dataset(const std::string &name) const {
-    for (auto ds : datasets) {
+    for (const auto &ds : datasets) {
         if (ds->get_id() == name) {
             return ds;
         }

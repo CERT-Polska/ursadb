@@ -10,7 +10,7 @@
 
 void OnDiskDataset::on_disk_metadata_update() {
     std::set<std::string> index_names;
-    for (auto &name: indices) {
+    for (const auto &name: indices) {
         index_names.insert(name.get_fname());
     }
 
@@ -178,7 +178,7 @@ void OnDiskDataset::execute(const Query &query, std::vector<std::string> *out) c
 }
 
 bool OnDiskDataset::has_all_taints(const std::vector<std::string> &taints) const {
-    for (auto taint : taints) {
+    for (const auto &taint : taints) {
         if (this->taints.count(taint) == 0) {
             return false;
         }
@@ -318,7 +318,7 @@ std::vector<std::vector<const OnDiskDataset *>> OnDiskDataset::get_taint_compati
     }
 
     std::vector<std::vector<const OnDiskDataset *>> result;
-    for (auto kv: partial) {
+    for (const auto &kv: partial) {
         result.push_back(kv.second);
     }
 

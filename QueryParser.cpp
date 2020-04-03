@@ -295,7 +295,7 @@ Command transform_command(const parse_tree::node &n) {
         parse_tree::node *expr = &*n.children[0];
 
         if (expr->is<with_taints>()) {
-            for (auto &taint : n.children[1]->children) {
+            for (const auto &taint : n.children[1]->children) {
                 taints.push_back(transform_string(*taint));
             }
             expr = &*n.children[2];
