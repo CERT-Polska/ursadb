@@ -5,6 +5,25 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "-Wall")
 
+message("Looking for clang-format")
+find_program(CLANG_FORMAT_EXEC clang-format)
+if(NOT EXISTS ${CLANG_FORMAT_EXEC})
+    message(WARNING "clang-format not found! Target 'format' won't be available")
+else()
+    file(GLOB FORMAT_SOURCES *.cpp *.h)
+    add_custom_target(format
+      COMMAND
+       ${CLANG_FORMAT_EXEC}
+       -style=file
+       -i
+       ${FORMAT_SOURCES}
+      WORKING_DIRECTORY
+       ${CMAKE_SOURCE_DIR}
+      COMMENT
+      "Formatting..."
+    )
+endif()
+
 add_library(
     ursa
     STATIC
