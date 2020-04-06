@@ -87,6 +87,7 @@ void store_dataset(
         const fs::path &db_base,
         const std::string &fname,
         const std::set<std::string> &index_names,
-        const std::string &fname_list);
+        const std::string &fname_list,
+        const std::set<std::string> &taints);
 
 std::string bin_str_to_hex(const std::string& str);

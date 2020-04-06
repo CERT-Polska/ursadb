@@ -41,6 +41,7 @@ Response Response::topology(const std::vector<DatasetEntry> &datasets) {
         }
         datasets_json[dataset.id]["size"] = dataset.size;
         datasets_json[dataset.id]["file_count"] = dataset.file_count;
+        datasets_json[dataset.id]["taints"] = dataset.taints;
     }
     r.content["result"]["datasets"] = datasets_json;
     return r;

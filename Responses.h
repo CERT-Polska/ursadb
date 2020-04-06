@@ -25,6 +25,7 @@ struct DatasetEntry {
     std::string id;
     unsigned long size;
     unsigned long file_count;
+    std::set<std::string> taints;
     std::vector<IndexEntry> indexes;
 };
 

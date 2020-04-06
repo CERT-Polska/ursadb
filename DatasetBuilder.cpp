@@ -46,7 +46,8 @@ void DatasetBuilder::save(const fs::path &db_base, const std::string &fname) {
     }
     of.flush();
 
-    store_dataset(db_base, fname, index_names, fname_list);
+    std::set<std::string> taints;
+    store_dataset(db_base, fname, index_names, fname_list, taints);
 }
 
 void DatasetBuilder::force_registered(const std::string &filepath) {

@@ -10,10 +10,12 @@ static inline std::vector<IndexType> default_index_types() {
 
 class SelectCommand {
     Query query;
+    std::set<std::string> taints;
 
   public:
-    SelectCommand(const Query &query) : query(query) {}
+    SelectCommand(const Query &query, std::set<std::string> taints) : query(query), taints(taints) {}
     const Query &get_query() const { return query; }
+    const std::set<std::string> &get_taints() const { return taints; }
 };
 
 class IndexCommand {
@@ -74,5 +76,41 @@ class PingCommand {
     PingCommand() {}
 };
 
+enum class TaintMode {
+    Add = 1,
+    Clear = 2
+};
+
+class TaintCommand {
+    std::string dataset;
+    TaintMode mode;
+    std::string taint;
+
+  public:
+    TaintCommand(std::string dataset, TaintMode mode, std::string taint)
+        :dataset(dataset), mode(mode), taint(taint) {}
+
+    const TaintMode get_mode() const {
+      return mode;
+    }
+
+    const std::string &get_dataset() const {
+      return dataset;
+    }
+
+    const std::string &get_taint() const {
+      return taint;
+    }
+};
+
 using Command = std::variant<
-        SelectCommand, IndexCommand, IndexFromCommand, ReindexCommand, CompactCommand, StatusCommand, TopologyCommand, PingCommand>;
+    SelectCommand,
+    IndexCommand,
+    IndexFromCommand,
+    ReindexCommand,
+    CompactCommand,
+    StatusCommand,
+    TopologyCommand,
+    PingCommand,
+    TaintCommand
+>;

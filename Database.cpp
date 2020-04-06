@@ -22,6 +22,15 @@ Database::Database(const std::string &fname, bool initialize) : last_task_id(0),
 
 Database::Database(const std::string &fname) : Database(fname, true) {}
 
+OnDiskDataset *Database::find_working_dataset(const std::string &name) {
+    for (auto ds : working_datasets) {
+        if (ds->get_id() == name) {
+            return ds;
+        }
+    }
+    return nullptr;
+}
+
 void Database::load_from_disk() {
     std::ifstream db_file(db_base / db_name, std::ifstream::binary);
 
@@ -159,6 +168,9 @@ void Database::commit_task(uint64_t task_id) {
     Task *task = get_task(task_id);
 
     for (const auto &change : task->changes) {
+        std::cout << "change: " << db_change_to_string(change.type) << " " << change.obj_name
+            << "(" << change.parameter << ")" << std::endl;
+
         if (change.type == DbChangeType::Insert) {
             load_dataset(change.obj_name);
         } else if (change.type == DbChangeType::Drop) {
@@ -166,11 +178,17 @@ void Database::commit_task(uint64_t task_id) {
         } else if (change.type == DbChangeType::Reload) {
             drop_dataset(change.obj_name);
             load_dataset(change.obj_name);
+        } else if (change.type == DbChangeType::ToggleTaint) {
+            OnDiskDataset *ds = find_working_dataset(change.obj_name);
+            if (!ds) {
+                return; // suspicious, but maybe delayed task
+            }
+            ds->toggle_taint(change.parameter);
+            ds->on_disk_metadata_update();
         } else {
             throw std::runtime_error("unknown change type requested");
         }
 
-        std::cout << "change: " << db_change_to_string(change.type) << " " << change.obj_name << std::endl;
     }
 
     if (!task->changes.empty()) {

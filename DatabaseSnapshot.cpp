@@ -18,6 +18,15 @@ DatabaseSnapshot::DatabaseSnapshot(
     }
 }
 
+const OnDiskDataset *DatabaseSnapshot::find_dataset(const std::string &name) const {
+    for (const auto &ds : datasets) {
+        if (ds->get_id() == name) {
+            return ds;
+        }
+    }
+    return nullptr;
+}
+
 void DatabaseSnapshot::build_target_list(
         const std::string &filepath,
     const std::set<std::string> &existing_files,
@@ -134,27 +143,39 @@ std::string DatabaseSnapshot::allocate_name() const {
     }
 }
 
-void DatabaseSnapshot::execute(const Query &query, Task *task, std::vector<std::string> *out) const {
+void DatabaseSnapshot::execute(
+    const Query &query,
+    const std::set<std::string> &taints,
+    Task *task,
+    std::vector<std::string> *out
+) const {
     task->work_estimated = datasets.size();
 
     for (const auto &ds : datasets) {
+        if (!ds->has_all_taints(taints)) {
+            continue;
+        }
         ds->execute(query, out);
         task->work_done += 1;
     }
 }
 
 void DatabaseSnapshot::smart_compact(Task *task) const {
-    std::vector<const OnDiskDataset *> candidates = OnDiskDataset::get_compact_candidates(datasets);
+    for (auto set : OnDiskDataset::get_taint_compatible_datasets(datasets)) {
+        std::vector<const OnDiskDataset *> candidates = OnDiskDataset::get_compact_candidates(set);
 
-    if (candidates.empty()) {
-        throw std::runtime_error("no candidates for smart compact");
+        if (!candidates.empty()) {
+            internal_compact(task, candidates);
+        }
     }
-
-    internal_compact(task, candidates);
 }
 
 void DatabaseSnapshot::compact(Task *task) const {
-    internal_compact(task, datasets);
+    for (auto set : OnDiskDataset::get_taint_compatible_datasets(datasets)) {
+        if (set.size() >= 2) {
+            internal_compact(task, set);
+        }
+    }
 }
 
 void DatabaseSnapshot::internal_compact(Task *task, std::vector<const OnDiskDataset *> datasets) const {

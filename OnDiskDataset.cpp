@@ -8,6 +8,23 @@
 #include "Query.h"
 #include "Json.h"
 
+void OnDiskDataset::on_disk_metadata_update() {
+    std::set<std::string> index_names;
+    for (const auto &name: indices) {
+        index_names.insert(name.get_fname());
+    }
+
+    store_dataset(db_base, name, index_names, files_index->get_files_fname(), taints);
+}
+
+void OnDiskDataset::toggle_taint(const std::string &taint) {
+    if (taints.count(taint) > 0) {
+        taints.erase(taint);
+    } else {
+        taints.insert(taint);
+    }
+}
+
 OnDiskDataset::OnDiskDataset(const fs::path &db_base, const std::string &fname)
     : name(fname), db_base(db_base) {
     std::ifstream in(db_base / name, std::ifstream::binary);
@@ -16,6 +33,10 @@ OnDiskDataset::OnDiskDataset(const fs::path &db_base, const std::string &fname)
 
     for (const std::string &index_fname : j["indices"]) {
         indices.emplace_back(db_base / index_fname);
+    }
+
+    for (const std::string &taint : j["taints"]) {
+        taints.insert(taint);
     }
 
     std::string files_fname = j["files"];
@@ -156,6 +177,16 @@ void OnDiskDataset::execute(const Query &query, std::vector<std::string> *out) c
     }
 }
 
+bool OnDiskDataset::has_all_taints(const std::set<std::string> &taints) const {
+    for (const auto &taint : taints) {
+        if (this->taints.count(taint) == 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
 const std::string &OnDiskDataset::get_name() const { return name; }
 
 std::string OnDiskDataset::get_id() const {
@@ -176,11 +207,20 @@ void OnDiskDataset::merge(
         throw std::runtime_error("merge requires at least 2 datasets");
     }
 
+    for (size_t i = 1; i < datasets.size(); i++) {
+        if (!datasets[0]->is_taint_compatible(*datasets[i])) {
+            std::stringstream ss;
+            ss << "trying to merge \"" << datasets[0]->get_name() << "\" and \"" << datasets[i]->get_name() << "\" ";
+            ss << "but they have different taints - aborting";
+            throw std::runtime_error(ss.str());
+        }
+    }
+
     for (const OnDiskIndex &index : datasets[0]->indices) {
         index_types.insert(index.index_type());
     }
 
-    for (unsigned int i = 1; i < datasets.size(); i++) {
+    for (size_t i = 1; i < datasets.size(); i++) {
         std::set<IndexType> tmp_types;
 
         for (const OnDiskIndex &index : datasets[i]->indices) {
@@ -229,7 +269,7 @@ void OnDiskDataset::merge(
     }
     of.flush();
 
-    store_dataset(db_base, outname, index_names, fname_list);
+    store_dataset(db_base, outname, index_names, fname_list, datasets[0]->get_taints());
 }
 
 const OnDiskIndex &OnDiskDataset::get_index_with_type(IndexType index_type) const {
@@ -267,6 +307,22 @@ void OnDiskDataset::drop() {
 
 fs::path OnDiskDataset::get_base() const {
     return db_base;
+}
+
+std::vector<std::vector<const OnDiskDataset *>> OnDiskDataset::get_taint_compatible_datasets(
+    const std::vector<const OnDiskDataset *> &datasets
+) {
+    std::map<std::set<std::string>, std::vector<const OnDiskDataset *>> partial;
+    for (auto ds: datasets) {
+        partial[ds->get_taints()].push_back(ds);
+    }
+
+    std::vector<std::vector<const OnDiskDataset *>> result;
+    for (const auto &kv: partial) {
+        result.push_back(kv.second);
+    }
+
+    return result;
 }
 
 std::vector<const OnDiskDataset *> OnDiskDataset::get_compact_candidates(
