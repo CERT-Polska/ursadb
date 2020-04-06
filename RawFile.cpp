@@ -33,7 +33,7 @@ uint64_t RawFile::size() const {
 }
 
 void RawFile::pread(void *buf, size_t count, off_t offset) const {
-    char *buf_raw = reinterpret_cast<char*>(buf);
+    char *buf_raw = static_cast<char *>(buf);
     while (count > 0) {
         ssize_t result = ::pread(fd, buf_raw, count, offset);
         if (result < 0) {
