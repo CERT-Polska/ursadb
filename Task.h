@@ -3,7 +3,12 @@
 #include <string>
 #include <vector>
 
-enum class DbChangeType { Insert = 1, Drop = 2, Reload = 3 };
+enum class DbChangeType {
+    Insert = 1,
+    Drop = 2,
+    Reload = 3,
+    ToggleTaint = 4  // pretty hacky, DBChange should be a variant
+};
 
 std::string db_change_to_string(DbChangeType change);
 
@@ -11,8 +16,10 @@ class DBChange {
 public:
     DbChangeType type;
     std::string obj_name;
+    std::string parameter;
 
-    DBChange(const DbChangeType &type, const std::string &obj_name) : type(type), obj_name(obj_name) {}
+    DBChange(const DbChangeType &type, const std::string &obj_name, const std::string &parameter="")
+      :type(type), obj_name(obj_name), parameter(parameter) {}
 };
 
 class Task {

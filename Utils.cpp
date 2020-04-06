@@ -198,12 +198,14 @@ void store_dataset(
         const fs::path &db_base,
         const std::string &fname,
         const std::set<std::string> &index_names,
-        const std::string &fname_list) {
+        const std::string &fname_list,
+        const std::set<std::string> &taints) {
     json dataset;
     json j_indices(index_names);
 
     dataset["indices"] = j_indices;
     dataset["files"] = fname_list;
+    dataset["taints"] = taints;
 
     std::ofstream o;
     o.exceptions(std::ofstream::badbit);

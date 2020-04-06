@@ -48,6 +48,7 @@ class Database {
 
     static void create(const std::string &path);
     void load_dataset(const std::string &dsname);
+    OnDiskDataset *find_working_dataset(const std::string &dsname);
     void drop_dataset(const std::string &dsname);
     void destroy_dataset(const std::string &dsname);
     void collect_garbage(std::set<DatabaseSnapshot*> &working_snapshots);

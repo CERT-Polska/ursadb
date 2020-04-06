@@ -442,7 +442,8 @@ void make_query(Database &db, std::string query_str, std::set<std::string> expec
     Task *task = db.allocate_task();
     Query query = do_select(query_str);
     std::vector<std::string> out;
-    db.snapshot().execute(query, task, &out);
+    std::set<std::string> taints;
+    db.snapshot().execute(query, taints, task, &out);
     db.commit_task(task->id);
 
     std::vector<std::string> out_fixed;
