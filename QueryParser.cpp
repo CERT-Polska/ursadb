@@ -46,7 +46,7 @@ struct list_token : string<'l', 'i', 's', 't'> {};
 struct min_token : string<'m', 'i', 'n'> {};
 struct of_token : string<'o', 'f'> {};
 
-// strings
+// literals
 struct hexdigit : abnf::HEXDIG {};
 struct hexbyte : seq<hexdigit, hexdigit> {};
 struct wildcard : seq<one<'?'>> {};
@@ -307,17 +307,21 @@ Command transform_command(const parse_tree::node &n) {
         std::set<std::string> taints;
         while (true) {
             if (n.children[iter]->is<with_taints_token>()) {
+                // handle with_taints ["xxx", "yyy"] construct
                 for (const auto &taint : n.children[iter + 1]->children) {
                     taints.insert(transform_string(*taint));
                 }
                 iter += 2;
+                continue;
             }
             if (n.children[iter]->is<select_body>()) {
-                const auto &body = n.children[iter];
-                const auto &expr = body->children[0];
-                return Command(SelectCommand(transform(*expr), taints));
+                // select_body is always the last part of the query
+                break;
             }
+            throw std::runtime_error("unexpected node in select");
         }
+        const auto &expr = n.children[iter]->children[0];
+        return Command(SelectCommand(transform(*expr), taints));
     } else if (n.is<index>()) {
         auto &target_n = n.children[0];
 
