@@ -1,0 +1,15 @@
+dist: bionic
+language: python
+python:
+    - 3.6
+services:
+    - docker
+git:
+    submodules: false
+jobs:
+    include:
+    - stage: build
+      env:
+        - TEST="build test"
+      script:
+        - docker build -t ursadb .
