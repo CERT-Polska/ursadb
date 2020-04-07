@@ -45,9 +45,9 @@ struct from_token : string<'f', 'r', 'o', 'm'> {};
 struct list_token : string<'l', 'i', 's', 't'> {};
 struct min_token : string<'m', 'i', 'n'> {};
 struct of_token : string<'o', 'f'> {};
-struct hexdigit : abnf::HEXDIG {};
 
-// utils
+// strings
+struct hexdigit : abnf::HEXDIG {};
 struct hexbyte : seq<hexdigit, hexdigit> {};
 struct wildcard : seq<one<'?'>> {};
 struct hexwildcard : seq<sor<hexdigit, wildcard>, sor<hexdigit, wildcard>> {};
@@ -73,6 +73,8 @@ struct close_square : seq<star<space>, one<']'>> {};
 struct hexbytes : opt<list<sor<hexbyte, hexwildcard>, star<space>>> {};
 struct hexstring : if_must<open_curly, hexbytes, close_curly> {};
 struct string_like : sor<wide_plaintext, plaintext, hexstring> {};
+
+// expressions
 struct expression;
 struct bracketed : if_must<open_bracket, expression, close_bracket> {};
 struct value : sor<string_like, bracketed> {};
@@ -81,20 +83,27 @@ struct argument_tuple : seq<open_bracket, seq<expression, star<seq<comma, expres
 struct min_of_expr : seq<min_token, plus<space>, number, plus<space>, of_token, star<space>, argument_tuple> {};
 struct expression : seq<sor<value, min_of_expr>, star<sor<op_and, op_or>, expression>> {};
 struct comma : seq<star<space>, comma_token, star<space>> {};
-struct index_type : sor<gram3_token, hash4_token, text4_token, wide8_token> {};
-struct index_type_list : seq<open_square, opt<list<index_type, comma>>, close_square> {};
-struct index_with_construct : seq<with_token, star<space>, index_type_list> {};
-struct paths_construct : list<string_like, space> {};
-struct from_list_construct : seq<from_token, plus<space>, list_token, plus<space>, string_like> {};
 struct taint_name_list : seq<open_square, opt<list<plaintext, comma>>, close_square> {};
-struct with_taints : seq<with_token, plus<space>, taints_token> {};
-struct with_taints_construct : seq<with_taints, plus<space>, taint_name_list> {};
+
+// select command
+struct with_taints_token : seq<with_token, plus<space>, taints_token> {};
+struct with_taints_construct : seq<plus<space>, with_taints_token, plus<space>, taint_name_list> {};
+struct select_body : seq<star<space>, expression> {};
+
+// dataset command
 struct dataset_taint: seq<taint_token, plus<space>, plaintext> {};
 struct dataset_untaint: seq<untaint_token, plus<space>, plaintext> {};
 struct dataset_operation: sor<dataset_taint, dataset_untaint> {};
 
+// index command 
+struct index_type : sor<gram3_token, hash4_token, text4_token, wide8_token> {};
+struct paths_construct : list<string_like, space> {};
+struct index_type_list : seq<open_square, opt<list<index_type, comma>>, close_square> {};
+struct index_with_construct : seq<with_token, star<space>, index_type_list> {};
+struct from_list_construct : seq<from_token, plus<space>, list_token, plus<space>, string_like> {};
+
 // commands
-struct select : seq<select_token, opt<seq<plus<space>, with_taints_construct>>, star<space>, expression> {};
+struct select : seq<select_token, opt<with_taints_construct>, select_body> {};
 struct dataset : seq<dataset_token, star<space>, plaintext, star<space>, dataset_operation> {};
 struct index : seq<index_token, star<space>, sor<paths_construct, from_list_construct>, star<space>, opt<index_with_construct>> {};
 struct reindex : seq<reindex_token, star<space>, string_like, star<space>, index_with_construct> {};
@@ -110,7 +119,7 @@ struct grammar : seq<command, star<space>, eof> {};
 // store configuration (what to keep and what to drop)
 template <typename> struct store : std::false_type {};
 template <> struct store<plaintext> : std::true_type {};
-template <> struct store<with_taints> : std::true_type {};
+template <> struct store<with_taints_token> : std::true_type {};
 template <> struct store<wide_plaintext> : std::true_type {};
 template <> struct store<op_and> : parse_tree::remove_content {};
 template <> struct store<op_or> : parse_tree::remove_content {};
@@ -142,6 +151,7 @@ template <> struct store<smart_token> : std::true_type {};
 template <> struct store<min_of_expr> : std::true_type {};
 template <> struct store<paths_construct> : std::true_type {};
 template <> struct store<from_list_construct> : std::true_type {};
+template <> struct store<select_body> : std::true_type {};
 
 constexpr int hex2int(char hexchar) {
     if (hexchar >= '0' && hexchar <= '9') {
@@ -292,16 +302,22 @@ Query transform(const parse_tree::node &n) {
 
 Command transform_command(const parse_tree::node &n) {
     if (n.is<select>()) {
-        std::set<std::string> taints;
-        parse_tree::node *expr = &*n.children[0];
 
-        if (expr->is<with_taints>()) {
-            for (const auto &taint : n.children[1]->children) {
-                taints.insert(transform_string(*taint));
+        int iter = 0;
+        std::set<std::string> taints;
+        while (true) {
+            if (n.children[iter]->is<with_taints_token>()) {
+                for (const auto &taint : n.children[iter + 1]->children) {
+                    taints.insert(transform_string(*taint));
+                }
+                iter += 2;
             }
-            expr = &*n.children[2];
+            if (n.children[iter]->is<select_body>()) {
+                const auto &body = n.children[iter];
+                const auto &expr = body->children[0];
+                return Command(SelectCommand(transform(*expr), taints));
+            }
         }
-        return Command(SelectCommand(transform(*expr), taints));
     } else if (n.is<index>()) {
         auto &target_n = n.children[0];
 
