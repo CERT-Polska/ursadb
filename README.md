@@ -65,7 +65,7 @@ Yet another type of index is `hash4`, which creates trigrams based on hashes of 
 Full package installation
 -------------------------
 
-This repository is only for UrsaDB project (3gram database). In order to see instructions on how to set up the whole mquery system, see [CERT-Polska/ursadb](https://github.com/CERT-Polska/mquery).
+This repository is only for UrsaDB project (3gram database). In order to see instructions on how to set up the whole mquery system, see [CERT-Polska/mquery](https://github.com/CERT-Polska/mquery).
 
 
 Installation (with Docker)
@@ -272,3 +272,5 @@ In order to force smart compact (database will decide which datasets do need com
 ```
 compact smart;
 ```
+
+![Co-financed by the Connecting Europe Facility by of the European Union](https://www.cert.pl/wp-content/uploads/2019/02/en_horizontal_cef_logo-1.png)
