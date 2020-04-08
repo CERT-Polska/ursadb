@@ -46,11 +46,16 @@ void Database::load_from_disk() {
         throw std::runtime_error("Failed to parse JSON");
     }
 
-    // TODO(xmsm) - when not present, use default
+    // TODO(msm) - when not present, use default
     max_memory_size = db_json["config"]["max_mem_size"];
 
     for (const std::string &dataset_fname : db_json["datasets"]) {
         load_dataset(dataset_fname);
+    }
+
+    for (const auto& iterator : db_json["iterators"].items()) {
+        DatabaseName name(db_base, "iterator", iterator.key(), iterator.value());
+        load_iterator(name);
     }
 }
 
@@ -95,12 +100,16 @@ void Database::save() {
     db_json["config"] = {{"max_mem_size", max_memory_size}};
 
     std::vector<std::string> dataset_names;
-
     for (const auto *ds : working_datasets) {
         dataset_names.push_back(ds->get_name());
     }
-
     db_json["datasets"] = dataset_names;
+
+    json iterators_json;
+    for (const auto &it : iterators) {
+        iterators_json[it.first] = it.second.get_name().get_filename();
+    }
+    db_json["iterators"] = iterators_json;
 
     db_file << std::setw(4) << db_json << std::endl;
     db_file.flush();
@@ -109,10 +118,35 @@ void Database::save() {
     fs::rename(db_base / tmp_db_name, db_base / db_name);
 }
 
+void Database::load_iterator(const DatabaseName &name) {
+    iterators.emplace(name.get_id(), OnDiskIterator(name));
+    std::cout << "loaded new iterator " << name.get_filename() << std::endl;
+}
+
 void Database::load_dataset(const std::string &ds) {
     loaded_datasets.push_back(std::make_unique<OnDiskDataset>(db_base, ds));
     working_datasets.push_back(loaded_datasets.back().get());
     std::cout << "loaded new dataset " << ds << std::endl;
+}
+
+void Database::update_iterator(
+    const DatabaseName &name,
+    uint64_t byte_offset,
+    uint64_t file_offset
+) {
+    auto it = iterators.find(name.get_id());
+    if (it == iterators.end()) {
+        std::cout << "tried to update nonexistent iterator?";
+        return;
+    }
+    OnDiskIterator &iter = it->second;
+    if (file_offset >= iter.get_total_files()) {
+        iter.drop();
+        iterators.erase(name.get_id());
+    } else {
+        iter.update_offset(byte_offset, file_offset);
+        iter.save();
+    }
 }
 
 void Database::drop_dataset(const std::string &dsname) {
@@ -184,11 +218,23 @@ void Database::commit_task(uint64_t task_id) {
                 return; // suspicious, but maybe delayed task
             }
             ds->toggle_taint(change.parameter);
-            ds->on_disk_metadata_update();
+            ds->save();
+        } else if (change.type == DbChangeType::NewIterator) {
+            DatabaseName itname = DatabaseName::parse(db_base, change.obj_name);
+            load_iterator(itname);
+        } else if (change.type == DbChangeType::UpdateIterator) {
+            DatabaseName itname = DatabaseName::parse(db_base, change.obj_name);
+            std::string param = change.parameter;
+            uint32_t split_loc = param.find(':');
+            if (split_loc == std::string::npos) {
+                throw std::runtime_error("Invalid iterator update parameter");
+            }
+            uint64_t new_bytes = std::atoi(param.substr(0, split_loc).c_str());
+            uint64_t new_files = std::atoi(param.substr(split_loc + 1).c_str());
+            update_iterator(itname, new_bytes, new_files);
         } else {
             throw std::runtime_error("unknown change type requested");
         }
-
     }
 
     if (!task->changes.empty()) {
@@ -213,5 +259,5 @@ DatabaseSnapshot Database::snapshot() {
         cds.push_back(d);
     }
 
-    return DatabaseSnapshot(db_name, db_base, cds, tasks, max_memory_size);
+    return DatabaseSnapshot(db_name, db_base, iterators, cds, tasks, max_memory_size);
 }

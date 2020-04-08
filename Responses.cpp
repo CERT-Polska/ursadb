@@ -3,7 +3,32 @@
 
 Response Response::select(const std::vector<std::string> &files) {
     Response r("select");
+    r.content["result"]["mode"] = "raw";
     r.content["result"]["files"] = files;
+    return r;
+}
+
+Response Response::select_from_iterator(
+    const std::vector<std::string> &files,
+    uint64_t iterator_position,
+    uint64_t total_files
+) {
+    Response r("select");
+    r.content["result"]["mode"] = "raw";
+    r.content["result"]["files"] = files;
+    r.content["result"]["iterator_position"] = iterator_position;
+    r.content["result"]["total_files"] = total_files;
+    return r;
+}
+
+Response Response::select_iterator(
+    const std::string &iterator,
+    uint64_t file_count
+) {
+    Response r("select");
+    r.content["result"]["mode"] = "iterator";
+    r.content["result"]["file_count"] = file_count;
+    r.content["result"]["iterator"] = iterator;
     return r;
 }
 
@@ -21,8 +46,9 @@ Response Response::ping(const std::string &connection_id) {
     return r;
 }
 
-Response Response::error(const std::string &message) {
+Response Response::error(const std::string &message, bool retry) {
     Response r("error");
+    r.content["error"]["retry"] = retry;
     r.content["error"]["message"] = message;
     return r;
 }

@@ -8,7 +8,7 @@
 #include "Query.h"
 #include "Json.h"
 
-void OnDiskDataset::on_disk_metadata_update() {
+void OnDiskDataset::save() {
     std::set<std::string> index_names;
     for (const auto &name: indices) {
         index_names.insert(name.get_fname());
@@ -164,7 +164,7 @@ QueryResult OnDiskDataset::internal_execute(const Query &query) const {
     throw std::runtime_error("unhandled query type");
 }
 
-void OnDiskDataset::execute(const Query &query, std::vector<std::string> *out) const {
+void OnDiskDataset::execute(const Query &query, ResultWriter *out) const {
     QueryResult result = internal_execute(query);
     if (result.is_everything()) {
         files_index->for_each_filename([&out](const std::string &fname) {
@@ -190,12 +190,9 @@ bool OnDiskDataset::has_all_taints(const std::set<std::string> &taints) const {
 const std::string &OnDiskDataset::get_name() const { return name; }
 
 std::string OnDiskDataset::get_id() const {
-    auto first_dot = name.find('.');
-    auto second_dot = name.find('.', first_dot + 1);
-    if (second_dot == std::string::npos) {
-        throw std::runtime_error("Invalid dataset ID found");
-    }
-    return name.substr(first_dot + 1, second_dot - first_dot - 1);
+    // TODO use DatabaseName as a class member instead
+    auto dbname = DatabaseName::parse(db_base, name);
+    return dbname.get_id();
 }
 
 void OnDiskDataset::merge(

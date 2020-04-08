@@ -13,12 +13,12 @@
 #include "Query.h"
 #include "Task.h"
 #include "Utils.h"
-
-class OnDiskDataset;
+#include "OnDiskIterator.h"
 
 class Database {
     fs::path db_name;
     fs::path db_base;
+    std::map<std::string, OnDiskIterator> iterators;
     std::vector<OnDiskDataset *> working_datasets;
     std::vector<std::unique_ptr<OnDiskDataset>> loaded_datasets;
     size_t max_memory_size;
@@ -47,6 +47,12 @@ class Database {
     const std::vector<std::unique_ptr<OnDiskDataset>> &loaded_sets() { return loaded_datasets; }
 
     static void create(const std::string &path);
+    void load_iterator(const DatabaseName &name);
+    void update_iterator(
+        const DatabaseName &name,
+        uint64_t byte_offset,
+        uint64_t file_offset
+    );
     void load_dataset(const std::string &dsname);
     OnDiskDataset *find_working_dataset(const std::string &dsname);
     void drop_dataset(const std::string &dsname);

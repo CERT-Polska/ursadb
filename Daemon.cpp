@@ -19,14 +19,46 @@
 #include "QueryParser.h"
 #include "Responses.h"
 #include "NetworkService.h"
+#include "ResultWriter.h"
 
 Response execute_command(const SelectCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
     std::stringstream ss;
-
     const Query &query = cmd.get_query();
+
+    if (cmd.iterator_requested()) {
+        DatabaseName data_filename = snap->allocate_name("iterator");
+        FileResultWriter writer(data_filename.get_full_path());
+        snap->execute(query, cmd.get_taints(), task, &writer);
+        // TODO DbChange should use DatabaseName type instead.
+        DatabaseName meta_filename = snap->derive_name(data_filename, "itermeta");
+        OnDiskIterator::construct(meta_filename, data_filename, writer.get_file_count());
+        task->changes.emplace_back(DbChangeType::NewIterator, meta_filename.get_filename());
+        return Response::select_iterator(meta_filename.get_id(), writer.get_file_count());
+    } else {
+        InMemoryResultWriter writer;
+        snap->execute(query, cmd.get_taints(), task, &writer);
+        return Response::select(writer.get());
+    }
+}
+
+Response execute_command(const IteratorPopCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
     std::vector<std::string> out;
-    snap->execute(query, cmd.get_taints(), task, &out);
-    return Response::select(out);
+    uint64_t iterator_position;
+    uint64_t total_files;
+    bool success = snap->read_iterator(
+        task,
+        cmd.get_iterator_id(),
+        cmd.elements_to_pop(),
+        &out,
+        &iterator_position,
+        &total_files
+    );
+
+    if (success) {
+        return Response::select_from_iterator(out, iterator_position, total_files);
+    } else {
+        return Response::error("iterator locked, try again later", true);
+    }
 }
 
 Response execute_command(const IndexFromCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
