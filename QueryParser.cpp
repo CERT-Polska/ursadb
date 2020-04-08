@@ -228,7 +228,7 @@ QString transform_qstring(const parse_tree::node &n) {
 
             if (c[0] == '?' && c[1] == '?') { // \x??
                 if (wildcard_ticks > 0) {
-                    throw std::runtime_error("too many wildcards, instead use AND operator");
+                    throw std::runtime_error("too many wildcards, use AND operator instead");
                 }
 
                 result.emplace_back(QTokenType::WILDCARD, 0);
