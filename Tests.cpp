@@ -11,6 +11,7 @@
 #include "Query.h"
 #include "QueryParser.h"
 #include "Utils.h"
+#include "ResultWriter.h"
 #include "lib/Catch.h"
 
 TriGram gram3_pack(const char (&s)[4]) {
@@ -441,14 +442,14 @@ TEST_CASE("BitmapIndexBuilder for text4", "[index_builder_text4]") {
 void make_query(Database &db, std::string query_str, std::set<std::string> expected_out) {
     Task *task = db.allocate_task();
     Query query = do_select(query_str);
-    std::vector<std::string> out;
     std::set<std::string> taints;
+    InMemoryResultWriter out;
     db.snapshot().execute(query, taints, task, &out);
     db.commit_task(task->id);
 
     std::vector<std::string> out_fixed;
 
-    for (const auto &x : out) {
+    for (const auto &x : out.get()) {
         std::string xx = x.substr(x.find_last_of("/") + 1);
         xx.resize(xx.size() - 4);
         out_fixed.push_back(xx);

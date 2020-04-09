@@ -10,22 +10,64 @@
 #include "Task.h"
 #include "Utils.h"
 #include "DatabaseHandle.h"
+#include "ResultWriter.h"
 
 class OnDiskDataset;
+class OnDiskIterator;
+
+// Represents a name in the database. Usually a filename of the form
+// "type.id.dbname", for exmaple "set.23381d1f.db.ursa".
+// In case of manual rename, filename may not match this format.
+class DatabaseName {
+    fs::path db_base;
+    std::string type;
+    std::string id;
+    std::string filename;
+
+public:
+    DatabaseName(
+        fs::path db_base,
+        std::string type,
+        std::string id,
+        std::string filename
+    ): db_base(db_base), type(type), id(id), filename(filename) {}
+
+    DatabaseName derive(
+        const std::string &new_type,
+        const std::string &new_filename
+    ) const;
+
+    DatabaseName derive_temporary() const;
+
+    std::string get_id() const {
+        return id;
+    }
+
+    fs::path get_full_path() const {
+        return db_base / filename;
+    }
+
+    std::string get_filename() const {
+        return filename;
+    }
+
+    // TODO: this method should not exist, convert all legacy name occurences
+    // to DatbaseName.
+    static DatabaseName parse(fs::path db_base, std::string name);
+};
 
 // Represents immutable snapshot of database state.
 // Should never change, regardless of changes in real database.
 class DatabaseSnapshot {
     fs::path db_name;
     fs::path db_base;
+    std::map<std::string, OnDiskIterator> iterators;
     std::vector<const OnDiskDataset *> datasets;
     std::set<std::string> locked_datasets;
+    std::set<std::string> locked_iterators;
     std::map<uint64_t, Task> tasks;
     size_t max_memory_size;
-
     DatabaseHandle db_handle;
-
-    std::string allocate_name() const;
 
     void build_new_target_list(
         const std::vector<std::string> &filepaths,
@@ -40,17 +82,42 @@ class DatabaseSnapshot {
     friend class Indexer;
 
   public:
+    DatabaseName allocate_name(const std::string &type="set") const;
+
     DatabaseSnapshot(
         fs::path db_name,
         fs::path db_base,
+        std::map<std::string, OnDiskIterator> iterators,
         std::vector<const OnDiskDataset *> datasets,
         const std::map<uint64_t, std::unique_ptr<Task>> &tasks,
         size_t max_memory_size
     );
     void set_db_handle(DatabaseHandle handle);
-    void lock_dataset(const std::string &ds_name);
-    bool is_locked(const std::string &ds_name) const;
 
+    // For use by the db coordinator from a synchronised context.
+    // You probably don't want to use these methods directly - use
+    // DatabaseHandle::request_dataset_lock instead.
+    void lock_dataset(const std::string &ds_name);
+    void lock_iterator(const std::string &it_name);
+    bool is_dataset_locked(const std::string &ds_name) const;
+    bool is_iterator_locked(const std::string &it_name) const;
+
+    DatabaseName derive_name(
+        const DatabaseName &original,
+        const std::string &type
+    ) const {
+        std::string fname = type + "." + original.get_id() + "." + db_name.string();
+        return DatabaseName(db_base, type, original.get_id(), fname);
+    }
+
+    bool read_iterator(
+        Task *task,
+        const std::string &iterator_id,
+        int count,
+        std::vector<std::string> *out,
+        uint64_t *out_iterator_position,
+        uint64_t *out_iterator_files
+    ) const;
     void index_path(
         Task *task,
         const std::vector<IndexType> &types,
@@ -65,7 +132,7 @@ class DatabaseSnapshot {
         const Query &query,
         const std::set<std::string> &taints,
         Task *task,
-        std::vector<std::string> *out
+        ResultWriter *out
     ) const;
     void smart_compact(Task *task) const;
     void compact(Task *task) const;

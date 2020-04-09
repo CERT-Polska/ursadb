@@ -45,6 +45,9 @@ struct from_token : string<'f', 'r', 'o', 'm'> {};
 struct list_token : string<'l', 'i', 's', 't'> {};
 struct min_token : string<'m', 'i', 'n'> {};
 struct of_token : string<'o', 'f'> {};
+struct into_token : string<'i', 'n', 't', 'o'> {};
+struct iterator_token : string<'i', 't', 'e', 'r', 'a', 't', 'o', 'r'> {};
+struct pop_token : string<'p', 'o', 'p'> {};
 
 // literals
 struct hexdigit : abnf::HEXDIG {};
@@ -88,12 +91,17 @@ struct taint_name_list : seq<open_square, opt<list<plaintext, comma>>, close_squ
 // select command
 struct with_taints_token : seq<with_token, plus<space>, taints_token> {};
 struct with_taints_construct : seq<plus<space>, with_taints_token, plus<space>, taint_name_list> {};
+struct iterator_magic : seq<iterator_token> {};
+struct into_iterator_construct : seq<plus<space>, into_token, plus<space>, iterator_magic> {};
 struct select_body : seq<star<space>, expression> {};
 
 // dataset command
 struct dataset_taint: seq<taint_token, plus<space>, plaintext> {};
 struct dataset_untaint: seq<untaint_token, plus<space>, plaintext> {};
 struct dataset_operation: sor<dataset_taint, dataset_untaint> {};
+
+// iterator command
+struct iterator_pop: seq<pop_token, plus<space>, number> {};
 
 // index command 
 struct index_type : sor<gram3_token, hash4_token, text4_token, wide8_token> {};
@@ -103,8 +111,9 @@ struct index_with_construct : seq<with_token, star<space>, index_type_list> {};
 struct from_list_construct : seq<from_token, plus<space>, list_token, plus<space>, string_like> {};
 
 // commands
-struct select : seq<select_token, opt<with_taints_construct>, select_body> {};
+struct select : seq<select_token, opt<with_taints_construct>, opt<into_iterator_construct>, select_body> {};
 struct dataset : seq<dataset_token, star<space>, plaintext, star<space>, dataset_operation> {};
+struct iterator : seq<iterator_token, star<space>, plaintext, star<space>, iterator_pop> {};
 struct index : seq<index_token, star<space>, sor<paths_construct, from_list_construct>, star<space>, opt<index_with_construct>> {};
 struct reindex : seq<reindex_token, star<space>, string_like, star<space>, index_with_construct> {};
 struct compact : seq<compact_token, star<space>, sor<all_token, smart_token>> {};
@@ -113,13 +122,14 @@ struct topology : seq<topology_token> {};
 struct ping : seq<ping_token> {};
 
 // api
-struct command : seq<sor<select, index, reindex, compact, status, topology, ping, dataset>, star<space>, one<';'>> {};
+struct command : seq<sor<select, index, iterator, reindex, compact, status, topology, ping, dataset>, star<space>, one<';'>> {};
 struct grammar : seq<command, star<space>, eof> {};
 
 // store configuration (what to keep and what to drop)
 template <typename> struct store : std::false_type {};
 template <> struct store<plaintext> : std::true_type {};
 template <> struct store<with_taints_token> : std::true_type {};
+template <> struct store<into_token> : std::true_type {};
 template <> struct store<wide_plaintext> : std::true_type {};
 template <> struct store<op_and> : parse_tree::remove_content {};
 template <> struct store<op_or> : parse_tree::remove_content {};
@@ -132,6 +142,7 @@ template <> struct store<ascii_char> : std::true_type {};
 template <> struct store<number> : std::true_type {};
 template <> struct store<select> : std::true_type {};
 template <> struct store<dataset> : std::true_type {};
+template <> struct store<iterator> : std::true_type {};
 template <> struct store<index> : std::true_type {};
 template <> struct store<reindex> : std::true_type {};
 template <> struct store<compact> : std::true_type {};
@@ -152,6 +163,8 @@ template <> struct store<min_of_expr> : std::true_type {};
 template <> struct store<paths_construct> : std::true_type {};
 template <> struct store<from_list_construct> : std::true_type {};
 template <> struct store<select_body> : std::true_type {};
+template <> struct store<pop_token> : std::true_type {};
+template <> struct store<iterator_magic> : std::true_type {};
 
 constexpr int hex2int(char hexchar) {
     if (hexchar >= '0' && hexchar <= '9') {
@@ -302,15 +315,24 @@ Query transform(const parse_tree::node &n) {
 
 Command transform_command(const parse_tree::node &n) {
     if (n.is<select>()) {
-
         int iter = 0;
+        bool use_iterator = false;
         std::set<std::string> taints;
         while (true) {
             if (n.children[iter]->is<with_taints_token>()) {
-                // handle with_taints ["xxx", "yyy"] construct
+                // handle `with taints ["xxx", "yyy"]` construct
                 for (const auto &taint : n.children[iter + 1]->children) {
                     taints.insert(transform_string(*taint));
                 }
+                iter += 2;
+                continue;
+            }
+            if (n.children[iter]->is<into_token>()) {
+                // handle `into iterator` construct
+                if (!n.children[iter + 1]->is<iterator_magic>()) {
+                    throw std::runtime_error("unsupported select mode");
+                }
+                use_iterator = true;
                 iter += 2;
                 continue;
             }
@@ -321,7 +343,14 @@ Command transform_command(const parse_tree::node &n) {
             throw std::runtime_error("unexpected node in select");
         }
         const auto &expr = n.children[iter]->children[0];
-        return Command(SelectCommand(transform(*expr), taints));
+        return Command(SelectCommand(transform(*expr), taints, use_iterator));
+    } else if (n.is<iterator>()) {
+        if (!n.children[1]->is<pop_token>()) {
+            throw std::runtime_error("Unknown iterator mode");
+        }
+        std::string iterator_id = transform_string(*n.children[0]);
+        uint64_t pop = std::stoi(n.children[2]->content());
+        return Command(IteratorPopCommand(iterator_id, pop));
     } else if (n.is<index>()) {
         auto &target_n = n.children[0];
 

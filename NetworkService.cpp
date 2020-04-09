@@ -90,7 +90,7 @@ void NetworkService::commit_task(WorkerContext *wctx) {
     wctx->task = nullptr;
 }
 
-void NetworkService::handle_lock_req(WorkerContext *wctx, const std::string &worker_addr) {
+void NetworkService::handle_dataset_lock_req(WorkerContext *wctx, const std::string &worker_addr) {
     std::vector<std::string> ds_names;
     std::string recv_ds_name;
 
@@ -107,10 +107,9 @@ void NetworkService::handle_lock_req(WorkerContext *wctx, const std::string &wor
     s_send(backend, "", ZMQ_SNDMORE);
 
     bool already_locked = false;
-
     for (const std::string &ds_name : ds_names) {
         for (const auto &p : wctxs) {
-            if (p.second->task != nullptr && p.second->snap.is_locked(ds_name)) {
+            if (p.second->task != nullptr && p.second->snap.is_dataset_locked(ds_name)) {
                 already_locked = true;
                 break;
             }
@@ -122,10 +121,44 @@ void NetworkService::handle_lock_req(WorkerContext *wctx, const std::string &wor
             wctx->snap.lock_dataset(ds_name);
         }
 
-        std::cout << "coordinator: locked ok" << std::endl;
+        std::cout << "coordinator: dataset locked ok" << std::endl;
         s_send_val<NetLockResp>(backend, NetLockResp::LockOk);
     } else {
-        std::cout << "coordinator: lock denied" << std::endl;
+        std::cout << "coordinator: dataset lock denied" << std::endl;
+        s_send_val<NetLockResp>(backend, NetLockResp::LockDenied);
+    }
+}
+
+void NetworkService::handle_iterator_lock_req(WorkerContext *wctx, const std::string &worker_addr) {
+    if (s_recv(backend).size() != 0) {
+        throw std::runtime_error("Expected zero-size frame");
+    }
+
+    std::string iterator_name = s_recv(backend);
+
+    if (s_recv(backend).size() != 0) {
+        throw std::runtime_error("Expected zero-size frame");
+    }
+
+    s_send(backend, worker_addr, ZMQ_SNDMORE);
+    s_send(backend, "", ZMQ_SNDMORE);
+
+    bool already_locked = false;
+
+    for (const auto &p : wctxs) {
+        if (p.second->task != nullptr && p.second->snap.is_iterator_locked(iterator_name)) {
+            already_locked = true;
+            break;
+        }
+    }
+
+    if (!already_locked) {
+        wctx->snap.lock_iterator(iterator_name);
+
+        std::cout << "coordinator: iterator locked ok" << std::endl;
+        s_send_val<NetLockResp>(backend, NetLockResp::LockOk);
+    } else {
+        std::cout << "coordinator: iterator lock denied" << std::endl;
         s_send_val<NetLockResp>(backend, NetLockResp::LockDenied);
     }
 }
@@ -171,8 +204,11 @@ void NetworkService::poll_backend() {
     auto resp_type = s_recv_val<NetAction>(backend);
 
     switch (resp_type) {
-        case NetAction::LockReq:
-            handle_lock_req(wctx, worker_addr);
+        case NetAction::DatasetLockReq:
+            handle_dataset_lock_req(wctx, worker_addr);
+            break;
+        case NetAction::IteratorLockReq:
+            handle_iterator_lock_req(wctx, worker_addr);
             break;
         case NetAction::Response:
             worker_queue.push(worker_addr);

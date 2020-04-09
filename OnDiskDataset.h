@@ -9,6 +9,7 @@
 #include "OnDiskFileIndex.h"
 #include "Query.h"
 #include "Task.h"
+#include "ResultWriter.h"
 
 class OnDiskIndex;
 
@@ -36,7 +37,7 @@ public:
     const std::string &get_files_fname() const { return files_index->get_files_fname(); }
     void toggle_taint(const std::string &taint_name);
     bool has_all_taints(const std::set<std::string> &taints) const;
-    void execute(const Query &query, std::vector<std::string> *out) const;
+    void execute(const Query &query, ResultWriter *out) const;
     uint64_t get_file_count() const { return files_index->get_file_count(); }
     void for_each_filename(std::function<void(const std::string&)> cb) const {
         files_index->for_each_filename(cb);
@@ -47,7 +48,7 @@ public:
         const std::vector<const OnDiskDataset *> &datasets,
         Task *task
     );
-    void on_disk_metadata_update();
+    void save();
     void drop();
     std::string get_id() const;
     const std::vector<OnDiskIndex> &get_indexes() const { return indices; }

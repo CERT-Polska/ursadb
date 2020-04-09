@@ -58,7 +58,7 @@ void Indexer::remove_dataset(const OnDiskDataset *dataset_ptr) {
 
 void Indexer::make_spill(DatasetBuilder &builder) {
     std::cout << "new dataset" << std::endl;
-    auto dataset_name = snap->allocate_name();
+    auto dataset_name = snap->allocate_name().get_filename();
     builder.save(snap->db_base, dataset_name);
     register_dataset(dataset_name);
     bool stop = false;
@@ -68,7 +68,7 @@ void Indexer::make_spill(DatasetBuilder &builder) {
 
         if (candidates.size() >= INDEXER_COMPACT_THRESHOLD) {
             std::cout << "merge stuff" << std::endl;
-            std::string merged_name = snap->allocate_name();
+            std::string merged_name = snap->allocate_name().get_filename();
             OnDiskDataset::merge(snap->db_base, merged_name, candidates, nullptr);
             for (const auto *ds : candidates) {
                 remove_dataset(ds);
@@ -98,7 +98,7 @@ OnDiskDataset *Indexer::force_compact() {
 
     if (created_datasets.size() > 1) {
         std::vector<const OnDiskDataset *> candidates = created_dataset_ptrs();
-        std::string merged_name = snap->allocate_name();
+        std::string merged_name = snap->allocate_name().get_filename();
         OnDiskDataset::merge(snap->db_base, merged_name, candidates, nullptr);
         for (const auto *ds : candidates) {
             remove_dataset(ds);

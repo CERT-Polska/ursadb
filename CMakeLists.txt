@@ -29,6 +29,7 @@ add_library(
     STATIC
     Utils.cpp
     OnDiskDataset.cpp
+    OnDiskIterator.cpp
     DatasetBuilder.cpp
     Database.cpp
     Trim.cpp
