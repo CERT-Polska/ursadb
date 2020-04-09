@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(ursadb)
+project(ursadb VERSION 1.3.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -23,6 +23,8 @@ else()
       "Formatting..."
     )
 endif()
+
+configure_file(Version.h.in Version.h)
 
 add_library(
     ursa
@@ -49,6 +51,7 @@ add_library(
     RawFile.cpp
     OnDiskFileIndex.cpp
 )
+target_include_directories(ursa PRIVATE ${PROJECT_BINARY_DIR})
 target_link_libraries(ursa -lstdc++fs -lzmq -pthread)
 
 add_executable(ursadb Daemon.cpp NetworkService.cpp)
