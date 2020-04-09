@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: clang format
-      uses: jidicula/clang-format-action@master
-
+    - name: clang-format
+      uses: DoozyX/clang-format-lint-action@v0.5
+      with:
+        source: '.'
+        extensions: 'h,cpp'
+        clangFormatVersion: 9
