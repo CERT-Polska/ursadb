@@ -1,0 +1,21 @@
+name: "Code testing"
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+jobs:
+  test_python_types:
+    name: test clang format
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: clang-format
+      uses: DoozyX/clang-format-lint-action@v0.5
+      with:
+        source: '.'
+        exclude: './lib'
+        extensions: 'h,cpp'
+        clangFormatVersion: 9
