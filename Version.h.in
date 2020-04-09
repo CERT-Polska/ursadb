@@ -1,0 +1,5 @@
+#pragma once
+
+#include <string>
+
+constexpr std::string_view ursadb_version = "@PROJECT_VERSION@";
