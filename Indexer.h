@@ -16,7 +16,7 @@ class Indexer {
     void register_dataset(const std::string &dataset_name);
     void remove_dataset(const OnDiskDataset *dataset_ptr);
 
-public:
+   public:
     Indexer(const DatabaseSnapshot *snap, const std::vector<IndexType> &types);
     void index(const std::string &target);
     OnDiskDataset *force_compact();

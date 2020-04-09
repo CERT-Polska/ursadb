@@ -1,10 +1,11 @@
 #pragma once
 
+#include <unistd.h>
+
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
 #include <string>
-#include <unistd.h>
 
 class MemMap {
     int fd;
@@ -12,7 +13,7 @@ class MemMap {
     uint8_t *mmap_ptr;
     uint64_t fsize;
 
-  public:
+   public:
     explicit MemMap(const std::string &fname);
     MemMap(MemMap &&other);
     ~MemMap();
@@ -31,8 +32,9 @@ class MemMap {
 class empty_file_error : public std::runtime_error {
     std::string what_message;
 
-  public:
-    explicit empty_file_error(const std::string &__arg) : runtime_error(__arg) {}
+   public:
+    explicit empty_file_error(const std::string &__arg)
+        : runtime_error(__arg) {}
 
     const char *what() const _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_USE_NOEXCEPT;
 };
@@ -40,7 +42,7 @@ class empty_file_error : public std::runtime_error {
 class file_open_error : public std::runtime_error {
     std::string what_message;
 
-public:
+   public:
     explicit file_open_error(const std::string &__arg) : runtime_error(__arg) {}
 
     const char *what() const _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_USE_NOEXCEPT;

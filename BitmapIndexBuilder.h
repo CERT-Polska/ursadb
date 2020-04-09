@@ -12,7 +12,7 @@ class BitmapIndexBuilder : public IndexBuilder {
     void add_trigram(FileId fid, TriGram val);
     std::vector<FileId> get_run(TriGram val) const;
 
-  public:
+   public:
     BitmapIndexBuilder(IndexType ntype);
     virtual ~BitmapIndexBuilder() = default;
 

@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
-#include "Json.h"
 #include "Core.h"
+#include "Json.h"
 #include "Utils.h"
 
 struct TaskEntry {
@@ -32,24 +32,18 @@ struct DatasetEntry {
 class Response {
     json content;
 
-    Response(const std::string &type) {
-        content["type"] = type;
-    }
+    Response(const std::string &type) { content["type"] = type; }
 
-public:
+   public:
     static Response select(const std::vector<std::string> &files);
-    static Response select_iterator(
-        const std::string &filename,
-        uint64_t file_count
-    );
-    static Response select_from_iterator(
-        const std::vector<std::string> &files,
-        uint64_t iterator_position,
-        uint64_t total_files
-    );
+    static Response select_iterator(const std::string &filename,
+                                    uint64_t file_count);
+    static Response select_from_iterator(const std::vector<std::string> &files,
+                                         uint64_t iterator_position,
+                                         uint64_t total_files);
     static Response ok();
     static Response ping(const std::string &connection_id);
-    static Response error(const std::string &message, bool retry=false);
+    static Response error(const std::string &message, bool retry = false);
     static Response topology(const std::vector<DatasetEntry> &datasets);
     static Response status(const std::vector<TaskEntry> &tasks);
     std::string to_string() const;

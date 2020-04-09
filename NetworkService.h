@@ -1,15 +1,16 @@
 #pragma once
 
-#include <string>
+#include <pthread.h>
+#include <sys/types.h>
+
 #include <array>
 #include <fstream>
 #include <iostream>
 #include <list>
-#include <pthread.h>
 #include <queue>
 #include <sstream>
 #include <stack>
-#include <sys/types.h>
+#include <string>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -20,13 +21,13 @@
 constexpr int NUM_WORKERS = 4;
 
 class WorkerContext {
-public:
+   public:
     std::string identity;
     DatabaseSnapshot snap;
     Task *task;
 
     WorkerContext(std::string identity, DatabaseSnapshot snap, Task *task)
-            : identity(identity), snap(snap), task(task) {}
+        : identity(identity), snap(snap), task(task) {}
 };
 
 class NetworkService {
@@ -42,13 +43,18 @@ class NetworkService {
     void poll_frontend();
     void poll_backend();
     void commit_task(WorkerContext *wctx);
-    void handle_dataset_lock_req(WorkerContext *wctx, const std::string &worker_addr);
-    void handle_iterator_lock_req(WorkerContext *wctx, const std::string &worker_addr);
+    void handle_dataset_lock_req(WorkerContext *wctx,
+                                 const std::string &worker_addr);
+    void handle_iterator_lock_req(WorkerContext *wctx,
+                                  const std::string &worker_addr);
     void handle_response(WorkerContext *wctx);
 
-public:
+   public:
     NetworkService(Database &db, const std::string &bind_address)
-            : db(db), context(1), frontend(context, ZMQ_ROUTER), backend(context, ZMQ_ROUTER) {
+        : db(db),
+          context(1),
+          frontend(context, ZMQ_ROUTER),
+          backend(context, ZMQ_ROUTER) {
         frontend.bind(bind_address);
         backend.bind("ipc://backend.ipc");
     }

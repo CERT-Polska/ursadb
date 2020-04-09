@@ -3,15 +3,15 @@
 #include <cstdlib>
 #include <variant>
 
-#include "IndexBuilder.h"
 #include "BitmapIndexBuilder.h"
 #include "FlatIndexBuilder.h"
-#include "OnDiskIndex.h"
+#include "IndexBuilder.h"
 #include "OnDiskDataset.h"
+#include "OnDiskIndex.h"
 #include "Query.h"
 #include "QueryParser.h"
-#include "Utils.h"
 #include "ResultWriter.h"
+#include "Utils.h"
 #include "lib/Catch.h"
 
 TriGram gram3_pack(const char (&s)[4]) {
@@ -104,7 +104,9 @@ TEST_CASE("select AND", "[queryparser]") {
 
 TEST_CASE("select operator order", "[queryparser]") {
     Query query = do_select("select \"cat\" | \"dog\" & \"msm\" | \"monk\";");
-    REQUIRE(query == q_or({q(mqs("cat")), q_and({q(mqs("dog")), q_or({q(mqs("msm")), q(mqs("monk"))})})}));
+    REQUIRE(query == q_or({q(mqs("cat")),
+                           q_and({q(mqs("dog")),
+                                  q_or({q(mqs("msm")), q(mqs("monk"))})})}));
 }
 
 TEST_CASE("compact all command", "[queryparser]") {
@@ -122,34 +124,35 @@ TEST_CASE("compact smart command", "[queryparser]") {
 TEST_CASE("index command with default types", "[queryparser]") {
     Command cmd = parse_command("index \"cat\";");
     IndexCommand index_cmd = std::get<IndexCommand>(cmd);
-    REQUIRE(index_cmd.get_paths() == std::vector<std::string> {"cat"});
+    REQUIRE(index_cmd.get_paths() == std::vector<std::string>{"cat"});
     REQUIRE(index_cmd.get_index_types() == default_index_types());
 }
 
 TEST_CASE("index command with type override", "[queryparser]") {
     Command cmd = parse_command("index \"cat\" with [text4, wide8];");
     IndexCommand index_cmd = std::get<IndexCommand>(cmd);
-    REQUIRE(index_cmd.get_paths() == std::vector<std::string> {"cat"});
-    REQUIRE(index_cmd.get_index_types() == std::vector{IndexType::TEXT4, IndexType::WIDE8});
+    REQUIRE(index_cmd.get_paths() == std::vector<std::string>{"cat"});
+    REQUIRE(index_cmd.get_index_types() ==
+            std::vector{IndexType::TEXT4, IndexType::WIDE8});
 }
 
 TEST_CASE("index command with empty type override", "[queryparser]") {
     Command cmd = parse_command("index \"cat\" with [];");
     IndexCommand index_cmd = std::get<IndexCommand>(cmd);
-    REQUIRE(index_cmd.get_paths() == std::vector<std::string> {"cat"});
+    REQUIRE(index_cmd.get_paths() == std::vector<std::string>{"cat"});
     REQUIRE(index_cmd.get_index_types().empty());
 }
 
 TEST_CASE("index command with escapes", "[queryparser]") {
     Command cmd = parse_command("index \"\\x63\\x61\\x74\";");
     IndexCommand index_cmd = std::get<IndexCommand>(cmd);
-    REQUIRE(index_cmd.get_paths() == std::vector<std::string> {"cat"});
+    REQUIRE(index_cmd.get_paths() == std::vector<std::string>{"cat"});
 }
 
 TEST_CASE("index command with hexstring", "[queryparser]") {
     Command cmd = parse_command("index {63 61 74};");
     IndexCommand index_cmd = std::get<IndexCommand>(cmd);
-    REQUIRE(index_cmd.get_paths() == std::vector<std::string> {"cat"});
+    REQUIRE(index_cmd.get_paths() == std::vector<std::string>{"cat"});
 }
 
 TEST_CASE("get_trigrams", "[gram3]") {
@@ -439,7 +442,8 @@ TEST_CASE("BitmapIndexBuilder for text4", "[index_builder_text4]") {
     test_builder_text4(builder, index_fname);
 }
 
-void make_query(Database &db, std::string query_str, std::set<std::string> expected_out) {
+void make_query(Database &db, std::string query_str,
+                std::set<std::string> expected_out) {
     Task *task = db.allocate_task();
     Query query = do_select(query_str);
     std::set<std::string> taints;
@@ -465,47 +469,70 @@ TEST_CASE("Query end2end test", "[e2e_test]") {
     DatabaseSnapshot snap = db.snapshot();
 
     Task *task = db.allocate_task();
-    db.snapshot().index_path(task, {IndexType::GRAM3, IndexType::HASH4, IndexType::TEXT4, IndexType::WIDE8}, {"test/"});
+    db.snapshot().index_path(task,
+                             {IndexType::GRAM3, IndexType::HASH4,
+                              IndexType::TEXT4, IndexType::WIDE8},
+                             {"test/"});
     db.commit_task(task->id);
 
     make_query(db, "select \"nonexistent\";", {});
     make_query(db, "select min 1 of ({000000}, {010101});", {});
     make_query(db, "select min 2 of ({000000});", {});
-    make_query(db, "select \"foot\" & \"ing\";", {"ISLT", "WEEC", "GJND", "QTXN"});
+    make_query(db, "select \"foot\" & \"ing\";",
+               {"ISLT", "WEEC", "GJND", "QTXN"});
     make_query(db, "select \"dragons\" & \"bridge\";", {"GJND", "QTXN"});
-    make_query(db, "select min 2 of (\"wing\", \"tool\", \"less\");", {"IPVX", "GJND", "IJKZ"});
+    make_query(db, "select min 2 of (\"wing\", \"tool\", \"less\");",
+               {"IPVX", "GJND", "IJKZ"});
 }
 
 TEST_CASE("Test internal_pick_common", "[internal_pick_common]") {
     std::vector<FileId> source1 = {1, 2, 3};
-    REQUIRE(internal_pick_common(1, {&source1}) == std::vector<FileId> {1, 2, 3});
-    REQUIRE(internal_pick_common(2, {&source1}) == std::vector<FileId> {});
+    REQUIRE(internal_pick_common(1, {&source1}) ==
+            std::vector<FileId>{1, 2, 3});
+    REQUIRE(internal_pick_common(2, {&source1}) == std::vector<FileId>{});
 
     std::vector<FileId> source2 = {3, 4, 5};
-    REQUIRE(internal_pick_common(1, {&source1, &source2}) == std::vector<FileId> {1, 2, 3, 4, 5});
-    REQUIRE(internal_pick_common(2, {&source1, &source2}) == std::vector<FileId> {3});
+    REQUIRE(internal_pick_common(1, {&source1, &source2}) ==
+            std::vector<FileId>{1, 2, 3, 4, 5});
+    REQUIRE(internal_pick_common(2, {&source1, &source2}) ==
+            std::vector<FileId>{3});
 
     std::vector<FileId> source3 = {1, 2, 3};
-    REQUIRE(internal_pick_common(1, {&source1, &source3}) == std::vector<FileId> {1, 2, 3});
-    REQUIRE(internal_pick_common(2, {&source1, &source3}) == std::vector<FileId> {1, 2, 3});
+    REQUIRE(internal_pick_common(1, {&source1, &source3}) ==
+            std::vector<FileId>{1, 2, 3});
+    REQUIRE(internal_pick_common(2, {&source1, &source3}) ==
+            std::vector<FileId>{1, 2, 3});
 
     std::vector<FileId> source4 = {4, 5, 6};
-    REQUIRE(internal_pick_common(1, {&source1, &source4}) == std::vector<FileId> {1, 2, 3, 4, 5, 6});
-    REQUIRE(internal_pick_common(2, {&source1, &source4}) == std::vector<FileId> {});
+    REQUIRE(internal_pick_common(1, {&source1, &source4}) ==
+            std::vector<FileId>{1, 2, 3, 4, 5, 6});
+    REQUIRE(internal_pick_common(2, {&source1, &source4}) ==
+            std::vector<FileId>{});
 
-    REQUIRE(internal_pick_common(1, {&source1, &source2, &source4}) == std::vector<FileId> {1, 2, 3, 4, 5, 6});
-    REQUIRE(internal_pick_common(2, {&source1, &source2, &source4}) == std::vector<FileId> {3, 4, 5});
-    REQUIRE(internal_pick_common(3, {&source1, &source2, &source4}) == std::vector<FileId> {});
+    REQUIRE(internal_pick_common(1, {&source1, &source2, &source4}) ==
+            std::vector<FileId>{1, 2, 3, 4, 5, 6});
+    REQUIRE(internal_pick_common(2, {&source1, &source2, &source4}) ==
+            std::vector<FileId>{3, 4, 5});
+    REQUIRE(internal_pick_common(3, {&source1, &source2, &source4}) ==
+            std::vector<FileId>{});
 
-    REQUIRE(internal_pick_common(1, {&source1, &source2, &source3}) == std::vector<FileId> {1, 2, 3, 4, 5});
-    REQUIRE(internal_pick_common(2, {&source1, &source2, &source3}) == std::vector<FileId> {1, 2, 3});
-    REQUIRE(internal_pick_common(3, {&source1, &source2, &source3}) == std::vector<FileId> {3});
+    REQUIRE(internal_pick_common(1, {&source1, &source2, &source3}) ==
+            std::vector<FileId>{1, 2, 3, 4, 5});
+    REQUIRE(internal_pick_common(2, {&source1, &source2, &source3}) ==
+            std::vector<FileId>{1, 2, 3});
+    REQUIRE(internal_pick_common(3, {&source1, &source2, &source3}) ==
+            std::vector<FileId>{3});
 
     std::vector<FileId> source5 = {};
-    REQUIRE(internal_pick_common(1, {&source5}) == std::vector<FileId> {});
-    REQUIRE(internal_pick_common(2, {&source5, &source5}) == std::vector<FileId> {});
-    REQUIRE(internal_pick_common(1, {&source1, &source5}) == std::vector<FileId> {1, 2, 3});
-    REQUIRE(internal_pick_common(1, {&source5, &source1}) == std::vector<FileId> {1, 2, 3});
-    REQUIRE(internal_pick_common(2, {&source1, &source1, &source5}) == std::vector<FileId> {1, 2, 3});
-    REQUIRE(internal_pick_common(2, {&source1, &source5, &source1}) == std::vector<FileId> {1, 2, 3});
+    REQUIRE(internal_pick_common(1, {&source5}) == std::vector<FileId>{});
+    REQUIRE(internal_pick_common(2, {&source5, &source5}) ==
+            std::vector<FileId>{});
+    REQUIRE(internal_pick_common(1, {&source1, &source5}) ==
+            std::vector<FileId>{1, 2, 3});
+    REQUIRE(internal_pick_common(1, {&source5, &source1}) ==
+            std::vector<FileId>{1, 2, 3});
+    REQUIRE(internal_pick_common(2, {&source1, &source1, &source5}) ==
+            std::vector<FileId>{1, 2, 3});
+    REQUIRE(internal_pick_common(2, {&source1, &source5, &source1}) ==
+            std::vector<FileId>{1, 2, 3});
 }

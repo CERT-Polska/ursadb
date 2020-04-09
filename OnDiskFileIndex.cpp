@@ -8,20 +8,21 @@ void OnDiskFileIndex::generate_namecache_file() {
     uint64_t offset = 0;
     uint64_t count = 0;
     for_each_filename([&of, &offset, &count](const std::string &fname) {
-        of.write(reinterpret_cast<char*>(&offset), sizeof(offset));
+        of.write(reinterpret_cast<char *>(&offset), sizeof(offset));
         offset += fname.size() + 1;
         count += 1;
     });
     file_count = count;
-    of.write(reinterpret_cast<char*>(&offset), sizeof(offset));
+    of.write(reinterpret_cast<char *>(&offset), sizeof(offset));
     of.flush();
 }
 
-OnDiskFileIndex::OnDiskFileIndex(const fs::path &db_base, const std::string &files_fname)
-    : db_base(db_base)
-    , files_fname(files_fname)
-    , cache_fname("namecache." + files_fname)
-    , files_file(db_base / files_fname) { // <- cool race condition here
+OnDiskFileIndex::OnDiskFileIndex(const fs::path &db_base,
+                                 const std::string &files_fname)
+    : db_base(db_base),
+      files_fname(files_fname),
+      cache_fname("namecache." + files_fname),
+      files_file(db_base / files_fname) {  // <- cool race condition here
 
     generate_namecache_file();
     cache_file.emplace(db_base / cache_fname);
@@ -40,13 +41,10 @@ std::string OnDiskFileIndex::get_file_name(FileId fid) const {
     return filename;
 }
 
-OnDiskFileIndex::~OnDiskFileIndex() {
-    fs::remove(db_base / cache_fname);
-}
+OnDiskFileIndex::~OnDiskFileIndex() { fs::remove(db_base / cache_fname); }
 
 void OnDiskFileIndex::for_each_filename(
-    std::function<void(const std::string&)> cb
-) const {
+    std::function<void(const std::string &)> cb) const {
     std::string filename;
     std::ifstream inf(db_base / files_fname, std::ifstream::binary);
 

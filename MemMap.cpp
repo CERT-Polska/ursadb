@@ -1,11 +1,12 @@
 #include "MemMap.h"
 
-#include <cstring>
 #include <fcntl.h>
-#include <iostream>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#include <cstring>
+#include <iostream>
 
 MemMap::MemMap(const std::string &fname) : fname(fname) {
     fd = open(fname.c_str(), O_RDONLY, (mode_t)0600);
@@ -55,10 +56,12 @@ MemMap::~MemMap() {
     }
 }
 
-const char *empty_file_error::what() const _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_USE_NOEXCEPT {
+const char *empty_file_error::what() const _GLIBCXX_TXN_SAFE_DYN
+    _GLIBCXX_USE_NOEXCEPT {
     return what_message.c_str();
 }
 
-const char *file_open_error::what() const _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_USE_NOEXCEPT {
+const char *file_open_error::what() const _GLIBCXX_TXN_SAFE_DYN
+    _GLIBCXX_USE_NOEXCEPT {
     return what_message.c_str();
 }

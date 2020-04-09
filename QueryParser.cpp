@@ -8,18 +8,19 @@
 #include <string>
 #include <type_traits>
 
+#include "Command.h"
+#include "Core.h"
+#include "Query.h"
 #include "lib/pegtl.hpp"
 #include "lib/pegtl/contrib/abnf.hpp"
 #include "lib/pegtl/contrib/parse_tree.hpp"
 #include "lib/pegtl/contrib/unescape.hpp"
 
-#include "Core.h"
-#include "Command.h"
-#include "Query.h"
-
-using namespace tao::TAO_PEGTL_NAMESPACE; // NOLINT
+using namespace tao::TAO_PEGTL_NAMESPACE;  // NOLINT
 
 namespace queryparse {
+
+// clang-format off
 
 // tokens
 struct comma_token : one<','> {};
@@ -166,6 +167,8 @@ template <> struct store<select_body> : std::true_type {};
 template <> struct store<pop_token> : std::true_type {};
 template <> struct store<iterator_magic> : std::true_type {};
 
+// clang-format on
+
 constexpr int hex2int(char hexchar) {
     if (hexchar >= '0' && hexchar <= '9') {
         return hexchar - '0';
@@ -239,16 +242,17 @@ QString transform_qstring(const parse_tree::node &n) {
         if (atom->is<hexwildcard>()) {
             const std::string &c = atom->content();
 
-            if (c[0] == '?' && c[1] == '?') { // \x??
+            if (c[0] == '?' && c[1] == '?') {  // \x??
                 if (wildcard_ticks > 0) {
-                    throw std::runtime_error("too many wildcards, use AND operator instead");
+                    throw std::runtime_error(
+                        "too many wildcards, use AND operator instead");
                 }
 
                 result.emplace_back(QTokenType::WILDCARD, 0);
                 wildcard_ticks = 3;
-            } else if (c[0] == '?') { // \x?A
+            } else if (c[0] == '?') {  // \x?A
                 result.emplace_back(QTokenType::HWILDCARD, hex2int(c[1]));
-            } else if (c[1] == '?') { // \xA?
+            } else if (c[1] == '?') {  // \xA?
                 result.emplace_back(QTokenType::LWILDCARD, hex2int(c[0]) << 4U);
             }
         } else {
@@ -285,7 +289,8 @@ Query transform(const parse_tree::node &n) {
         try {
             counti = std::stoi(count->content());
         } catch (std::out_of_range &e) {
-            throw std::runtime_error("number N is out of range in 'min N of (...)' expression");
+            throw std::runtime_error(
+                "number N is out of range in 'min N of (...)' expression");
         }
 
         auto it = n.children.cbegin() + 1;
@@ -303,9 +308,11 @@ Query transform(const parse_tree::node &n) {
 
         auto &expr = n.children[1];
         if (expr->is<op_or>()) {
-            return Query(QueryType::OR, {transform(*n.children[0]), transform(*n.children[2])});
+            return Query(QueryType::OR, {transform(*n.children[0]),
+                                         transform(*n.children[2])});
         } else if (expr->is<op_and>()) {
-            return Query(QueryType::AND, {transform(*n.children[0]), transform(*n.children[2])});
+            return Query(QueryType::AND, {transform(*n.children[0]),
+                                          transform(*n.children[2])});
         } else {
             throw std::runtime_error("encountered unexpected expression");
         }
@@ -362,7 +369,8 @@ Command transform_command(const parse_tree::node &n) {
         }
 
         if (target_n->is<paths_construct>()) {
-            for (auto it = target_n->children.cbegin(); it != target_n->children.cend(); ++it) {
+            for (auto it = target_n->children.cbegin();
+                 it != target_n->children.cend(); ++it) {
                 paths.push_back(transform_string(**it));
             }
 
@@ -407,14 +415,16 @@ Command transform_command(const parse_tree::node &n) {
         return Command(TaintCommand(dataset, mode, taint));
     }
 
-    throw std::runtime_error("Unknown parse_tree node, can not create Command.");
+    throw std::runtime_error(
+        "Unknown parse_tree node, can not create Command.");
 }
-}
+}  // namespace queryparse
 
 Command parse_command(const std::string &s) {
     string_input<> in(s, "query");
 
-    if (const auto root = parse_tree::parse<queryparse::grammar, queryparse::store>(in)) {
+    if (const auto root =
+            parse_tree::parse<queryparse::grammar, queryparse::store>(in)) {
         return queryparse::transform_command(*root->children[0]);
     } else {
         throw std::runtime_error("PARSE FAILED");

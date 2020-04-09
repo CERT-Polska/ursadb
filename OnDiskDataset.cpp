@@ -1,20 +1,21 @@
 #include "OnDiskDataset.h"
 
+#include <array>
 #include <fstream>
 #include <set>
-#include <array>
 
 #include "Database.h"
-#include "Query.h"
 #include "Json.h"
+#include "Query.h"
 
 void OnDiskDataset::save() {
     std::set<std::string> index_names;
-    for (const auto &name: indices) {
+    for (const auto &name : indices) {
         index_names.insert(name.get_fname());
     }
 
-    store_dataset(db_base, name, index_names, files_index->get_files_fname(), taints);
+    store_dataset(db_base, name, index_names, files_index->get_files_fname(),
+                  taints);
 }
 
 void OnDiskDataset::toggle_taint(const std::string &taint) {
@@ -57,16 +58,20 @@ QueryResult OnDiskDataset::query_str(const QString &str) const {
     return result;
 }
 
-std::vector<FileId> internal_pick_common(int cutoff, const std::vector<const std::vector<FileId>*> &sources) {
-    // returns all FileIds which appear at least `cutoff` times among provided `sources`
-    using FileIdRange = std::pair<std::vector<FileId>::const_iterator, std::vector<FileId>::const_iterator>;
+std::vector<FileId> internal_pick_common(
+    int cutoff, const std::vector<const std::vector<FileId> *> &sources) {
+    // returns all FileIds which appear at least `cutoff` times among provided
+    // `sources`
+    using FileIdRange = std::pair<std::vector<FileId>::const_iterator,
+                                  std::vector<FileId>::const_iterator>;
     std::vector<FileId> result;
     std::vector<FileIdRange> heads;
     heads.reserve(sources.size());
 
     for (auto source : sources) {
         if (!source->empty()) {
-            heads.emplace_back(std::make_pair(source->cbegin(), source->cend()));
+            heads.emplace_back(
+                std::make_pair(source->cbegin(), source->cend()));
         }
     }
 
@@ -76,13 +81,15 @@ std::vector<FileId> internal_pick_common(int cutoff, const std::vector<const std
         FileId min_id = *heads[0].first;
         for (int i = 1; i < static_cast<int>(heads.size()); i++) {
             if (*heads[i].first < min_id) {
-                min_index = i; // TODO benchmark and consider removing.
+                min_index = i;  // TODO benchmark and consider removing.
                 min_id = *heads[i].first;
             }
         }
 
-        // fix on that particular value selected in previous step and count number of repetitions among heads
-        // note that it's implementation-defined that std::vector<FileId> is always sorted and we use this fact here
+        // fix on that particular value selected in previous step and count
+        // number of repetitions among heads note that it's
+        // implementation-defined that std::vector<FileId> is always sorted and
+        // we use this fact here
         int repeat_count = 0;
         for (int i = min_index; i < static_cast<int>(heads.size()); i++) {
             if (*heads[i].first == min_id) {
@@ -91,12 +98,13 @@ std::vector<FileId> internal_pick_common(int cutoff, const std::vector<const std
                 // head ended, we may get rid of it
                 if (heads[i].first == heads[i].second) {
                     heads.erase(heads.begin() + i);
-                    i--; // Be careful not to skip elements!
+                    i--;  // Be careful not to skip elements!
                 }
             }
         }
 
-        // this value has enough repetitions among different heads to add it to the result set
+        // this value has enough repetitions among different heads to add it to
+        // the result set
         if (repeat_count >= cutoff) {
             result.push_back(min_id);
         }
@@ -105,10 +113,12 @@ std::vector<FileId> internal_pick_common(int cutoff, const std::vector<const std
     return result;
 }
 
-QueryResult OnDiskDataset::pick_common(int cutoff, const std::vector<Query> &queries) const {
+QueryResult OnDiskDataset::pick_common(
+    int cutoff, const std::vector<Query> &queries) const {
     if (cutoff > static_cast<int>(queries.size())) {
         // Short circuit when cutoff is too big.
-        // This should never happen for well-formed queries, but this check is very cheap.
+        // This should never happen for well-formed queries, but this check is
+        // very cheap.
         return QueryResult::empty();
     }
     if (cutoff <= 0) {
@@ -137,14 +147,13 @@ QueryResult OnDiskDataset::pick_common(int cutoff, const std::vector<Query> &que
         return sources_storage[0];
     }
 
-    std::vector<const std::vector<FileId>*> sources;
+    std::vector<const std::vector<FileId> *> sources;
     for (auto &s : sources_storage) {
         sources.push_back(&s.vector());
     }
 
     return QueryResult(internal_pick_common(cutoff, sources));
 }
-
 
 QueryResult OnDiskDataset::internal_execute(const Query &query) const {
     switch (query.get_type()) {
@@ -167,9 +176,8 @@ QueryResult OnDiskDataset::internal_execute(const Query &query) const {
 void OnDiskDataset::execute(const Query &query, ResultWriter *out) const {
     QueryResult result = internal_execute(query);
     if (result.is_everything()) {
-        files_index->for_each_filename([&out](const std::string &fname) {
-            out->push_back(fname);
-        });
+        files_index->for_each_filename(
+            [&out](const std::string &fname) { out->push_back(fname); });
     } else {
         for (const auto &fid : result.vector()) {
             out->push_back(get_file_name(fid));
@@ -186,7 +194,6 @@ bool OnDiskDataset::has_all_taints(const std::set<std::string> &taints) const {
     return true;
 }
 
-
 const std::string &OnDiskDataset::get_name() const { return name; }
 
 std::string OnDiskDataset::get_id() const {
@@ -195,9 +202,9 @@ std::string OnDiskDataset::get_id() const {
     return dbname.get_id();
 }
 
-void OnDiskDataset::merge(
-        const fs::path &db_base, const std::string &outname,
-        const std::vector<const OnDiskDataset *> &datasets, Task *task) {
+void OnDiskDataset::merge(const fs::path &db_base, const std::string &outname,
+                          const std::vector<const OnDiskDataset *> &datasets,
+                          Task *task) {
     std::set<IndexType> index_types;
 
     if (datasets.size() < 2) {
@@ -207,7 +214,8 @@ void OnDiskDataset::merge(
     for (size_t i = 1; i < datasets.size(); i++) {
         if (!datasets[0]->is_taint_compatible(*datasets[i])) {
             std::stringstream ss;
-            ss << "trying to merge \"" << datasets[0]->get_name() << "\" and \"" << datasets[i]->get_name() << "\" ";
+            ss << "trying to merge \"" << datasets[0]->get_name() << "\" and \""
+               << datasets[i]->get_name() << "\" ";
             ss << "but they have different taints - aborting";
             throw std::runtime_error(ss.str());
         }
@@ -226,7 +234,8 @@ void OnDiskDataset::merge(
 
         if (tmp_types != index_types) {
             std::stringstream ss;
-            ss << "trying to merge \"" << datasets[0]->get_name() << "\" and \"" << datasets[i]->get_name() << "\" ";
+            ss << "trying to merge \"" << datasets[0]->get_name() << "\" and \""
+               << datasets[i]->get_name() << "\" ";
             ss << "but these ones contain index(es) of different type(s)";
             throw std::runtime_error(ss.str());
         }
@@ -238,20 +247,18 @@ void OnDiskDataset::merge(
 
     std::set<std::string> index_names;
     for (IndexType index_type : index_types) {
-        std::string index_name = get_index_type_name(index_type) + "." + outname;
+        std::string index_name =
+            get_index_type_name(index_type) + "." + outname;
         index_names.insert(index_name);
         std::vector<IndexMergeHelper> indexes;
         for (const OnDiskDataset *dataset : datasets) {
             const OnDiskIndex &index = dataset->get_index_with_type(index_type);
             indexes.emplace_back(
-                IndexMergeHelper(
-                    &index,
-                    dataset->files_index->get_file_count(),
-                    index.read_run_offsets()
-                )
-            );
+                IndexMergeHelper(&index, dataset->files_index->get_file_count(),
+                                 index.read_run_offsets()));
         }
-        OnDiskIndex::on_disk_merge(db_base, index_name, index_type, indexes, task);
+        OnDiskIndex::on_disk_merge(db_base, index_name, index_type, indexes,
+                                   task);
     }
 
     std::string fname_list = "files." + outname;
@@ -260,16 +267,17 @@ void OnDiskDataset::merge(
     of.open(db_base / fname_list, std::ofstream::binary);
 
     for (const OnDiskDataset *ds : datasets) {
-        ds->files_index->for_each_filename([&of](const std::string &fname) {
-            of << fname << "\n";
-        });
+        ds->files_index->for_each_filename(
+            [&of](const std::string &fname) { of << fname << "\n"; });
     }
     of.flush();
 
-    store_dataset(db_base, outname, index_names, fname_list, datasets[0]->get_taints());
+    store_dataset(db_base, outname, index_names, fname_list,
+                  datasets[0]->get_taints());
 }
 
-const OnDiskIndex &OnDiskDataset::get_index_with_type(IndexType index_type) const {
+const OnDiskIndex &OnDiskDataset::get_index_with_type(
+    IndexType index_type) const {
     for (const OnDiskIndex &index : indices) {
         if (index.index_type() == index_type) {
             return index;
@@ -279,8 +287,9 @@ const OnDiskIndex &OnDiskDataset::get_index_with_type(IndexType index_type) cons
 }
 
 void OnDiskDataset::drop_file(const std::string &fname) const {
-    // it may happen that dataset was reloaded and then is scheduled for removal multiple times
-    // so we have to account for that and only delete yet existing files
+    // it may happen that dataset was reloaded and then is scheduled for removal
+    // multiple times so we have to account for that and only delete yet
+    // existing files
     fs::remove(db_base / fname);
 }
 
@@ -302,20 +311,18 @@ void OnDiskDataset::drop() {
     drop_file(get_name());
 }
 
-fs::path OnDiskDataset::get_base() const {
-    return db_base;
-}
+fs::path OnDiskDataset::get_base() const { return db_base; }
 
-std::vector<std::vector<const OnDiskDataset *>> OnDiskDataset::get_taint_compatible_datasets(
-    const std::vector<const OnDiskDataset *> &datasets
-) {
+std::vector<std::vector<const OnDiskDataset *>>
+OnDiskDataset::get_taint_compatible_datasets(
+    const std::vector<const OnDiskDataset *> &datasets) {
     std::map<std::set<std::string>, std::vector<const OnDiskDataset *>> partial;
-    for (auto ds: datasets) {
+    for (auto ds : datasets) {
         partial[ds->get_taints()].push_back(ds);
     }
 
     std::vector<std::vector<const OnDiskDataset *>> result;
-    for (const auto &kv: partial) {
+    for (const auto &kv : partial) {
         result.push_back(kv.second);
     }
 
@@ -323,18 +330,20 @@ std::vector<std::vector<const OnDiskDataset *>> OnDiskDataset::get_taint_compati
 }
 
 std::vector<const OnDiskDataset *> OnDiskDataset::get_compact_candidates(
-        const std::vector<const OnDiskDataset *> &datasets) {
+    const std::vector<const OnDiskDataset *> &datasets) {
     std::vector<const OnDiskDataset *> out;
 
     struct DatasetScore {
         const OnDiskDataset *ds;
         uint64_t size;
 
-        DatasetScore(const OnDiskDataset *ds, unsigned long size) : ds(ds), size(size) {}
+        DatasetScore(const OnDiskDataset *ds, unsigned long size)
+            : ds(ds), size(size) {}
     };
 
     struct compare_size {
-        bool operator() (const DatasetScore &lhs, const DatasetScore &rhs) const {
+        bool operator()(const DatasetScore &lhs,
+                        const DatasetScore &rhs) const {
             return lhs.size < rhs.size;
         }
     };
@@ -360,7 +369,8 @@ std::vector<const OnDiskDataset *> OnDiskDataset::get_compact_candidates(
     out.push_back(scores[0].ds);
     unsigned int offset = 1;
 
-    while (offset < scores.size() && scores[offset-1].size * 2 > scores[offset].size) {
+    while (offset < scores.size() &&
+           scores[offset - 1].size * 2 > scores[offset].size) {
         out.push_back(scores[offset].ds);
         offset++;
     }

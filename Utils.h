@@ -10,7 +10,8 @@
 #include "Core.h"
 
 using TrigramCallback = std::function<void(TriGram)>;
-using TrigramGenerator = void (*)(const uint8_t *mem, size_t size, TrigramCallback callback);
+using TrigramGenerator = void (*)(const uint8_t *mem, size_t size,
+                                  TrigramCallback callback);
 namespace fs = std::experimental::filesystem;
 
 std::string random_hex_string(unsigned long length);
@@ -18,10 +19,12 @@ std::string random_hex_string(unsigned long length);
 TrigramGenerator get_generator_for(IndexType type);
 void gen_trigrams(const uint8_t *mem, size_t size, TrigramCallback callback);
 void gen_b64grams(const uint8_t *mem, size_t size, TrigramCallback callback);
-void gen_wide_b64grams(const uint8_t *mem, size_t size, TrigramCallback callback);
+void gen_wide_b64grams(const uint8_t *mem, size_t size,
+                       TrigramCallback callback);
 void gen_h4grams(const uint8_t *mem, size_t size, TrigramCallback callback);
 
-void combinations(const QString &qstr, size_t len, const TrigramGenerator &gen, const TrigramCallback &cb);
+void combinations(const QString &qstr, size_t len, const TrigramGenerator &gen,
+                  const TrigramCallback &cb);
 
 template <TrigramGenerator gen>
 std::vector<TriGram> get_trigrams_eager(const uint8_t *mem, size_t size) {
@@ -35,7 +38,8 @@ std::vector<TriGram> get_trigrams_eager(const uint8_t *mem, size_t size) {
 using TrigramGetter = std::vector<TriGram> (*)(const uint8_t *, size_t);
 constexpr TrigramGetter get_trigrams = get_trigrams_eager<gen_trigrams>;
 constexpr TrigramGetter get_b64grams = get_trigrams_eager<gen_b64grams>;
-constexpr TrigramGetter get_wide_b64grams = get_trigrams_eager<gen_wide_b64grams>;
+constexpr TrigramGetter get_wide_b64grams =
+    get_trigrams_eager<gen_wide_b64grams>;
 constexpr TrigramGetter get_h4grams = get_trigrams_eager<gen_h4grams>;
 
 /* Represents an object that can be used to writre runs (increasing sequences
@@ -48,21 +52,20 @@ class RunWriter {
     uint64_t out_bytes;
     int64_t prev;
 
-public:
+   public:
     /* Create a new clean instance of RunWriter. */
-    RunWriter(std::ostream *out) :out(out), out_bytes(0), prev(-1) {}
+    RunWriter(std::ostream *out) : out(out), out_bytes(0), prev(-1) {}
 
     /* Write next FileId to the output stream */
     void write(FileId next);
 
     /* How many bytes was written by this RunWriter object so far */
-    uint64_t written_bytes() {
-        return out_bytes;
-    }
+    uint64_t written_bytes() { return out_bytes; }
 };
 
 uint64_t compress_run(const std::vector<FileId> &run, std::ostream &out);
-std::vector<FileId> read_compressed_run(const uint8_t *start, const uint8_t *end);
+std::vector<FileId> read_compressed_run(const uint8_t *start,
+                                        const uint8_t *end);
 std::string get_index_type_name(IndexType type);
 std::optional<IndexType> index_type_from_string(const std::string &type);
 
@@ -83,11 +86,9 @@ constexpr int get_b64_value(uint8_t character) {
     }
 }
 
-void store_dataset(
-        const fs::path &db_base,
-        const std::string &fname,
-        const std::set<std::string> &index_names,
-        const std::string &fname_list,
-        const std::set<std::string> &taints);
+void store_dataset(const fs::path &db_base, const std::string &fname,
+                   const std::set<std::string> &index_names,
+                   const std::string &fname_list,
+                   const std::set<std::string> &taints);
 
-std::string bin_str_to_hex(const std::string& str);
+std::string bin_str_to_hex(const std::string &str);

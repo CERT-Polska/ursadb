@@ -1,10 +1,10 @@
 #include "FlatIndexBuilder.h"
 
 #include <algorithm>
+#include <cassert>
 #include <fstream>
 #include <functional>
 #include <iostream>
-#include <cassert>
 
 #include "Utils.h"
 
@@ -47,7 +47,8 @@ void FlatIndexBuilder::save(const std::string &fname) {
     std::sort(raw_data.begin(), raw_data.end());
 
     // Remove the duplicates (Files will often contain duplicated trigrams).
-    raw_data.erase(std::unique(raw_data.begin(), raw_data.end()), raw_data.end());
+    raw_data.erase(std::unique(raw_data.begin(), raw_data.end()),
+                   raw_data.end());
 
     TriGram last_trigram = 0;
     int64_t prev = -1;
@@ -92,6 +93,7 @@ void FlatIndexBuilder::add_file(FileId fid, const uint8_t *data, size_t size) {
 
 bool FlatIndexBuilder::can_still_add(uint64_t bytes, int file_count) const {
     uint64_t max_number_of_trigrams_produced = bytes - 2;
-    uint64_t max_trigrams_after_add = raw_data.size() + max_number_of_trigrams_produced;
+    uint64_t max_trigrams_after_add =
+        raw_data.size() + max_number_of_trigrams_produced;
     return max_trigrams_after_add < MAX_TRIGRAMS;
 }

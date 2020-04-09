@@ -14,8 +14,9 @@
 #include "OnDiskDataset.h"
 #include "QueryParser.h"
 
-static bool endsWith(const std::string& str, const std::string& suffix) {
-    return str.size() >= suffix.size() && 0 == str.compare(str.size()-suffix.size(), suffix.size(), suffix);
+static bool endsWith(const std::string &str, const std::string &suffix) {
+    return str.size() >= suffix.size() &&
+           0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
 }
 
 int main(int argc, char *argv[]) {
@@ -35,7 +36,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    std::string db_name(argv[argc-1]);
+    std::string db_name(argv[argc - 1]);
     Database db(db_name);
 
     std::set<std::string> db_files;
@@ -74,20 +75,28 @@ int main(int argc, char *argv[]) {
     }
 
     if (legit_files != db_files.size()) {
-        std::cout << "something went wrong, found only " << legit_files << " out of " << db_files.size() << " declared database files" << std::endl;
+        std::cout << "something went wrong, found only " << legit_files
+                  << " out of " << db_files.size() << " declared database files"
+                  << std::endl;
         return 1;
     }
 
     if (dry_run) {
-        std::cout << "in order to really remove unlinked files, execute:" << std::endl;
-        std::cout << "    " << argv[0] << " --confirm '" + db_name << "'" << std::endl;
-        std::cout << "WARNING: doing this while UrsaDB is running is strongly discouraged and may lead to data loss" << std::endl;
+        std::cout << "in order to really remove unlinked files, execute:"
+                  << std::endl;
+        std::cout << "    " << argv[0] << " --confirm '" + db_name << "'"
+                  << std::endl;
+        std::cout << "WARNING: doing this while UrsaDB is running is strongly "
+                     "discouraged and may lead to data loss"
+                  << std::endl;
     }
 
     if (!remove_list.size()) {
-        std::cout << "everything OK, database seems to be in consistent state" << std::endl;
+        std::cout << "everything OK, database seems to be in consistent state"
+                  << std::endl;
     } else {
-        std::cout << "found " << remove_list.size() << " dangling files" << std::endl;
+        std::cout << "found " << remove_list.size() << " dangling files"
+                  << std::endl;
     }
 
     if (!dry_run) {

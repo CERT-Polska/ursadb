@@ -1,4 +1,5 @@
 #include "Responses.h"
+
 #include "Version.h"
 
 Response Response::select(const std::vector<std::string> &files) {
@@ -8,11 +9,9 @@ Response Response::select(const std::vector<std::string> &files) {
     return r;
 }
 
-Response Response::select_from_iterator(
-    const std::vector<std::string> &files,
-    uint64_t iterator_position,
-    uint64_t total_files
-) {
+Response Response::select_from_iterator(const std::vector<std::string> &files,
+                                        uint64_t iterator_position,
+                                        uint64_t total_files) {
     Response r("select");
     r.content["result"]["mode"] = "raw";
     r.content["result"]["files"] = files;
@@ -21,10 +20,8 @@ Response Response::select_from_iterator(
     return r;
 }
 
-Response Response::select_iterator(
-    const std::string &iterator,
-    uint64_t file_count
-) {
+Response Response::select_iterator(const std::string &iterator,
+                                   uint64_t file_count) {
     Response r("select");
     r.content["result"]["mode"] = "iterator";
     r.content["result"]["file_count"] = file_count;

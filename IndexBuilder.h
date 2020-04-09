@@ -8,7 +8,7 @@
 class IndexBuilder {
     IndexType ntype;
 
-  public:
+   public:
     IndexBuilder(IndexType ntype) : ntype(ntype) {}
     virtual ~IndexBuilder() = default;
 

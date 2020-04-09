@@ -10,10 +10,10 @@
 #include "DatabaseSnapshot.h"
 #include "DatasetBuilder.h"
 #include "OnDiskDataset.h"
+#include "OnDiskIterator.h"
 #include "Query.h"
 #include "Task.h"
 #include "Utils.h"
-#include "OnDiskIterator.h"
 
 class Database {
     fs::path db_name;
@@ -31,33 +31,36 @@ class Database {
 
     explicit Database(const std::string &fname, bool initialize);
 
-  public:
+   public:
     explicit Database(const std::string &fname);
 
     const fs::path &get_name() const { return db_name; };
     const fs::path &get_base() const { return db_base; };
-    const std::map<uint64_t, std::unique_ptr<Task>> &current_tasks() { return tasks; }
+    const std::map<uint64_t, std::unique_ptr<Task>> &current_tasks() {
+        return tasks;
+    }
     void commit_task(uint64_t task_id);
     Task *get_task(uint64_t task_id);
     void erase_task(uint64_t task_id);
     Task *allocate_task();
     Task *allocate_task(const std::string &request, const std::string &conn_id);
 
-    const std::vector<OnDiskDataset *> &working_sets() { return working_datasets; }
-    const std::vector<std::unique_ptr<OnDiskDataset>> &loaded_sets() { return loaded_datasets; }
+    const std::vector<OnDiskDataset *> &working_sets() {
+        return working_datasets;
+    }
+    const std::vector<std::unique_ptr<OnDiskDataset>> &loaded_sets() {
+        return loaded_datasets;
+    }
 
     static void create(const std::string &path);
     void load_iterator(const DatabaseName &name);
-    void update_iterator(
-        const DatabaseName &name,
-        uint64_t byte_offset,
-        uint64_t file_offset
-    );
+    void update_iterator(const DatabaseName &name, uint64_t byte_offset,
+                         uint64_t file_offset);
     void load_dataset(const std::string &dsname);
     OnDiskDataset *find_working_dataset(const std::string &dsname);
     void drop_dataset(const std::string &dsname);
     void destroy_dataset(const std::string &dsname);
-    void collect_garbage(std::set<DatabaseSnapshot*> &working_snapshots);
+    void collect_garbage(std::set<DatabaseSnapshot *> &working_snapshots);
     DatabaseSnapshot snapshot();
     void save();
 };

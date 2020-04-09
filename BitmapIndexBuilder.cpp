@@ -1,16 +1,15 @@
 #include "BitmapIndexBuilder.h"
 
 #include <algorithm>
+#include <cassert>
 #include <fstream>
 #include <functional>
 #include <iostream>
-#include <cassert>
 
 #include "Utils.h"
 
-constexpr int max_files = 8*8;
+constexpr int max_files = 8 * 8;
 constexpr int file_run_size = max_files / 8;
-
 
 BitmapIndexBuilder::BitmapIndexBuilder(IndexType ntype)
     : IndexBuilder(ntype), raw_data(file_run_size * NUM_TRIGRAMS) {}
@@ -62,7 +61,8 @@ void BitmapIndexBuilder::save(const std::string &fname) {
     out.write((char *)offsets.data(), (NUM_TRIGRAMS + 1) * sizeof(uint64_t));
 }
 
-void BitmapIndexBuilder::add_file(FileId fid, const uint8_t *data, size_t size) {
+void BitmapIndexBuilder::add_file(FileId fid, const uint8_t *data,
+                                  size_t size) {
     if (fid >= max_files) {
         // IndexBuilder's bitmap can't hold more than max_files files
         throw std::out_of_range("fid");

@@ -5,20 +5,23 @@
 #include <iostream>
 #include <set>
 
-#include "OnDiskDataset.h"
-#include "Utils.h"
+#include "BitmapIndexBuilder.h"
 #include "Json.h"
 #include "MemMap.h"
-#include "BitmapIndexBuilder.h"
+#include "OnDiskDataset.h"
+#include "Utils.h"
 
-DatasetBuilder::DatasetBuilder(BuilderType builder_type, const std::vector<IndexType> &index_types)
-        : builder_type(builder_type), index_types(index_types) {
+DatasetBuilder::DatasetBuilder(BuilderType builder_type,
+                               const std::vector<IndexType> &index_types)
+    : builder_type(builder_type), index_types(index_types) {
     clear();
 }
 
 FileId DatasetBuilder::register_fname(const std::string &fname) {
-    if (fname.find('\n') != std::string::npos || fname.find('\r') != std::string::npos) {
-        throw std::runtime_error("file name contains invalid character (either \\r or \\n)");
+    if (fname.find('\n') != std::string::npos ||
+        fname.find('\r') != std::string::npos) {
+        throw std::runtime_error(
+            "file name contains invalid character (either \\r or \\n)");
     }
 
     auto new_id = (FileId)fids.size();
@@ -30,7 +33,8 @@ void DatasetBuilder::save(const fs::path &db_base, const std::string &fname) {
     std::set<std::string> index_names;
 
     for (auto &ndx : indices) {
-        std::string ndx_name = get_index_type_name(ndx->index_type()) + "." + fname;
+        std::string ndx_name =
+            get_index_type_name(ndx->index_type()) + "." + fname;
         ndx->save(db_base / ndx_name);
         index_names.emplace(ndx_name);
     }
@@ -61,7 +65,8 @@ void DatasetBuilder::force_registered(const std::string &filepath) {
 }
 
 void DatasetBuilder::index(const std::string &filepath) {
-    if (filepath.find('\r') != std::string::npos || filepath.find('\n') != std::string::npos) {
+    if (filepath.find('\r') != std::string::npos ||
+        filepath.find('\n') != std::string::npos) {
         throw invalid_filename_error(filepath);
     }
 
@@ -75,7 +80,7 @@ void DatasetBuilder::index(const std::string &filepath) {
 }
 
 bool DatasetBuilder::can_still_add(uint64_t bytes) const {
-    auto can_add_bytes = [bytes, fcount=fids.size()](const auto &ndx) {
+    auto can_add_bytes = [bytes, fcount = fids.size()](const auto &ndx) {
         return ndx->can_still_add(bytes, fcount);
     };
     return std::all_of(std::cbegin(indices), std::cend(indices), can_add_bytes);
@@ -96,6 +101,7 @@ void DatasetBuilder::clear() {
     }
 }
 
-const char *invalid_filename_error::what() const _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_USE_NOEXCEPT {
+const char *invalid_filename_error::what() const _GLIBCXX_TXN_SAFE_DYN
+    _GLIBCXX_USE_NOEXCEPT {
     return what_message.c_str();
 }

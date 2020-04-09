@@ -1,12 +1,13 @@
+#include <pthread.h>
+#include <sys/types.h>
+
 #include <array>
 #include <fstream>
 #include <iostream>
 #include <list>
-#include <pthread.h>
 #include <queue>
 #include <sstream>
 #include <stack>
-#include <sys/types.h>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -15,13 +16,14 @@
 #include "Command.h"
 #include "Database.h"
 #include "DatasetBuilder.h"
+#include "NetworkService.h"
 #include "OnDiskDataset.h"
 #include "QueryParser.h"
 #include "Responses.h"
-#include "NetworkService.h"
 #include "ResultWriter.h"
 
-Response execute_command(const SelectCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
+Response execute_command(const SelectCommand &cmd, Task *task,
+                         const DatabaseSnapshot *snap) {
     std::stringstream ss;
     const Query &query = cmd.get_query();
 
@@ -30,10 +32,14 @@ Response execute_command(const SelectCommand &cmd, Task *task, const DatabaseSna
         FileResultWriter writer(data_filename.get_full_path());
         snap->execute(query, cmd.get_taints(), task, &writer);
         // TODO DbChange should use DatabaseName type instead.
-        DatabaseName meta_filename = snap->derive_name(data_filename, "itermeta");
-        OnDiskIterator::construct(meta_filename, data_filename, writer.get_file_count());
-        task->changes.emplace_back(DbChangeType::NewIterator, meta_filename.get_filename());
-        return Response::select_iterator(meta_filename.get_id(), writer.get_file_count());
+        DatabaseName meta_filename =
+            snap->derive_name(data_filename, "itermeta");
+        OnDiskIterator::construct(meta_filename, data_filename,
+                                  writer.get_file_count());
+        task->changes.emplace_back(DbChangeType::NewIterator,
+                                   meta_filename.get_filename());
+        return Response::select_iterator(meta_filename.get_id(),
+                                         writer.get_file_count());
     } else {
         InMemoryResultWriter writer;
         snap->execute(query, cmd.get_taints(), task, &writer);
@@ -41,27 +47,25 @@ Response execute_command(const SelectCommand &cmd, Task *task, const DatabaseSna
     }
 }
 
-Response execute_command(const IteratorPopCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
+Response execute_command(const IteratorPopCommand &cmd, Task *task,
+                         const DatabaseSnapshot *snap) {
     std::vector<std::string> out;
     uint64_t iterator_position;
     uint64_t total_files;
-    bool success = snap->read_iterator(
-        task,
-        cmd.get_iterator_id(),
-        cmd.elements_to_pop(),
-        &out,
-        &iterator_position,
-        &total_files
-    );
+    bool success =
+        snap->read_iterator(task, cmd.get_iterator_id(), cmd.elements_to_pop(),
+                            &out, &iterator_position, &total_files);
 
     if (success) {
-        return Response::select_from_iterator(out, iterator_position, total_files);
+        return Response::select_from_iterator(out, iterator_position,
+                                              total_files);
     } else {
         return Response::error("iterator locked, try again later", true);
     }
 }
 
-Response execute_command(const IndexFromCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
+Response execute_command(const IndexFromCommand &cmd, Task *task,
+                         const DatabaseSnapshot *snap) {
     const auto &path_list_fname = cmd.get_path_list_fname();
 
     std::vector<std::string> paths;
@@ -87,20 +91,23 @@ Response execute_command(const IndexFromCommand &cmd, Task *task, const Database
     return Response::ok();
 }
 
-Response execute_command(const IndexCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
+Response execute_command(const IndexCommand &cmd, Task *task,
+                         const DatabaseSnapshot *snap) {
     snap->index_path(task, cmd.get_index_types(), cmd.get_paths());
 
     return Response::ok();
 }
 
-Response execute_command(const ReindexCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
+Response execute_command(const ReindexCommand &cmd, Task *task,
+                         const DatabaseSnapshot *snap) {
     const std::string &dataset_name = cmd.get_dataset_name();
     snap->reindex_dataset(task, cmd.get_index_types(), dataset_name);
 
     return Response::ok();
 }
 
-Response execute_command(const CompactCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
+Response execute_command(const CompactCommand &cmd, Task *task,
+                         const DatabaseSnapshot *snap) {
     if (cmd.get_type() == CompactType::All) {
         snap->compact(task);
     } else if (cmd.get_type() == CompactType::Smart) {
@@ -112,7 +119,8 @@ Response execute_command(const CompactCommand &cmd, Task *task, const DatabaseSn
     return Response::ok();
 }
 
-Response execute_command(const StatusCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
+Response execute_command(const StatusCommand &cmd, Task *task,
+                         const DatabaseSnapshot *snap) {
     std::stringstream ss;
     const std::map<uint64_t, Task> &tasks = snap->get_tasks();
 
@@ -131,24 +139,21 @@ Response execute_command(const StatusCommand &cmd, Task *task, const DatabaseSna
     return Response::status(task_data);
 }
 
-Response execute_command(const TopologyCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
+Response execute_command(const TopologyCommand &cmd, Task *task,
+                         const DatabaseSnapshot *snap) {
     std::stringstream ss;
     const std::vector<const OnDiskDataset *> &datasets = snap->get_datasets();
 
     std::vector<DatasetEntry> result;
     for (const auto *dataset : datasets) {
-        DatasetEntry dataset_entry {
-            /*.id:*/ dataset->get_id(),
-            /*.size:*/ 0,
-            /*.file_count:*/ dataset->get_file_count(),
-            /*.taints:*/ dataset->get_taints()
-        };
+        DatasetEntry dataset_entry{/*.id:*/ dataset->get_id(),
+                                   /*.size:*/ 0,
+                                   /*.file_count:*/ dataset->get_file_count(),
+                                   /*.taints:*/ dataset->get_taints()};
 
         for (const auto &index : dataset->get_indexes()) {
-            IndexEntry index_entry{
-                /*.type:*/ index.index_type(),
-                /*.size:*/ index.real_size()
-            };
+            IndexEntry index_entry{/*.type:*/ index.index_type(),
+                                   /*.size:*/ index.real_size()};
             dataset_entry.indexes.push_back(index_entry);
             dataset_entry.size += index_entry.size;
         }
@@ -159,11 +164,13 @@ Response execute_command(const TopologyCommand &cmd, Task *task, const DatabaseS
     return Response::topology(result);
 }
 
-Response execute_command(const PingCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
+Response execute_command(const PingCommand &cmd, Task *task,
+                         const DatabaseSnapshot *snap) {
     return Response::ping(bin_str_to_hex(task->conn_id));
 }
 
-Response execute_command(const TaintCommand &cmd, Task *task, const DatabaseSnapshot *snap) {
+Response execute_command(const TaintCommand &cmd, Task *task,
+                         const DatabaseSnapshot *snap) {
     const OnDiskDataset *ds = snap->find_dataset(cmd.get_dataset());
     if (!ds) {
         throw std::runtime_error("can't taint non-existent dataset");
@@ -173,18 +180,24 @@ Response execute_command(const TaintCommand &cmd, Task *task, const DatabaseSnap
     bool should_have_taint = cmd.get_mode() == TaintMode::Add;
 
     if (has_taint != should_have_taint) {
-        task->changes.emplace_back(DbChangeType::ToggleTaint, cmd.get_dataset(), taint);
+        task->changes.emplace_back(DbChangeType::ToggleTaint, cmd.get_dataset(),
+                                   taint);
     }
 
     return Response::ok();
 }
 
-Response dispatch_command(const Command &cmd, Task *task, const DatabaseSnapshot *snap) {
+Response dispatch_command(const Command &cmd, Task *task,
+                          const DatabaseSnapshot *snap) {
     return std::visit(
-            [snap, task](const auto &cmd) { return execute_command(cmd, task, snap); }, cmd);
+        [snap, task](const auto &cmd) {
+            return execute_command(cmd, task, snap);
+        },
+        cmd);
 }
 
-Response dispatch_command_safe(const std::string &cmd_str, Task *task, const DatabaseSnapshot *snap) {
+Response dispatch_command_safe(const std::string &cmd_str, Task *task,
+                               const DatabaseSnapshot *snap) {
     try {
         Command cmd = parse_command(cmd_str);
         return dispatch_command(cmd, task, snap);
@@ -214,7 +227,7 @@ int main(int argc, char *argv[]) {
 
         NetworkService service(db, bind_address);
         service.run();
-    } catch (const std::runtime_error& ex) {
+    } catch (const std::runtime_error &ex) {
         std::cout << "Runtime error: " << ex.what() << std::endl;
     }
 }

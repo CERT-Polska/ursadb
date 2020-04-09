@@ -1,7 +1,7 @@
 #include "Utils.h"
 
-#include <random>
 #include <fstream>
+#include <random>
 #include <set>
 
 #include "Json.h"
@@ -9,9 +9,11 @@
 std::string random_hex_string(unsigned long length) {
     constexpr static char charset[] = "0123456789abcdef";
     thread_local static std::random_device rd;
-    thread_local static std::seed_seq seed{rd(), rd(), rd(), rd()}; // A bit better than pathetic default
+    thread_local static std::seed_seq seed{
+        rd(), rd(), rd(), rd()};  // A bit better than pathetic default
     thread_local static std::mt19937_64 random(seed);
-    thread_local static std::uniform_int_distribution<int> pick(0, sizeof(charset) - 2);
+    thread_local static std::uniform_int_distribution<int> pick(
+        0, sizeof(charset) - 2);
 
     std::string result;
     result.reserve(length);
@@ -143,7 +145,8 @@ uint64_t compress_run(const std::vector<FileId> &run, std::ostream &out) {
     return writer.written_bytes();
 }
 
-std::vector<FileId> read_compressed_run(const uint8_t *start, const uint8_t *end) {
+std::vector<FileId> read_compressed_run(const uint8_t *start,
+                                        const uint8_t *end) {
     std::vector<FileId> res;
     uint64_t acc = 0;
     uint32_t shift = 0;
@@ -194,12 +197,10 @@ std::optional<IndexType> index_type_from_string(const std::string &type) {
     }
 }
 
-void store_dataset(
-        const fs::path &db_base,
-        const std::string &fname,
-        const std::set<std::string> &index_names,
-        const std::string &fname_list,
-        const std::set<std::string> &taints) {
+void store_dataset(const fs::path &db_base, const std::string &fname,
+                   const std::set<std::string> &index_names,
+                   const std::string &fname_list,
+                   const std::set<std::string> &taints) {
     json dataset;
     json j_indices(index_names);
 
@@ -215,14 +216,14 @@ void store_dataset(
     o.flush();
 }
 
-std::string bin_str_to_hex(const std::string& str) {
+std::string bin_str_to_hex(const std::string &str) {
     std::ostringstream ret;
 
     unsigned int c;
-    for (std::string::size_type i = 0; i < str.length(); ++i)
-    {
+    for (std::string::size_type i = 0; i < str.length(); ++i) {
         c = (unsigned int)(unsigned char)str[i];
-        ret << std::hex << std::setfill('0') << std::setw(2) << std::uppercase << c;
+        ret << std::hex << std::setfill('0') << std::setw(2) << std::uppercase
+            << c;
     }
     return ret.str();
 }
