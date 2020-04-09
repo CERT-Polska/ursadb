@@ -13,7 +13,7 @@
 #include "Utils.h"
 
 template <typename F, typename... Args>
-static uint64_t benchmark_ms(F&& func, Args&&... args) {
+static uint64_t benchmark_ms(F &&func, Args &&... args) {
     auto start = std::chrono::steady_clock::now();
     std::forward<decltype(func)>(func)(std::forward<Args>(args)...);
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -54,7 +54,7 @@ uint64_t benchmark_index(int files, int file_size) {
     uint64_t result = benchmark_ms([&db, &test_path]() {
         auto snap = db.snapshot();
         std::vector<IndexType> index_types = {IndexType::GRAM3};
-        Task* task = db.allocate_task();
+        Task *task = db.allocate_task();
         snap.index_path(task, index_types, {test_path});
         db.commit_task(task->id);
     });

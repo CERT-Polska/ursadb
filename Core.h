@@ -64,7 +64,7 @@ class QToken {
                type() == QTokenType::LWILDCARD;
     }
 
-    bool operator==(const QToken& a) const {
+    bool operator==(const QToken &a) const {
         return type_ == a.type_ && val_ == a.val_;
     }
 };
