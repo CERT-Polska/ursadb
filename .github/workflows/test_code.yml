@@ -7,7 +7,7 @@ on:
     branches:
     - master
 jobs:
-  test_python_types:
+  test_clang_format:
     name: test clang format
     runs-on: ubuntu-latest
     steps:
@@ -19,3 +19,14 @@ jobs:
         exclude: './lib'
         extensions: 'h,cpp'
         clangFormatVersion: 9
+  run_cmake_build:
+    name: run cmake build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: configure
+      run: mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-Werror" ..
+    - name: build
+      run: cmake --build build
+    - name: test
+      run: ./build/ursadb_test
