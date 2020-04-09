@@ -3,12 +3,12 @@
 #include <string>
 
 class ExclusiveFile {
-  public:
+   public:
     ExclusiveFile(const std::string &path);
     ~ExclusiveFile();
     bool is_ok();
     int get_fd();
 
-  private:
+   private:
     int fd;
 };

@@ -12,14 +12,15 @@
 enum QueryType { PRIMITIVE = 1, AND = 2, OR = 3, MIN_OF = 4 };
 
 class QueryResult {
-  private:
+   private:
     std::vector<FileId> results;
     bool has_everything;
 
     QueryResult() : has_everything(true) {}
 
-  public:
-    QueryResult(std::vector<FileId> results) : results(results), has_everything(false) {}
+   public:
+    QueryResult(std::vector<FileId> results)
+        : results(results), has_everything(false) {}
 
     static QueryResult empty() { return QueryResult(std::vector<FileId>()); }
 
@@ -37,7 +38,7 @@ class QueryResult {
 };
 
 class Query {
-  public:
+   public:
     explicit Query(const QString &qstr);
     explicit Query(unsigned int count, const std::vector<Query> &queries);
     explicit Query(const QueryType &type, const std::vector<Query> &queries);
@@ -49,11 +50,11 @@ class Query {
     const QueryType &get_type() const;
     bool operator==(Query other) const;
 
-  private:
+   private:
     QueryType type;
-    unsigned int count; // used for QueryType::MIN_OF
-    QString value; // used for QueryType::PRIMITIVE
-    std::vector<Query> queries; // used for QueryType::AND/OR
+    unsigned int count;          // used for QueryType::MIN_OF
+    QString value;               // used for QueryType::PRIMITIVE
+    std::vector<Query> queries;  // used for QueryType::AND/OR
 };
 
 Query q(const QString &qstr);

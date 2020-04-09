@@ -1,13 +1,10 @@
 #include "OnDiskIterator.h"
+
 #include "Json.h"
 
-void write_itermeta(
-    DatabaseName target,
-    uint64_t byte_offset,
-    uint64_t file_offset,
-    uint64_t total_files,
-    std::string backing_storage
-) {
+void write_itermeta(DatabaseName target, uint64_t byte_offset,
+                    uint64_t file_offset, uint64_t total_files,
+                    std::string backing_storage) {
     DatabaseName tmp_name = target.derive_temporary();
     std::ofstream iter_file;
     iter_file.exceptions(std::ofstream::badbit);
@@ -26,7 +23,8 @@ void write_itermeta(
 }
 
 void OnDiskIterator::save() {
-    write_itermeta(name, byte_offset, file_offset, total_files, datafile_filename);
+    write_itermeta(name, byte_offset, file_offset, total_files,
+                   datafile_filename);
 }
 
 void OnDiskIterator::drop() {
@@ -35,7 +33,7 @@ void OnDiskIterator::drop() {
     fs::remove(datafile_name.get_full_path());
 }
 
-OnDiskIterator::OnDiskIterator(const DatabaseName &name) :name(name) {
+OnDiskIterator::OnDiskIterator(const DatabaseName &name) : name(name) {
     std::ifstream in(name.get_full_path(), std::ifstream::binary);
     json j;
     in >> j;
@@ -63,10 +61,8 @@ void OnDiskIterator::pop(int count, std::vector<std::string> *out) {
     byte_offset = reader.tellg();
 }
 
-void OnDiskIterator::construct(
-    const DatabaseName &location,
-    const DatabaseName &backing_storage,
-    int total_files
-) {
+void OnDiskIterator::construct(const DatabaseName &location,
+                               const DatabaseName &backing_storage,
+                               int total_files) {
     write_itermeta(location, 0, 0, total_files, backing_storage.get_filename());
 }

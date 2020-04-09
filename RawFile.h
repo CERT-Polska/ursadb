@@ -5,7 +5,7 @@
 class RawFile {
     int fd;
 
-public:
+   public:
     explicit RawFile(const std::string &fname);
     RawFile(RawFile &&);
     ~RawFile();

@@ -8,8 +8,9 @@
 #include "Utils.h"
 
 class DatasetBuilder {
-  public:
-    DatasetBuilder(BuilderType builder_type, const std::vector<IndexType> &index_types);
+   public:
+    DatasetBuilder(BuilderType builder_type,
+                   const std::vector<IndexType> &index_types);
 
     void index(const std::string &filepath);
     void force_registered(const std::string &filepath);
@@ -18,7 +19,7 @@ class DatasetBuilder {
     bool empty() const { return fids.empty(); }
     void clear();
 
-  private:
+   private:
     BuilderType builder_type;
     std::vector<IndexType> index_types;
 
@@ -31,8 +32,9 @@ class DatasetBuilder {
 class invalid_filename_error : public std::runtime_error {
     std::string what_message;
 
-public:
-    explicit invalid_filename_error(const std::string &__arg) : runtime_error(__arg) {}
+   public:
+    explicit invalid_filename_error(const std::string &__arg)
+        : runtime_error(__arg) {}
 
     const char *what() const _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_USE_NOEXCEPT;
 };

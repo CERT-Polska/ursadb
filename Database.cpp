@@ -5,11 +5,12 @@
 #include <iostream>
 #include <memory>
 
-#include "Json.h"
 #include "ExclusiveFile.h"
+#include "Json.h"
 #include "Utils.h"
 
-Database::Database(const std::string &fname, bool initialize) : last_task_id(0), tasks() {
+Database::Database(const std::string &fname, bool initialize)
+    : last_task_id(0), tasks() {
     db_name = fs::path(fname).filename();
     db_base = fs::path(fname).parent_path();
 
@@ -53,8 +54,9 @@ void Database::load_from_disk() {
         load_dataset(dataset_fname);
     }
 
-    for (const auto& iterator : db_json["iterators"].items()) {
-        DatabaseName name(db_base, "iterator", iterator.key(), iterator.value());
+    for (const auto &iterator : db_json["iterators"].items()) {
+        DatabaseName name(db_base, "iterator", iterator.key(),
+                          iterator.value());
         load_iterator(name);
     }
 }
@@ -69,29 +71,30 @@ void Database::create(const std::string &fname) {
     empty.save();
 }
 
-uint64_t Database::allocate_task_id() {
-    return ++last_task_id;
-}
+uint64_t Database::allocate_task_id() { return ++last_task_id; }
 
-Task *Database::allocate_task(const std::string &request, const std::string &conn_id) {
+Task *Database::allocate_task(const std::string &request,
+                              const std::string &conn_id) {
     while (true) {
         uint64_t task_id = allocate_task_id();
         auto timestamp = std::chrono::steady_clock::now().time_since_epoch();
         uint64_t epoch_ms =
-                std::chrono::duration_cast<std::chrono::milliseconds>(timestamp).count();
+            std::chrono::duration_cast<std::chrono::milliseconds>(timestamp)
+                .count();
         if (tasks.count(task_id) == 0) {
-            return tasks.emplace(task_id, std::make_unique<Task>(Task(task_id, epoch_ms, request, conn_id)))
-                    .first->second.get();
+            return tasks
+                .emplace(task_id, std::make_unique<Task>(Task(
+                                      task_id, epoch_ms, request, conn_id)))
+                .first->second.get();
         }
     }
 }
 
-Task *Database::allocate_task() {
-    return allocate_task("N/A", "N/A");
-}
+Task *Database::allocate_task() { return allocate_task("N/A", "N/A"); }
 
 void Database::save() {
-    std::string tmp_db_name = "tmp-" + random_hex_string(8) + "-" + db_name.string();
+    std::string tmp_db_name =
+        "tmp-" + random_hex_string(8) + "-" + db_name.string();
     std::ofstream db_file;
     db_file.exceptions(std::ofstream::badbit);
     db_file.open(db_base / tmp_db_name, std::ofstream::binary);
@@ -129,11 +132,8 @@ void Database::load_dataset(const std::string &ds) {
     std::cout << "loaded new dataset " << ds << std::endl;
 }
 
-void Database::update_iterator(
-    const DatabaseName &name,
-    uint64_t byte_offset,
-    uint64_t file_offset
-) {
+void Database::update_iterator(const DatabaseName &name, uint64_t byte_offset,
+                               uint64_t file_offset) {
     auto it = iterators.find(name.get_id());
     if (it == iterators.end()) {
         std::cout << "tried to update nonexistent iterator?";
@@ -172,7 +172,8 @@ void Database::destroy_dataset(const std::string &dsname) {
     }
 }
 
-void Database::collect_garbage(std::set<DatabaseSnapshot*> &working_snapshots) {
+void Database::collect_garbage(
+    std::set<DatabaseSnapshot *> &working_snapshots) {
     std::set<std::string> required_datasets;
 
     for (const auto *ds : working_sets()) {
@@ -202,8 +203,9 @@ void Database::commit_task(uint64_t task_id) {
     Task *task = get_task(task_id);
 
     for (const auto &change : task->changes) {
-        std::cout << "change: " << db_change_to_string(change.type) << " " << change.obj_name
-            << "(" << change.parameter << ")" << std::endl;
+        std::cout << "change: " << db_change_to_string(change.type) << " "
+                  << change.obj_name << "(" << change.parameter << ")"
+                  << std::endl;
 
         if (change.type == DbChangeType::Insert) {
             load_dataset(change.obj_name);
@@ -215,7 +217,7 @@ void Database::commit_task(uint64_t task_id) {
         } else if (change.type == DbChangeType::ToggleTaint) {
             OnDiskDataset *ds = find_working_dataset(change.obj_name);
             if (!ds) {
-                return; // suspicious, but maybe delayed task
+                return;  // suspicious, but maybe delayed task
             }
             ds->toggle_taint(change.parameter);
             ds->save();
@@ -244,13 +246,9 @@ void Database::commit_task(uint64_t task_id) {
     erase_task(task_id);
 }
 
-Task *Database::get_task(uint64_t task_id) {
-    return tasks.at(task_id).get();
-}
+Task *Database::get_task(uint64_t task_id) { return tasks.at(task_id).get(); }
 
-void Database::erase_task(uint64_t task_id) {
-    tasks.erase(task_id);
-}
+void Database::erase_task(uint64_t task_id) { tasks.erase(task_id); }
 
 DatabaseSnapshot Database::snapshot() {
     std::vector<const OnDiskDataset *> cds;
@@ -259,5 +257,6 @@ DatabaseSnapshot Database::snapshot() {
         cds.push_back(d);
     }
 
-    return DatabaseSnapshot(db_name, db_base, iterators, cds, tasks, max_memory_size);
+    return DatabaseSnapshot(db_name, db_base, iterators, cds, tasks,
+                            max_memory_size);
 }

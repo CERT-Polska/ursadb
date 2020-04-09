@@ -1,18 +1,18 @@
 #include "NetworkService.h"
 
 #include "Daemon.h"
+#include "DatabaseHandle.h"
 #include "Responses.h"
 #include "ZHelpers.h"
-#include "DatabaseHandle.h"
 
-[[noreturn]]
-static void *worker_thread(void *arg) {
+[[noreturn]] static void *worker_thread(void *arg) {
     auto *wctx = static_cast<WorkerContext *>(arg);
 
     zmq::context_t context(1);
     zmq::socket_t worker(context, ZMQ_REQ);
 
-    worker.setsockopt(ZMQ_IDENTITY, wctx->identity.c_str(), wctx->identity.length());
+    worker.setsockopt(ZMQ_IDENTITY, wctx->identity.c_str(),
+                      wctx->identity.length());
     worker.connect("ipc://backend.ipc");
 
     //  Tell backend we're ready for work
@@ -32,8 +32,10 @@ static void *worker_thread(void *arg) {
 
         wctx->snap.set_db_handle(DatabaseHandle(&worker));
 
-        Response response = dispatch_command_safe(request, wctx->task, &wctx->snap);
-        // Note: optionally add funny metadata to response here (like request time, assigned worker, etc)
+        Response response =
+            dispatch_command_safe(request, wctx->task, &wctx->snap);
+        // Note: optionally add funny metadata to response here (like request
+        // time, assigned worker, etc)
         std::string s = response.to_string();
 
         s_send_val<NetAction>(worker, NetAction::Response, ZMQ_SNDMORE);
@@ -47,9 +49,11 @@ static void *worker_thread(void *arg) {
 void NetworkService::run() {
     for (int worker_no = 0; worker_no < NUM_WORKERS; worker_no++) {
         std::string identity = std::to_string(worker_no);
-        wctxs[identity] = std::make_unique<WorkerContext>(identity, db.snapshot(), nullptr);
+        wctxs[identity] =
+            std::make_unique<WorkerContext>(identity, db.snapshot(), nullptr);
         pthread_t worker;
-        pthread_create(&worker, nullptr, worker_thread, (void *)wctxs[identity].get());
+        pthread_create(&worker, nullptr, worker_thread,
+                       (void *)wctxs[identity].get());
     }
 
     //  Logic of LRU loop
@@ -64,8 +68,9 @@ void NetworkService::run() {
         //  Initialize poll set
         //  Always poll for worker activity on backend
         //  Poll front-end only if we have available workers
-        zmq::pollitem_t items[] = {{static_cast<void *>(backend), 0, ZMQ_POLLIN, 0},
-                                   {static_cast<void *>(frontend), 0, ZMQ_POLLIN, 0}};
+        zmq::pollitem_t items[] = {
+            {static_cast<void *>(backend), 0, ZMQ_POLLIN, 0},
+            {static_cast<void *>(frontend), 0, ZMQ_POLLIN, 0}};
         if (worker_queue.size()) {
             zmq::poll(&items[0], 2, -1);
         } else {
@@ -84,13 +89,15 @@ void NetworkService::run() {
 
 void NetworkService::commit_task(WorkerContext *wctx) {
     uint64_t did_task = wctx->task->id;
-    std::cout << "task " << did_task << ": finished by worker " << wctx->identity << std::endl;
+    std::cout << "task " << did_task << ": finished by worker "
+              << wctx->identity << std::endl;
 
     db.commit_task(wctx->task->id);
     wctx->task = nullptr;
 }
 
-void NetworkService::handle_dataset_lock_req(WorkerContext *wctx, const std::string &worker_addr) {
+void NetworkService::handle_dataset_lock_req(WorkerContext *wctx,
+                                             const std::string &worker_addr) {
     std::vector<std::string> ds_names;
     std::string recv_ds_name;
 
@@ -109,7 +116,8 @@ void NetworkService::handle_dataset_lock_req(WorkerContext *wctx, const std::str
     bool already_locked = false;
     for (const std::string &ds_name : ds_names) {
         for (const auto &p : wctxs) {
-            if (p.second->task != nullptr && p.second->snap.is_dataset_locked(ds_name)) {
+            if (p.second->task != nullptr &&
+                p.second->snap.is_dataset_locked(ds_name)) {
                 already_locked = true;
                 break;
             }
@@ -129,7 +137,8 @@ void NetworkService::handle_dataset_lock_req(WorkerContext *wctx, const std::str
     }
 }
 
-void NetworkService::handle_iterator_lock_req(WorkerContext *wctx, const std::string &worker_addr) {
+void NetworkService::handle_iterator_lock_req(WorkerContext *wctx,
+                                              const std::string &worker_addr) {
     if (s_recv(backend).size() != 0) {
         throw std::runtime_error("Expected zero-size frame");
     }
@@ -146,7 +155,8 @@ void NetworkService::handle_iterator_lock_req(WorkerContext *wctx, const std::st
     bool already_locked = false;
 
     for (const auto &p : wctxs) {
-        if (p.second->task != nullptr && p.second->snap.is_iterator_locked(iterator_name)) {
+        if (p.second->task != nullptr &&
+            p.second->snap.is_iterator_locked(iterator_name)) {
             already_locked = true;
             break;
         }
@@ -181,7 +191,7 @@ void NetworkService::handle_response(WorkerContext *wctx) {
 
     commit_task(wctx);
 
-    std::set<DatabaseSnapshot*> working_snapshots;
+    std::set<DatabaseSnapshot *> working_snapshots;
 
     for (const auto &p : wctxs) {
         if (p.second->task != nullptr) {
@@ -231,7 +241,7 @@ void NetworkService::poll_frontend() {
 
     std::string request = s_recv(frontend);
 
-    std::string worker_addr = worker_queue.front(); // worker_queue [0];
+    std::string worker_addr = worker_queue.front();  // worker_queue [0];
     worker_queue.pop();
 
     WorkerContext *wctx = wctxs.at(worker_addr).get();

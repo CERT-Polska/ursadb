@@ -1,8 +1,8 @@
-#include "OnDiskIndex.h"
-
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <fcntl.h>
+
+#include "OnDiskIndex.h"
 
 RawFile::RawFile(const std::string &fname) {
     fd = ::open(fname.c_str(), O_RDONLY);
@@ -44,4 +44,3 @@ void RawFile::pread(void *buf, size_t count, off_t offset) const {
         count -= result;
     }
 }
-

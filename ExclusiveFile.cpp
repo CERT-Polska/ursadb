@@ -1,8 +1,9 @@
 #include "ExclusiveFile.h"
 
 #include <fcntl.h>
-#include <stdexcept>
 #include <unistd.h>
+
+#include <stdexcept>
 
 ExclusiveFile::ExclusiveFile(const std::string &path) {
     fd = -1;
@@ -20,7 +21,8 @@ bool ExclusiveFile::is_ok() { return fd != -1; }
 
 int ExclusiveFile::get_fd() {
     if (fd == -1) {
-        throw std::runtime_error("Trying to extract descriptor from failed open()");
+        throw std::runtime_error(
+            "Trying to extract descriptor from failed open()");
     }
     return fd;
 }

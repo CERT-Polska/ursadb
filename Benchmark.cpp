@@ -1,23 +1,23 @@
-#include <experimental/filesystem>
-#include <iostream>
-#include <fstream>
-#include <random>
-#include <vector>
-#include <chrono>
-#include <ctime>
 #include <unistd.h>
 
-#include "Database.h"
+#include <chrono>
+#include <ctime>
+#include <experimental/filesystem>
+#include <fstream>
+#include <iostream>
+#include <random>
+#include <vector>
+
 #include "Core.h"
+#include "Database.h"
 #include "Utils.h"
 
-template<typename F, typename ...Args>
-static uint64_t benchmark_ms(F&& func, Args&&... args)
-{
+template <typename F, typename... Args>
+static uint64_t benchmark_ms(F&& func, Args&&... args) {
     auto start = std::chrono::steady_clock::now();
     std::forward<decltype(func)>(func)(std::forward<Args>(args)...);
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>
-                        (std::chrono::steady_clock::now() - start);
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - start);
     return duration.count();
 }
 
@@ -53,9 +53,9 @@ uint64_t benchmark_index(int files, int file_size) {
     Database db(db_path);
     uint64_t result = benchmark_ms([&db, &test_path]() {
         auto snap = db.snapshot();
-        std::vector<IndexType> index_types = { IndexType::GRAM3 };
-        Task *task = db.allocate_task();
-        snap.index_path(task, index_types, { test_path });
+        std::vector<IndexType> index_types = {IndexType::GRAM3};
+        Task* task = db.allocate_task();
+        snap.index_path(task, index_types, {test_path});
         db.commit_task(task->id);
     });
     close(fd);

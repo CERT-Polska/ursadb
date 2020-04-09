@@ -9,17 +9,15 @@ enum class NetAction : uint32_t {
     IteratorLockReq = 3
 };
 
-enum class NetLockResp : uint32_t {
-    LockOk = 0,
-    LockDenied = 1
-};
+enum class NetLockResp : uint32_t { LockOk = 0, LockDenied = 1 };
 
 class DatabaseHandle {
     zmq::socket_t *worker;
 
-public:
+   public:
     DatabaseHandle();
     DatabaseHandle(zmq::socket_t *worker);
-    [[nodiscard]] bool request_dataset_lock(const std::vector<std::string> &ds_names) const;
+    [[nodiscard]] bool request_dataset_lock(
+        const std::vector<std::string> &ds_names) const;
     [[nodiscard]] bool request_iterator_lock(const std::string &it_name) const;
 };

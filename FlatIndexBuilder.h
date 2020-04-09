@@ -1,8 +1,8 @@
 #pragma once
 
+#include <array>
 #include <string>
 #include <vector>
-#include <array>
 
 #include "Core.h"
 #include "IndexBuilder.h"
@@ -14,7 +14,7 @@ class FlatIndexBuilder : public IndexBuilder {
 
     void add_trigram(FileId fid, TriGram val);
 
-  public:
+   public:
     FlatIndexBuilder(IndexType ntype);
     virtual ~FlatIndexBuilder() = default;
 
