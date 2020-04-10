@@ -12,13 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: install dependencies
+      run: sudo apt-get install gcc g++ libzmq3-dev cmake build-essential git
+    - name: configure
+      run: mkdir build && cd build && cmake ..
     - name: clang-format
-      uses: DoozyX/clang-format-lint-action@v0.5
-      with:
-        source: '.'
-        exclude: './lib'
-        extensions: 'h,cpp'
-        clangFormatVersion: 9
+      run: cmake --build build --target format
+    - name: check formatting
+      run: git diff --quiet
   run_cmake_build:
     name: run cmake build
     runs-on: ubuntu-latest
