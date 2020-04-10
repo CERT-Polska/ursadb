@@ -2,50 +2,50 @@ add_library(
     ursa
     STATIC
     BitmapIndexBuilder.cpp 
-    Database.h
-    DatasetBuilder.h
-    IndexBuilder.h
-    OnDiskDataset.cpp
-    OnDiskIterator.cpp
-    RawFile.cpp
-    Task.h
     BitmapIndexBuilder.h
-    DatabaseHandle.cpp
-    ExclusiveFile.cpp
-    Indexer.cpp
-    OnDiskDataset.h
-    OnDiskIterator.h
-    RawFile.h
-    Utils.cpp
-    DatabaseHandle.h
-    ExclusiveFile.h
-    Indexer.h
-    OnDiskFileIndex.cpp
-    Query.cpp
-    Responses.cpp
-    Utils.h
     Command.h
-    DatabaseSnapshot.cpp
-    Json.h
-    OnDiskFileIndex.h
-    Query.h
-    Responses.h
-    Version.h.in
     Core.h
-    DatabaseSnapshot.h
-    FlatIndexBuilder.cpp
-    MemMap.cpp
-    OnDiskIndex.cpp
-    QueryParser.cpp
-    ResultWriter.h
-    ZHelpers.cpp
     Database.cpp
+    Database.h
+    DatabaseHandle.cpp
+    DatabaseHandle.h
+    DatabaseSnapshot.cpp
+    DatabaseSnapshot.h
     DatasetBuilder.cpp
+    DatasetBuilder.h
+    ExclusiveFile.cpp
+    ExclusiveFile.h
+    FlatIndexBuilder.cpp
     FlatIndexBuilder.h
+    IndexBuilder.h
+    Indexer.cpp
+    Indexer.h
+    Json.h
+    MemMap.cpp
     MemMap.h
+    OnDiskDataset.cpp
+    OnDiskDataset.h
+    OnDiskFileIndex.cpp
+    OnDiskFileIndex.h
+    OnDiskIndex.cpp
     OnDiskIndex.h
+    OnDiskIterator.cpp
+    OnDiskIterator.h
+    Query.cpp
+    Query.h
+    QueryParser.cpp
     QueryParser.h
+    RawFile.cpp
+    RawFile.h
+    Responses.cpp
+    Responses.h
+    ResultWriter.h
     Task.cpp
+    Task.h
+    Utils.cpp
+    Utils.h
+    Version.h.in
+    ZHelpers.cpp
     ZHelpers.h
 )
 target_include_directories(
