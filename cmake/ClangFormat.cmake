@@ -3,7 +3,7 @@
 # (See accompanying file LICENSE_1_0.txt or copy at
 # http://www.boost.org/LICENSE_1_0.txt)
 
-function(clangformat_setup)
+function(target_clangformat_setup)
   if(NOT CLANGFORMAT_EXECUTABLE)
     set(CLANGFORMAT_EXECUTABLE clang-format)
   endif()
@@ -18,12 +18,14 @@ function(clangformat_setup)
     endif()
   endif()
 
-  foreach(clangformat_source ${ARGV})
+  get_target_property(target_sources ${ARGV} SOURCES)
+
+  foreach(clangformat_source ${target_sources})
     get_filename_component(clangformat_source ${clangformat_source} ABSOLUTE)
     list(APPEND clangformat_sources ${clangformat_source})
   endforeach()
 
-  add_custom_target(${PROJECT_NAME}_clangformat
+  add_custom_target(${ARGV}_clangformat
     COMMAND
       ${CLANGFORMAT_EXECUTABLE}
       -style=file
@@ -35,14 +37,9 @@ function(clangformat_setup)
       "Formating with ${CLANGFORMAT_EXECUTABLE} ..."
   )
 
-  if(TARGET clangformat)
-    add_dependencies(clangformat ${PROJECT_NAME}_clangformat)
+  if(TARGET format)
+    add_dependencies(format ${ARGV}_clangformat)
   else()
-    add_custom_target(clangformat DEPENDS ${PROJECT_NAME}_clangformat)
+    add_custom_target(format DEPENDS ${ARGV}_clangformat)
   endif()
-endfunction()
-
-function(target_clangformat_setup target)
-  get_target_property(target_sources ${target} SOURCES)
-  clangformat_setup(${target_sources})
 endfunction()

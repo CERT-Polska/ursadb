@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <variant>
 
+#include "Catch.h"
 #include "libursa/BitmapIndexBuilder.h"
 #include "libursa/FlatIndexBuilder.h"
 #include "libursa/IndexBuilder.h"
@@ -12,7 +13,6 @@
 #include "libursa/QueryParser.h"
 #include "libursa/ResultWriter.h"
 #include "libursa/Utils.h"
-#include "Catch.h"
 
 TriGram gram3_pack(const char (&s)[4]) {
     TriGram v0 = (uint8_t)s[0];

@@ -13,6 +13,7 @@
 #include <vector>
 #include <zmq.hpp>
 
+#include "NetworkService.h"
 #include "libursa/Command.h"
 #include "libursa/Database.h"
 #include "libursa/DatasetBuilder.h"
@@ -20,7 +21,6 @@
 #include "libursa/QueryParser.h"
 #include "libursa/Responses.h"
 #include "libursa/ResultWriter.h"
-#include "NetworkService.h"
 
 Response execute_command(const SelectCommand &cmd, Task *task,
                          const DatabaseSnapshot *snap) {

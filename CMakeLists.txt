@@ -22,19 +22,24 @@ add_executable(
 )
 target_include_directories(ursadb PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(ursadb ursa)
+target_clangformat_setup(ursadb)
 
 add_executable(ursadb_new src/NewDatabase.cpp)
 target_include_directories(ursadb_new PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(ursadb_new ursa)
+target_clangformat_setup(ursadb_new)
 
 add_executable(ursadb_trim src/Trim.cpp)
 target_include_directories(ursadb_trim PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(ursadb_trim ursa)
+target_clangformat_setup(ursadb_trim)
 
 add_executable(ursadb_test src/Tests.cpp)
 target_include_directories(ursadb_test PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(ursadb_test ursa)
+target_clangformat_setup(ursadb_test)
 
 add_executable(ursadb_bench src/Benchmark.cpp)
 target_include_directories(ursadb_bench PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(ursadb_bench ursa)
+target_clangformat_setup(ursadb_bench)
