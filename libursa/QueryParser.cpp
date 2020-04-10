@@ -11,10 +11,10 @@
 #include "Command.h"
 #include "Core.h"
 #include "Query.h"
-#include "lib/pegtl.hpp"
-#include "lib/pegtl/contrib/abnf.hpp"
-#include "lib/pegtl/contrib/parse_tree.hpp"
-#include "lib/pegtl/contrib/unescape.hpp"
+#include "extern/pegtl/pegtl.hpp"
+#include "extern/pegtl/pegtl/contrib/abnf.hpp"
+#include "extern/pegtl/pegtl/contrib/parse_tree.hpp"
+#include "extern/pegtl/pegtl/contrib/unescape.hpp"
 
 using namespace tao::TAO_PEGTL_NAMESPACE;  // NOLINT
 

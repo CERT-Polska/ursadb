@@ -16,7 +16,7 @@
 #include <vector>
 #include <zmq.hpp>
 
-#include "Database.h"
+#include "libursa/Database.h"
 
 constexpr int NUM_WORKERS = 4;
 

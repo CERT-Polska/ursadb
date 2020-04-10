@@ -13,14 +13,14 @@
 #include <vector>
 #include <zmq.hpp>
 
-#include "Command.h"
-#include "Database.h"
-#include "DatasetBuilder.h"
 #include "NetworkService.h"
-#include "OnDiskDataset.h"
-#include "QueryParser.h"
-#include "Responses.h"
-#include "ResultWriter.h"
+#include "libursa/Command.h"
+#include "libursa/Database.h"
+#include "libursa/DatasetBuilder.h"
+#include "libursa/OnDiskDataset.h"
+#include "libursa/QueryParser.h"
+#include "libursa/Responses.h"
+#include "libursa/ResultWriter.h"
 
 Response execute_command(const SelectCommand &cmd, Task *task,
                          const DatabaseSnapshot *snap) {

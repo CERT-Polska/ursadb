@@ -1,9 +1,9 @@
 #include "NetworkService.h"
 
 #include "Daemon.h"
-#include "DatabaseHandle.h"
-#include "Responses.h"
-#include "ZHelpers.h"
+#include "libursa/DatabaseHandle.h"
+#include "libursa/Responses.h"
+#include "libursa/ZHelpers.h"
 
 [[noreturn]] static void *worker_thread(void *arg) {
     auto *wctx = static_cast<WorkerContext *>(arg);

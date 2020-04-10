@@ -8,11 +8,11 @@
 #include <vector>
 #include <zmq.hpp>
 
-#include "Command.h"
-#include "Database.h"
-#include "DatasetBuilder.h"
-#include "OnDiskDataset.h"
-#include "QueryParser.h"
+#include "libursa/Command.h"
+#include "libursa/Database.h"
+#include "libursa/DatasetBuilder.h"
+#include "libursa/OnDiskDataset.h"
+#include "libursa/QueryParser.h"
 
 static bool endsWith(const std::string &str, const std::string &suffix) {
     return str.size() >= suffix.size() &&
