@@ -3,16 +3,16 @@
 #include <cstdlib>
 #include <variant>
 
-#include "BitmapIndexBuilder.h"
-#include "FlatIndexBuilder.h"
-#include "IndexBuilder.h"
-#include "OnDiskDataset.h"
-#include "OnDiskIndex.h"
-#include "Query.h"
-#include "QueryParser.h"
-#include "ResultWriter.h"
-#include "Utils.h"
-#include "lib/Catch.h"
+#include "libursa/BitmapIndexBuilder.h"
+#include "libursa/FlatIndexBuilder.h"
+#include "libursa/IndexBuilder.h"
+#include "libursa/OnDiskDataset.h"
+#include "libursa/OnDiskIndex.h"
+#include "libursa/Query.h"
+#include "libursa/QueryParser.h"
+#include "libursa/ResultWriter.h"
+#include "libursa/Utils.h"
+#include "Catch.h"
 
 TriGram gram3_pack(const char (&s)[4]) {
     TriGram v0 = (uint8_t)s[0];

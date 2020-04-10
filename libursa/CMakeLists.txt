@@ -1,0 +1,57 @@
+add_library(
+    ursa
+    STATIC
+    BitmapIndexBuilder.cpp 
+    Database.h
+    DatasetBuilder.h
+    IndexBuilder.h
+    OnDiskDataset.cpp
+    OnDiskIterator.cpp
+    RawFile.cpp
+    Task.h
+    BitmapIndexBuilder.h
+    DatabaseHandle.cpp
+    ExclusiveFile.cpp
+    Indexer.cpp
+    OnDiskDataset.h
+    OnDiskIterator.h
+    RawFile.h
+    Utils.cpp
+    DatabaseHandle.h
+    ExclusiveFile.h
+    Indexer.h
+    OnDiskFileIndex.cpp
+    Query.cpp
+    Responses.cpp
+    Utils.h
+    Command.h
+    DatabaseSnapshot.cpp
+    Json.h
+    OnDiskFileIndex.h
+    Query.h
+    Responses.h
+    Version.h.in
+    Core.h
+    DatabaseSnapshot.h
+    FlatIndexBuilder.cpp
+    MemMap.cpp
+    OnDiskIndex.cpp
+    QueryParser.cpp
+    ResultWriter.h
+    ZHelpers.cpp
+    Database.cpp
+    DatasetBuilder.cpp
+    FlatIndexBuilder.h
+    MemMap.h
+    OnDiskIndex.h
+    QueryParser.h
+    Task.cpp
+    ZHelpers.h
+)
+configure_file(Version.h.in
+               ${PROJECT_BINARY_DIR}/generated/Version.h)
+
+target_include_directories(ursa PRIVATE .
+                                PRIVATE ${PROJECT_BINARY_DIR}/generated)
+target_link_libraries(ursa -lstdc++fs -lzmq -pthread)
+target_clangformat_setup(ursa)

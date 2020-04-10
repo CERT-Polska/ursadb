@@ -8,9 +8,9 @@
 #include <random>
 #include <vector>
 
-#include "Core.h"
-#include "Database.h"
-#include "Utils.h"
+#include "libursa/Core.h"
+#include "libursa/Database.h"
+#include "libursa/Utils.h"
 
 template <typename F, typename... Args>
 static uint64_t benchmark_ms(F &&func, Args &&... args) {

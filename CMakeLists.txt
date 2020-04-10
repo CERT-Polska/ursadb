@@ -1,70 +1,34 @@
 cmake_minimum_required(VERSION 3.5)
-project(ursadb VERSION 1.3.0)
+project(ursadb VERSION 1.3.0
+               LANGUAGES CXX)
+
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+include(ClangFormat)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "-Wall")
 
-message("Looking for clang-format")
-find_program(CLANG_FORMAT_EXEC clang-format)
-if(NOT EXISTS ${CLANG_FORMAT_EXEC})
-    message(WARNING "clang-format not found! Target 'format' won't be available")
-else()
-    file(GLOB FORMAT_SOURCES *.cpp *.h)
-    add_custom_target(format
-      COMMAND
-       ${CLANG_FORMAT_EXEC}
-       -style=file
-       -i
-       ${FORMAT_SOURCES}
-      WORKING_DIRECTORY
-       ${CMAKE_SOURCE_DIR}
-      COMMENT
-      "Formatting..."
-    )
-endif()
+add_subdirectory(libursa)
 
-configure_file(Version.h.in Version.h)
-
-add_library(
-    ursa
-    STATIC
-    Utils.cpp
-    OnDiskDataset.cpp
-    OnDiskIterator.cpp
-    DatasetBuilder.cpp
-    Database.cpp
-    Trim.cpp
-    OnDiskIndex.cpp
-    FlatIndexBuilder.cpp
-    BitmapIndexBuilder.cpp
-    MemMap.cpp
-    Query.cpp
-    QueryParser.cpp
-    ExclusiveFile.cpp
-    DatabaseSnapshot.cpp
-    Task.cpp
-    Indexer.cpp
-    DatabaseHandle.cpp
-    ZHelpers.cpp
-    Responses.cpp
-    RawFile.cpp
-    OnDiskFileIndex.cpp
-)
-target_include_directories(ursa PRIVATE ${PROJECT_BINARY_DIR})
-target_link_libraries(ursa -lstdc++fs -lzmq -pthread)
-
-add_executable(ursadb Daemon.cpp NetworkService.cpp)
+add_executable(ursadb src/Daemon.cpp
+                      src/Daemon.h
+                      src/NetworkService.cpp
+                      src/NetworkService.h)
+target_include_directories(ursadb PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(ursadb ursa)
 
-add_executable(ursadb_new NewDatabase.cpp)
+add_executable(ursadb_new src/NewDatabase.cpp)
+target_include_directories(ursadb_new PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(ursadb_new ursa)
 
-add_executable(ursadb_trim Trim.cpp)
+add_executable(ursadb_trim src/Trim.cpp)
+target_include_directories(ursadb_trim PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(ursadb_trim ursa)
 
-add_executable(ursadb_test Tests.cpp)
+add_executable(ursadb_test src/Tests.cpp)
+target_include_directories(ursadb_test PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(ursadb_test ursa)
 
-add_executable(ursadb_bench Benchmark.cpp)
+add_executable(ursadb_bench src/Benchmark.cpp)
+target_include_directories(ursadb_bench PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(ursadb_bench ursa)
