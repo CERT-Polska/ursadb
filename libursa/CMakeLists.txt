@@ -54,6 +54,7 @@ target_include_directories(
     PRIVATE ${PROJECT_BINARY_DIR}/generated
 )
 target_link_libraries(ursa -lstdc++fs -lzmq -pthread)
+target_enable_ipo(ursa)
 target_clangformat_setup(ursa)
 
 configure_file(Version.h.in ${PROJECT_BINARY_DIR}/generated/Version.h)
