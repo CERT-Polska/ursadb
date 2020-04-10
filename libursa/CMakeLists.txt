@@ -51,7 +51,8 @@ add_library(
 target_include_directories(
     ursa
     PRIVATE .
-    PRIVATE ${PROJECT_BINARY_DIR}/generated)
+    PRIVATE ${PROJECT_BINARY_DIR}/generated
+)
 target_link_libraries(ursa -lstdc++fs -lzmq -pthread)
 target_clangformat_setup(ursa)
 

@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.5)
-project(ursadb VERSION 1.3.0
-               LANGUAGES CXX)
+project(
+    ursadb
+    VERSION 1.3.0
+    LANGUAGES CXX
+)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 include(ClangFormat)
@@ -15,7 +18,8 @@ add_executable(
     src/Daemon.cpp
     src/Daemon.h
     src/NetworkService.cpp
-    src/NetworkService.h)
+    src/NetworkService.h
+)
 target_include_directories(ursadb PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(ursadb ursa)
 
