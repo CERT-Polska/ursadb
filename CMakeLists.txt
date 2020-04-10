@@ -10,10 +10,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(libursa)
 
-add_executable(ursadb src/Daemon.cpp
-                      src/Daemon.h
-                      src/NetworkService.cpp
-                      src/NetworkService.h)
+add_executable(
+    ursadb
+    src/Daemon.cpp
+    src/Daemon.h
+    src/NetworkService.cpp
+    src/NetworkService.h)
 target_include_directories(ursadb PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(ursadb ursa)
 

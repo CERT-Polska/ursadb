@@ -48,10 +48,10 @@ add_library(
     Task.cpp
     ZHelpers.h
 )
-configure_file(Version.h.in
-               ${PROJECT_BINARY_DIR}/generated/Version.h)
-
-target_include_directories(ursa PRIVATE .
-                                PRIVATE ${PROJECT_BINARY_DIR}/generated)
+target_include_directories(
+    ursa PRIVATE .
+    PRIVATE ${PROJECT_BINARY_DIR}/generated)
 target_link_libraries(ursa -lstdc++fs -lzmq -pthread)
 target_clangformat_setup(ursa)
+
+configure_file(Version.h.in ${PROJECT_BINARY_DIR}/generated/Version.h)

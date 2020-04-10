@@ -1,7 +1,9 @@
-add_executable(ursadb Daemon.cpp
-                      Daemon.h
-                      NetworkService.cpp
-                      NetworkService.h)
+add_executable(
+    ursadb
+    Daemon.cpp
+    Daemon.h
+    NetworkService.cpp
+    NetworkService.h)
 target_link_libraries(ursadb ursa)
 target_clangformat_setup(ursadb)
 
