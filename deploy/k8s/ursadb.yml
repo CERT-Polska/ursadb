@@ -32,6 +32,8 @@ spec:
               name: ursadb-pv-volume-prod
             - mountPath: /mnt/samples
               name: mquery-nfs-volume-prod
+            - mountPath: /mnt/kuku-analyses
+              name: mquery-nfs-analyses-volume-prod
             - mountPath: /mnt/ursadb-shared
               name: ursadb-index-pv-volume-prod
       dnsPolicy: ClusterFirst
@@ -53,3 +55,6 @@ spec:
         - name: mquery-nfs-volume-prod
           persistentVolumeClaim:
             claimName: mquery-nfs-claim-prod
+        - name: mquery-nfs-analyses-volume-prod
+          persistentVolumeClaim:
+            claimName: mquery-nfs-analyses-claim-prod
