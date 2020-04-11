@@ -95,6 +95,10 @@ std::string Query::as_string_repr() const {
     for (const auto &token : as_value()) {
         if (token.type() == QTokenType::WILDCARD) {
             out += "\\x??";
+        } else if (token.type() == QTokenType::LWILDCARD) {
+            out += "\\x?" + std::to_string(token.val());
+        } else if (token.type() == QTokenType::HWILDCARD) {
+            out += "\\x" + std::to_string(token.val() >> 4) + "?";
         } else {
             out += token.val();
         }

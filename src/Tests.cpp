@@ -29,60 +29,89 @@ TriGram text4_pack(const char (&s)[5]) {
     return (v0 << 18U) | (v1 << 12U) | (v2 << 6U) | (v3 << 0U);
 }
 
-Query do_select(std::string query_text) {
+template <typename T>
+T parse(std::string query_text) {
     Command cmd = parse_command(query_text);
-    REQUIRE(std::holds_alternative<SelectCommand>(cmd));
-    return std::get<SelectCommand>(cmd).get_query();
+    REQUIRE(std::holds_alternative<T>(cmd));
+    return std::get<T>(cmd);
+}
+
+Query do_select(std::string query_text) {
+    return parse<SelectCommand>(query_text).get_query();
 }
 
 QString mqs(const std::string &str) {
     QString out;
-
     for (const auto &c : str) {
-        if (c != '?') {
-            out.emplace_back(QTokenType::CHAR, c);
-        } else {
-            out.emplace_back(QTokenType::WILDCARD);
-        }
+        out.emplace_back(QTokenType::CHAR, c);
     }
 
     return out;
 }
 
-TEST_CASE("pack", "[pack]") {
+TEST_CASE("packing 3grams", "[internal]") {
     // pay attention to the input, this covers unexpected sign extension
     REQUIRE(gram3_pack("\xCC\xBB\xAA") == (TriGram)0xCCBBAAU);
     REQUIRE(gram3_pack("\xAA\xBB\xCC") == (TriGram)0xAABBCCU);
     REQUIRE(gram3_pack("abc") == (TriGram)0x616263);
 }
 
-TEST_CASE("select simple", "[queryparser]") {
-    Query q = do_select("select \"test\";");
-    REQUIRE(q.get_type() == QueryType::PRIMITIVE);
-    REQUIRE(q.as_string_repr() == "test");
-}
-
-TEST_CASE("select hex lowercase", "[queryparser]") {
-    Query query = do_select("select {4d534d};");
+TEST_CASE("select hexstring without spaces", "[queryparser]") {
+    Query query = do_select("select{4d534d};");
     REQUIRE(query == q(mqs("MSM")));
 }
 
-TEST_CASE("select hex uppercase", "[queryparser]") {
-    Query query = do_select("select {4D534D};");
+TEST_CASE("select hexstring with spaces", "[queryparser]") {
+    Query query = do_select("select { 4d 53 4d };");
     REQUIRE(query == q(mqs("MSM")));
 }
 
-TEST_CASE("select hex spaces", "[queryparser]") {
-    Query query = do_select("select {4d 53 4d};");
+TEST_CASE("select hexstring with mixed spaces", "[queryparser]") {
+    Query query = do_select("select { 4d 534d };");
     REQUIRE(query == q(mqs("MSM")));
 }
 
-TEST_CASE("select hex string escapses lowercase", "[queryparser]") {
+TEST_CASE("select hexstring with full wildcard", "[queryparser]") {
+    QString expect;
+    expect.emplace_back(QTokenType::CHAR, 0x4d);
+    expect.emplace_back(QTokenType::WILDCARD);
+    expect.emplace_back(QTokenType::CHAR, 0x4d);
+
+    Query query = do_select("select { 4d ?? 4d };");
+    REQUIRE(query == q(expect));
+}
+
+TEST_CASE("select hexstring with high wildcard", "[queryparser]") {
+    QString expect;
+    expect.emplace_back(QTokenType::CHAR, 0x4d);
+    expect.emplace_back(QTokenType::HWILDCARD, 0x03);
+    expect.emplace_back(QTokenType::CHAR, 0x4d);
+
+    Query query = do_select("select { 4d ?3 4d };");
+    REQUIRE(query == q(expect));
+}
+
+TEST_CASE("select hexstring with low wildcard", "[queryparser]") {
+    QString expect;
+    expect.emplace_back(QTokenType::CHAR, 0x4d);
+    expect.emplace_back(QTokenType::LWILDCARD, 0x50);
+    expect.emplace_back(QTokenType::CHAR, 0x4d);
+
+    Query query = do_select("select { 4d 5? 4d };");
+    REQUIRE(query == q(expect));
+}
+
+TEST_CASE("select literal", "[queryparser]") {
+    Query query = do_select("select \"MSM\";");
+    REQUIRE(query == q(mqs("MSM")));
+}
+
+TEST_CASE("select literal with hex escapes", "[queryparser]") {
     Query query = do_select("select \"\\x4d\\x53\\x4d\";");
     REQUIRE(query == q(mqs("MSM")));
 }
 
-TEST_CASE("select hex string escapses uppercase", "[queryparser]") {
+TEST_CASE("select literal with uppercase hex escapes", "[queryparser]") {
     Query query = do_select("select \"\\x4D\\x53\\x4D\";");
     REQUIRE(query == q(mqs("MSM")));
 }
@@ -109,53 +138,123 @@ TEST_CASE("select operator order", "[queryparser]") {
                                   q_or({q(mqs("msm")), q(mqs("monk"))})})}));
 }
 
+TEST_CASE("select min .. of", "[queryparser]") {
+    Query query = do_select("select min 2 of (\"xyz\", \"cat\", \"hmm\");");
+    std::vector<Query> body{q(mqs("xyz")), q(mqs("cat")), q(mqs("hmm"))};
+    REQUIRE(query == q_min_of(2, body));
+}
+
+TEST_CASE("select literal without iterator", "[queryparser]") {
+    auto cmd = parse<SelectCommand>("select \"MSM\";");
+    REQUIRE(cmd.get_query() == q(mqs("MSM")));
+    REQUIRE(cmd.iterator_requested() == false);
+}
+
+TEST_CASE("select literal into iterator", "[queryparser]") {
+    auto cmd = parse<SelectCommand>("select into iterator \"MSM\";");
+    REQUIRE(cmd.get_query() == q(mqs("MSM")));
+    REQUIRE(cmd.iterator_requested() == true);
+}
+
+TEST_CASE("select literal with taints", "[queryparser]") {
+    auto cmd = parse<SelectCommand>("select with taints [\"hmm\"] \"MSM\";");
+    REQUIRE(cmd.get_query() == q(mqs("MSM")));
+    REQUIRE(cmd.get_taints() == std::set<std::string>{"hmm"});
+}
+
 TEST_CASE("compact all command", "[queryparser]") {
-    Command cmd = parse_command("compact all;");
-    CompactCommand compact_cmd = std::get<CompactCommand>(cmd);
-    REQUIRE(compact_cmd.get_type() == CompactType::All);
+    auto cmd = parse<CompactCommand>("compact all;");
+    REQUIRE(cmd.get_type() == CompactType::All);
 }
 
 TEST_CASE("compact smart command", "[queryparser]") {
-    Command cmd = parse_command("compact smart;");
-    CompactCommand compact_cmd = std::get<CompactCommand>(cmd);
-    REQUIRE(compact_cmd.get_type() == CompactType::Smart);
+    auto cmd = parse<CompactCommand>("compact smart;");
+    REQUIRE(cmd.get_type() == CompactType::Smart);
 }
 
 TEST_CASE("index command with default types", "[queryparser]") {
-    Command cmd = parse_command("index \"cat\";");
-    IndexCommand index_cmd = std::get<IndexCommand>(cmd);
-    REQUIRE(index_cmd.get_paths() == std::vector<std::string>{"cat"});
-    REQUIRE(index_cmd.get_index_types() == default_index_types());
+    auto cmd = parse<IndexCommand>("index \"cat\";");
+    REQUIRE(cmd.get_paths() == std::vector<std::string>{"cat"});
+    REQUIRE(cmd.get_index_types() == std::vector{IndexType::GRAM3});
 }
 
 TEST_CASE("index command with type override", "[queryparser]") {
-    Command cmd = parse_command("index \"cat\" with [text4, wide8];");
-    IndexCommand index_cmd = std::get<IndexCommand>(cmd);
-    REQUIRE(index_cmd.get_paths() == std::vector<std::string>{"cat"});
-    REQUIRE(index_cmd.get_index_types() ==
+    auto cmd = parse<IndexCommand>("index \"cat\" with [text4, wide8];");
+    REQUIRE(cmd.get_paths() == std::vector<std::string>{"cat"});
+    REQUIRE(cmd.get_index_types() ==
             std::vector{IndexType::TEXT4, IndexType::WIDE8});
 }
 
 TEST_CASE("index command with empty type override", "[queryparser]") {
-    Command cmd = parse_command("index \"cat\" with [];");
-    IndexCommand index_cmd = std::get<IndexCommand>(cmd);
-    REQUIRE(index_cmd.get_paths() == std::vector<std::string>{"cat"});
-    REQUIRE(index_cmd.get_index_types().empty());
+    auto cmd = parse<IndexCommand>("index \"cat\" with [];");
+    REQUIRE(cmd.get_paths() == std::vector<std::string>{"cat"});
+    REQUIRE(cmd.get_index_types().empty());
 }
 
 TEST_CASE("index command with escapes", "[queryparser]") {
-    Command cmd = parse_command("index \"\\x63\\x61\\x74\";");
-    IndexCommand index_cmd = std::get<IndexCommand>(cmd);
-    REQUIRE(index_cmd.get_paths() == std::vector<std::string>{"cat"});
+    auto cmd = parse<IndexCommand>("index \"\\x63\\x61\\x74\";");
+    REQUIRE(cmd.get_paths() == std::vector<std::string>{"cat"});
 }
 
 TEST_CASE("index command with hexstring", "[queryparser]") {
-    Command cmd = parse_command("index {63 61 74};");
-    IndexCommand index_cmd = std::get<IndexCommand>(cmd);
-    REQUIRE(index_cmd.get_paths() == std::vector<std::string>{"cat"});
+    auto cmd = parse<IndexCommand>("index {63 61 74};");
+    REQUIRE(cmd.get_paths() == std::vector<std::string>{"cat"});
 }
 
-TEST_CASE("get_trigrams", "[gram3]") {
+TEST_CASE("index command with multiple paths", "[queryparser]") {
+    auto cmd = parse<IndexCommand>("index \"aaa\" \"bbb\";");
+    REQUIRE(cmd.get_paths() == std::vector<std::string>{"aaa", "bbb"});
+}
+
+TEST_CASE("index from command", "[queryparser]") {
+    auto cmd = parse<IndexFromCommand>("index from list \"aaa\";");
+    REQUIRE(cmd.get_path_list_fname() == "aaa");
+    REQUIRE(cmd.get_index_types() == std::vector{IndexType::GRAM3});
+}
+
+TEST_CASE("index from command with type override", "[queryparser]") {
+    auto cmd = parse<IndexFromCommand>("index from list \"aaa\" with [hash4];");
+    REQUIRE(cmd.get_path_list_fname() == "aaa");
+    REQUIRE(cmd.get_index_types() == std::vector{IndexType::HASH4});
+}
+
+TEST_CASE("dataset.taint command", "[queryparser]") {
+    auto cmd = parse<TaintCommand>("dataset \"xyz\" taint \"hmm\";");
+    REQUIRE(cmd.get_dataset() == "xyz");
+    REQUIRE(cmd.get_mode() == TaintMode::Add);
+    REQUIRE(cmd.get_taint() == "hmm");
+}
+
+TEST_CASE("dataset.untaint command", "[queryparser]") {
+    auto cmd = parse<TaintCommand>("dataset \"xyz\" untaint \"hmm\";");
+    REQUIRE(cmd.get_dataset() == "xyz");
+    REQUIRE(cmd.get_mode() == TaintMode::Clear);
+    REQUIRE(cmd.get_taint() == "hmm");
+}
+
+TEST_CASE("iterator.pop command", "[queryparser]") {
+    auto cmd = parse<IteratorPopCommand>("iterator \"xyz\" pop 3;");
+    REQUIRE(cmd.get_iterator_id() == "xyz");
+    REQUIRE(cmd.elements_to_pop() == 3);
+}
+
+TEST_CASE("reindex command", "[queryparser]") {
+    auto cmd = parse<ReindexCommand>("reindex \"xyz\" with [wide8];");
+    REQUIRE(cmd.get_dataset_name() == "xyz");
+    REQUIRE(cmd.get_index_types() == std::vector{IndexType::WIDE8});
+}
+
+TEST_CASE("topology command", "[queryparser]") {
+    parse<TopologyCommand>("topology;");
+}
+
+TEST_CASE("ping command", "[queryparser]") { parse<PingCommand>("ping;"); }
+
+TEST_CASE("status command", "[queryparser]") {
+    parse<StatusCommand>("status;");
+}
+
+TEST_CASE("get_trigrams", "[ngrams]") {
     std::string str;
     std::vector<TriGram> gram3;
 
@@ -187,7 +286,7 @@ TEST_CASE("get_trigrams", "[gram3]") {
     }
 }
 
-TEST_CASE("get_b64grams", "[text4]") {
+TEST_CASE("get_b64grams", "[ngrams]") {
     std::string str;
     std::vector<TriGram> gram3;
 
@@ -220,7 +319,7 @@ TEST_CASE("get_b64grams", "[text4]") {
     REQUIRE(gram3[2] == text4_pack("Xghi"));
 }
 
-TEST_CASE("get_wide_b64grams", "[wide8]") {
+TEST_CASE("get_wide_b64grams", "[ngrams]") {
     std::string str;
     std::vector<TriGram> gram3;
 
@@ -257,7 +356,7 @@ TEST_CASE("get_wide_b64grams", "[wide8]") {
     REQUIRE(gram3[0] == text4_pack("abcd"));
 }
 
-TEST_CASE("get_h4grams", "[hash4]") {
+TEST_CASE("get_h4grams", "[ngrams]") {
     std::string str;
     std::vector<TriGram> gram3;
 
