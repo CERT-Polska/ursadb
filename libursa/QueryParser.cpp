@@ -24,31 +24,31 @@ namespace queryparse {
 
 // tokens
 struct comma_token : one<','> {};
-struct select_token : string<'s', 'e', 'l', 'e', 'c', 't'> {};
-struct status_token : string<'s', 't', 'a', 't', 'u', 's'> {};
-struct index_token : string<'i', 'n', 'd', 'e', 'x'> {};
-struct reindex_token : string<'r', 'e', 'i', 'n', 'd', 'e', 'x'> {};
-struct compact_token : string<'c', 'o', 'm', 'p', 'a', 'c', 't'> {};
-struct topology_token : string<'t', 'o', 'p', 'o', 'l', 'o', 'g', 'y'> {};
-struct with_token : string<'w', 'i', 't', 'h'> {};
-struct gram3_token : string<'g', 'r', 'a', 'm', '3'> {};
-struct hash4_token : string<'h', 'a', 's', 'h', '4'> {};
-struct text4_token : string<'t', 'e', 'x', 't', '4'> {};
-struct wide8_token : string<'w', 'i', 'd', 'e', '8'> {};
-struct all_token : string<'a', 'l', 'l'> {};
-struct smart_token : string<'s', 'm', 'a', 'r', 't'> {};
-struct ping_token : string<'p', 'i', 'n', 'g'> {};
-struct dataset_token : string<'d', 'a', 't', 'a', 's', 'e', 't'> {};
-struct taints_token : string<'t', 'a', 'i', 'n', 't', 's'> {};
-struct taint_token : string<'t', 'a', 'i', 'n', 't'> {};
-struct untaint_token : string<'u', 'n', 't', 'a', 'i', 'n', 't'> {};
-struct from_token : string<'f', 'r', 'o', 'm'> {};
-struct list_token : string<'l', 'i', 's', 't'> {};
-struct min_token : string<'m', 'i', 'n'> {};
-struct of_token : string<'o', 'f'> {};
-struct into_token : string<'i', 'n', 't', 'o'> {};
-struct iterator_token : string<'i', 't', 'e', 'r', 'a', 't', 'o', 'r'> {};
-struct pop_token : string<'p', 'o', 'p'> {};
+struct select_token : TAO_PEGTL_STRING("select") {};
+struct status_token : TAO_PEGTL_STRING("status") {};
+struct index_token : TAO_PEGTL_STRING("index") {};
+struct reindex_token : TAO_PEGTL_STRING("reindex") {};
+struct compact_token : TAO_PEGTL_STRING("compact") {};
+struct topology_token : TAO_PEGTL_STRING("topology") {};
+struct with_token : TAO_PEGTL_STRING("with") {};
+struct gram3_token : TAO_PEGTL_STRING("gram3") {};
+struct hash4_token : TAO_PEGTL_STRING("hash4") {};
+struct text4_token : TAO_PEGTL_STRING("text4") {};
+struct wide8_token : TAO_PEGTL_STRING("wide8") {};
+struct all_token : TAO_PEGTL_STRING("all") {};
+struct smart_token : TAO_PEGTL_STRING("smart") {};
+struct ping_token : TAO_PEGTL_STRING("ping") {};
+struct dataset_token : TAO_PEGTL_STRING("dataset") {};
+struct taints_token : TAO_PEGTL_STRING("taints") {};
+struct taint_token : TAO_PEGTL_STRING("taint") {};
+struct untaint_token : TAO_PEGTL_STRING("untaint") {};
+struct from_token : TAO_PEGTL_STRING("from") {};
+struct list_token : TAO_PEGTL_STRING("list") {};
+struct min_token : TAO_PEGTL_STRING("min") {};
+struct of_token : TAO_PEGTL_STRING("of") {};
+struct into_token : TAO_PEGTL_STRING("into") {};
+struct iterator_token : TAO_PEGTL_STRING("iterator") {};
+struct pop_token : TAO_PEGTL_STRING("pop") {};
 
 // literals
 struct hexdigit : abnf::HEXDIG {};
