@@ -1,18 +1,17 @@
 #include "NetworkService.h"
 
+#include <thread>
+
 #include "Daemon.h"
 #include "libursa/DatabaseHandle.h"
 #include "libursa/Responses.h"
 #include "libursa/ZHelpers.h"
 
-[[noreturn]] static void *worker_thread(void *arg) {
-    auto *wctx = static_cast<WorkerContext *>(arg);
-
+[[noreturn]] void WorkerContext::operator()() {
     zmq::context_t context(1);
     zmq::socket_t worker(context, ZMQ_REQ);
 
-    worker.setsockopt(ZMQ_IDENTITY, wctx->identity.c_str(),
-                      wctx->identity.length());
+    worker.setsockopt(ZMQ_IDENTITY, identity.c_str(), identity.length());
     worker.connect("ipc://backend.ipc");
 
     //  Tell backend we're ready for work
@@ -28,12 +27,11 @@
 
         //  Get request, send reply
         std::string request = s_recv(worker);
-        std::cout << "task " << wctx->task->id << ": " << request << std::endl;
+        std::cout << "task " << task->id << ": " << request << std::endl;
 
-        wctx->snap.set_db_handle(DatabaseHandle(&worker));
+        snap.set_db_handle(DatabaseHandle(&worker));
 
-        Response response =
-            dispatch_command_safe(request, wctx->task, &wctx->snap);
+        Response response = dispatch_command_safe(request, task, &snap);
         // Note: optionally add funny metadata to response here (like request
         // time, assigned worker, etc)
         std::string s = response.to_string();
@@ -51,9 +49,7 @@ void NetworkService::run() {
         std::string identity = std::to_string(worker_no);
         wctxs[identity] =
             std::make_unique<WorkerContext>(identity, db.snapshot(), nullptr);
-        pthread_t worker;
-        pthread_create(&worker, nullptr, worker_thread,
-                       (void *)wctxs[identity].get());
+        std::thread thread(std::ref(*wctxs[identity].get()));
     }
 
     //  Logic of LRU loop
