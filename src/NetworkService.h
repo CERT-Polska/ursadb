@@ -1,6 +1,5 @@
 #pragma once
 
-#include <pthread.h>
 #include <sys/types.h>
 
 #include <array>
@@ -26,8 +25,10 @@ class WorkerContext {
     DatabaseSnapshot snap;
     Task *task;
 
+    WorkerContext(const WorkerContext &) = delete;
     WorkerContext(std::string identity, DatabaseSnapshot snap, Task *task)
         : identity(identity), snap(snap), task(task) {}
+    [[noreturn]] void operator()();
 };
 
 class NetworkService {
