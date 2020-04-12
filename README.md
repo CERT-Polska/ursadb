@@ -81,10 +81,11 @@ Installation (standard way)
 [github releases](https://github.com/CERT-Polska/ursadb/releases), or compile it yourself:
 
 ```
+$ sudo apt update && apt install -y gcc-7 g++-7 libzmq3-dev cmake build-essential clang-format
 $ mkdir build
 $ cd build
 $ cmake -D CMAKE_C_COMPILER=gcc-7 -D CMAKE_CXX_COMPILER=g++-7 -D CMAKE_BUILD_TYPE=Release ..
-$ make
+$ make -j$(nproc)
 ```
 
 2. Copy the binaries (`ursadb`, `ursadb_new`) to appropriate place, e.g:
