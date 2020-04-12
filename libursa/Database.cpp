@@ -137,7 +137,7 @@ void Database::update_iterator(const DatabaseName &name, uint64_t byte_offset,
                                uint64_t file_offset) {
     auto it = iterators.find(name.get_id());
     if (it == iterators.end()) {
-        spdlog::warn("Tried to pudate nonexistent iterator");
+        spdlog::warn("Can't update invalid iterator {}", name.get_id());
         return;
     }
     OnDiskIterator &iter = it->second;
@@ -204,7 +204,7 @@ void Database::commit_task(uint64_t task_id) {
     Task *task = get_task(task_id);
 
     for (const auto &change : task->changes) {
-        spdlog::info("Change: {} {}({})", db_change_to_string(change.type),
+        spdlog::info("Change: {} {} ({})", db_change_to_string(change.type),
                      change.obj_name, change.parameter);
         if (change.type == DbChangeType::Insert) {
             load_dataset(change.obj_name);

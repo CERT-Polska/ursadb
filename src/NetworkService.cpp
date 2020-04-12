@@ -86,10 +86,10 @@ void NetworkService::run() {
 }
 
 void NetworkService::commit_task(WorkerContext *wctx) {
-    uint64_t did_task = wctx->task->id;
+    auto did_task = wctx->task->id;
     spdlog::info("Task {} finished by worker {}", did_task, wctx->identity);
 
-    db.commit_task(wctx->task->id);
+    db.commit_task(did_task);
     wctx->task = nullptr;
 }
 

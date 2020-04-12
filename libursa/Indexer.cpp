@@ -27,7 +27,7 @@ void Indexer::index(const std::string &target) {
 
         builder->index(target);
     } catch (empty_file_error &e) {
-        spdlog::warn("Empty file (skip): {}", target);
+        spdlog::debug("Empty file (skip): {}", target);
     } catch (file_open_error &e) {
         spdlog::warn("Failed to open {} reason: {}", target, e.what());
     } catch (invalid_filename_error &e) {
@@ -62,8 +62,8 @@ void Indexer::remove_dataset(const OnDiskDataset *dataset_ptr) {
 }
 
 void Indexer::make_spill(DatasetBuilder &builder) {
-    spdlog::debug("new dataset");
     auto dataset_name = snap->allocate_name().get_filename();
+    spdlog::debug("New dataset: {}", dataset_name);
     builder.save(snap->db_base, dataset_name);
     register_dataset(dataset_name);
     bool stop = false;
@@ -82,7 +82,7 @@ void Indexer::make_spill(DatasetBuilder &builder) {
             }
             register_dataset(merged_name);
         } else {
-            spdlog::debug("Not merging");
+            spdlog::debug("{} datasets, not merging", candidates.size());
             stop = true;
         }
     }

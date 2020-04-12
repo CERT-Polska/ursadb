@@ -203,7 +203,7 @@ Response dispatch_command_safe(const std::string &cmd_str, Task *task,
         Command cmd = parse_command(cmd_str);
         return dispatch_command(cmd, task, snap);
     } catch (std::runtime_error &e) {
-        spdlog::error("Command failed: {}", e.what());
+        spdlog::error("Task {} failed: {}", task->id, e.what());
         return Response::error(e.what());
     }
 }
