@@ -1,10 +1,10 @@
 on: push
 
-name: Create and build release
+name: Package build
 
 jobs:
   create_release:
-    name: Create release
+    name: build deb
     runs-on: ubuntu-latest
     container: debian:buster
     steps:
