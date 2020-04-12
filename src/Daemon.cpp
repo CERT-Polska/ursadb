@@ -20,6 +20,8 @@
 #include "libursa/QueryParser.h"
 #include "libursa/Responses.h"
 #include "libursa/ResultWriter.h"
+#include "libursa/Utils.h"
+#include "spdlog/spdlog.h"
 
 Response execute_command(const SelectCommand &cmd, Task *task,
                          const DatabaseSnapshot *snap) {
@@ -201,7 +203,7 @@ Response dispatch_command_safe(const std::string &cmd_str, Task *task,
         Command cmd = parse_command(cmd_str);
         return dispatch_command(cmd, task, snap);
     } catch (std::runtime_error &e) {
-        std::cout << "Command failed: " << e.what() << std::endl;
+        spdlog::error("Task {} failed: {}", task->id, e.what());
         return Response::error(e.what());
     }
 }
@@ -215,6 +217,7 @@ int main(int argc, char *argv[]) {
 
     try {
         Database db(argv[1]);
+        spdlog::info("UrsaDB v{}", get_version());
 
         std::string bind_address = "tcp://127.0.0.1:9281";
 
@@ -227,6 +230,6 @@ int main(int argc, char *argv[]) {
         NetworkService service(db, bind_address);
         service.run();
     } catch (const std::runtime_error &ex) {
-        std::cout << "Runtime error: " << ex.what() << std::endl;
+        spdlog::error("Runtime error: {}", ex.what());
     }
 }

@@ -14,6 +14,7 @@ using TrigramGenerator = void (*)(const uint8_t *mem, size_t size,
                                   TrigramCallback callback);
 namespace fs = std::experimental::filesystem;
 
+std::string_view get_version();
 std::string random_hex_string(unsigned long length);
 
 TrigramGenerator get_generator_for(IndexType type);

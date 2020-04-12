@@ -8,6 +8,7 @@
 #include "ExclusiveFile.h"
 #include "Json.h"
 #include "Utils.h"
+#include "spdlog/spdlog.h"
 
 Database::Database(const std::string &fname, bool initialize)
     : last_task_id(0), tasks() {
@@ -123,20 +124,20 @@ void Database::save() {
 
 void Database::load_iterator(const DatabaseName &name) {
     iterators.emplace(name.get_id(), OnDiskIterator(name));
-    std::cout << "loaded new iterator " << name.get_filename() << std::endl;
+    spdlog::info("Loaded new iterator {}", name.get_filename());
 }
 
 void Database::load_dataset(const std::string &ds) {
     loaded_datasets.push_back(std::make_unique<OnDiskDataset>(db_base, ds));
     working_datasets.push_back(loaded_datasets.back().get());
-    std::cout << "loaded new dataset " << ds << std::endl;
+    spdlog::info("Loaded new dataset {}", ds);
 }
 
 void Database::update_iterator(const DatabaseName &name, uint64_t byte_offset,
                                uint64_t file_offset) {
     auto it = iterators.find(name.get_id());
     if (it == iterators.end()) {
-        std::cout << "tried to update nonexistent iterator?";
+        spdlog::warn("Can't update invalid iterator {}", name.get_id());
         return;
     }
     OnDiskIterator &iter = it->second;
@@ -153,7 +154,7 @@ void Database::drop_dataset(const std::string &dsname) {
     for (auto it = working_datasets.begin(); it != working_datasets.end();) {
         if ((*it)->get_name() == dsname) {
             it = working_datasets.erase(it);
-            std::cout << "drop dataset " << dsname << std::endl;
+            spdlog::info("Drop dataset {}", dsname);
         } else {
             ++it;
         }
@@ -163,7 +164,7 @@ void Database::drop_dataset(const std::string &dsname) {
 void Database::destroy_dataset(const std::string &dsname) {
     for (auto it = loaded_datasets.begin(); it != loaded_datasets.end();) {
         if ((*it)->get_name() == dsname) {
-            std::cout << "destroying dataset " << dsname << std::endl;
+            spdlog::info("Destroying dataset {}", dsname);
             (*it)->drop();
             it = loaded_datasets.erase(it);
         } else {
@@ -203,10 +204,8 @@ void Database::commit_task(uint64_t task_id) {
     Task *task = get_task(task_id);
 
     for (const auto &change : task->changes) {
-        std::cout << "change: " << db_change_to_string(change.type) << " "
-                  << change.obj_name << "(" << change.parameter << ")"
-                  << std::endl;
-
+        spdlog::info("Change: {} {} ({})", db_change_to_string(change.type),
+                     change.obj_name, change.parameter);
         if (change.type == DbChangeType::Insert) {
             load_dataset(change.obj_name);
         } else if (change.type == DbChangeType::Drop) {

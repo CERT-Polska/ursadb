@@ -7,6 +7,7 @@
 #include "ExclusiveFile.h"
 #include "Indexer.h"
 #include "Json.h"
+#include "spdlog/spdlog.h"
 
 DatabaseName DatabaseName::derive(const std::string &new_type,
                                   const std::string &new_filename) const {
@@ -142,7 +143,7 @@ void DatabaseSnapshot::index_path(
     task->work_estimated = targets.size() + 1;
 
     for (const auto &target : targets) {
-        std::cout << "indexing " << target << std::endl;
+        spdlog::debug("Indexing {}", target);
         indexer.index(target);
         task->work_done += 1;
     }
@@ -178,7 +179,7 @@ void DatabaseSnapshot::reindex_dataset(Task *task,
     task->work_estimated = source->get_file_count() + 1;
 
     source->for_each_filename([&indexer, &task](const std::string &target) {
-        std::cout << "reindexing " << target << std::endl;
+        spdlog::debug("Reindexing {}", target);
         indexer.index(target);
         task->work_done += 1;
     });

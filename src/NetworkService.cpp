@@ -6,6 +6,7 @@
 #include "libursa/DatabaseHandle.h"
 #include "libursa/Responses.h"
 #include "libursa/ZHelpers.h"
+#include "spdlog/spdlog.h"
 
 [[noreturn]] void WorkerContext::operator()() {
     zmq::context_t context(1);
@@ -27,7 +28,7 @@
 
         //  Get request, send reply
         std::string request = s_recv(worker);
-        std::cout << "task " << task->id << ": " << request << std::endl;
+        spdlog::info("Task {} - {}", task->id, request);
 
         snap.set_db_handle(DatabaseHandle(&worker));
 
@@ -85,11 +86,10 @@ void NetworkService::run() {
 }
 
 void NetworkService::commit_task(WorkerContext *wctx) {
-    uint64_t did_task = wctx->task->id;
-    std::cout << "task " << did_task << ": finished by worker "
-              << wctx->identity << std::endl;
+    auto did_task = wctx->task->id;
+    spdlog::info("Task {} finished by worker {}", did_task, wctx->identity);
 
-    db.commit_task(wctx->task->id);
+    db.commit_task(did_task);
     wctx->task = nullptr;
 }
 
@@ -124,12 +124,12 @@ void NetworkService::handle_dataset_lock_req(WorkerContext *wctx,
     if (!already_locked) {
         for (const std::string &ds_name : ds_names) {
             wctx->snap.lock_dataset(ds_name);
+            spdlog::info("Coordinator: dataset {} locked", ds_name);
         }
 
-        std::cout << "coordinator: dataset locked ok" << std::endl;
         s_send_val<NetLockResp>(backend, NetLockResp::LockOk);
     } else {
-        std::cout << "coordinator: dataset lock denied" << std::endl;
+        spdlog::warn("Coordinator: dataset lock denied");
         s_send_val<NetLockResp>(backend, NetLockResp::LockDenied);
     }
 }
@@ -162,10 +162,10 @@ void NetworkService::handle_iterator_lock_req(WorkerContext *wctx,
     if (!already_locked) {
         wctx->snap.lock_iterator(iterator_name);
 
-        std::cout << "coordinator: iterator locked ok" << std::endl;
+        spdlog::info("Coordinator: iterator {} locked", iterator_name);
         s_send_val<NetLockResp>(backend, NetLockResp::LockOk);
     } else {
-        std::cout << "coordinator: iterator lock denied" << std::endl;
+        spdlog::info("Coordinator: lock denied for iterator {}", iterator_name);
         s_send_val<NetLockResp>(backend, NetLockResp::LockDenied);
     }
 }

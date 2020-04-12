@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+      with:
+        submodules: true
     - name: install dependencies
       run: sudo apt-get install gcc g++ libzmq3-dev cmake build-essential git
     - name: configure
@@ -25,6 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+      with:
+        submodules: true
     - name: install dependencies
       run: sudo apt-get install gcc g++ libzmq3-dev cmake build-essential
     - name: configure
@@ -39,6 +43,8 @@ jobs:
     steps:
     - name: Check out the repo
       uses: actions/checkout@v2
+      with:
+        submodules: true
     - name: Build image
       uses: docker/build-push-action@v1
       with:
