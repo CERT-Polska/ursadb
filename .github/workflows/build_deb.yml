@@ -1,7 +1,4 @@
-on:
-  push:
-    tags:        
-      - 'v*'
+on: push
 
 name: Create and build release
 
@@ -11,11 +8,17 @@ jobs:
     runs-on: ubuntu-latest
     container: debian:buster
     steps:
+      - name: Install git
+        run: |
+          apt-get update && apt-get install -y git
       - name: Checkout code
         uses: actions/checkout@master
-      - name: Create Release
+        with:
+          submodules: true
+      - name: Create release
         id: create_release
         uses: actions/create-release@latest
+        if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -35,9 +38,10 @@ jobs:
           cpack
           echo "::set-output name=deb_path::$(realpath ursadb*.deb | head -n 1)"
           echo "::set-output name=deb_name::$(realpath ursadb*.deb | head -n 1 | rev | cut -f1 -d/ | rev)"
-      - name: Upload Release Asset
-        id: upload-release-asset 
+      - name: Upload Debian package
+        id: upload-release-asset
         uses: actions/upload-release-asset@v1
+        if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
