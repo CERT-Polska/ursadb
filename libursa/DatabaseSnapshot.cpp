@@ -179,7 +179,7 @@ void DatabaseSnapshot::reindex_dataset(Task *task,
     task->work_estimated = source->get_file_count() + 1;
 
     source->for_each_filename([&indexer, &task](const std::string &target) {
-        std::cout << "reindexing " << target << std::endl;
+        spdlog::info("Reindexing {}", target);
         indexer.index(target);
         task->work_done += 1;
     });

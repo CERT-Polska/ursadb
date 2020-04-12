@@ -1,4 +1,3 @@
-#include <spdlog/spdlog.h>
 #include <sys/types.h>
 
 #include <array>
@@ -22,6 +21,7 @@
 #include "libursa/Responses.h"
 #include "libursa/ResultWriter.h"
 #include "libursa/Utils.h"
+#include "spdlog/spdlog.h"
 
 Response execute_command(const SelectCommand &cmd, Task *task,
                          const DatabaseSnapshot *snap) {

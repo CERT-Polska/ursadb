@@ -2,6 +2,7 @@
 
 #include "Core.h"
 #include "MemMap.h"
+#include "spdlog/spdlog.h"
 
 Indexer::Indexer(const DatabaseSnapshot *snap,
                  const std::vector<IndexType> &types)
@@ -26,12 +27,11 @@ void Indexer::index(const std::string &target) {
 
         builder->index(target);
     } catch (empty_file_error &e) {
-        std::cout << "empty file (skip): " << target << std::endl;
+        spdlog::warn("Empty file (skip): {}", target);
     } catch (file_open_error &e) {
-        std::cout << "failed to open \"" << target << "\" (skip): " << e.what()
-                  << std::endl;
+        spdlog::warn("Failed to open {} reason: {}", target, e.what());
     } catch (invalid_filename_error &e) {
-        std::cout << "illegal file name (skip): " << target << std::endl;
+        spdlog::warn("Illegal file name (skip): {}", target);
     }
 }
 
@@ -62,7 +62,7 @@ void Indexer::remove_dataset(const OnDiskDataset *dataset_ptr) {
 }
 
 void Indexer::make_spill(DatasetBuilder &builder) {
-    std::cout << "new dataset" << std::endl;
+    spdlog::debug("new dataset");
     auto dataset_name = snap->allocate_name().get_filename();
     builder.save(snap->db_base, dataset_name);
     register_dataset(dataset_name);
@@ -73,7 +73,7 @@ void Indexer::make_spill(DatasetBuilder &builder) {
             OnDiskDataset::get_compact_candidates(created_dataset_ptrs());
 
         if (candidates.size() >= INDEXER_COMPACT_THRESHOLD) {
-            std::cout << "merge stuff" << std::endl;
+            spdlog::debug("Merging datasets");
             std::string merged_name = snap->allocate_name().get_filename();
             OnDiskDataset::merge(snap->db_base, merged_name, candidates,
                                  nullptr);
@@ -82,7 +82,7 @@ void Indexer::make_spill(DatasetBuilder &builder) {
             }
             register_dataset(merged_name);
         } else {
-            std::cout << "not going to merge" << std::endl;
+            spdlog::debug("Not merging");
             stop = true;
         }
     }
