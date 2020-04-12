@@ -1,6 +1,7 @@
 #include "NetworkService.h"
 
 #include <thread>
+#include <spdlog/spdlog.h>
 
 #include "Daemon.h"
 #include "libursa/DatabaseHandle.h"
@@ -27,7 +28,7 @@
 
         //  Get request, send reply
         std::string request = s_recv(worker);
-        std::cout << "task " << task->id << ": " << request << std::endl;
+        spdlog::info("Task {} - {}", task->id, request);
 
         snap.set_db_handle(DatabaseHandle(&worker));
 
@@ -86,8 +87,7 @@ void NetworkService::run() {
 
 void NetworkService::commit_task(WorkerContext *wctx) {
     uint64_t did_task = wctx->task->id;
-    std::cout << "task " << did_task << ": finished by worker "
-              << wctx->identity << std::endl;
+    spdlog::info("Task {} finished by worker {}", did_task, wctx->identity);
 
     db.commit_task(wctx->task->id);
     wctx->task = nullptr;

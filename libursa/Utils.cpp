@@ -6,6 +6,9 @@
 #include <set>
 
 #include "Json.h"
+#include "Version.h"
+
+std::string_view get_version() {return ursadb_version; }
 
 std::string random_hex_string(unsigned long length) {
     constexpr static char charset[] = "0123456789abcdef";

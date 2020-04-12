@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.9)
+message("BUILD TYPE: ${CMAKE_BUILD_TYPE}")
 project(
     ursadb
     VERSION 1.3.0
-    LANGUAGES CXX
+    LANGUAGES CXX C
 )
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
@@ -13,6 +14,7 @@ include(IPOEnableOnRelease)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+message("BUILD TYPE: ${CMAKE_BUILD_TYPE}")
 add_subdirectory(extern)
 add_subdirectory(libursa)
 
@@ -23,8 +25,9 @@ add_executable(
     src/NetworkService.cpp
     src/NetworkService.h
 )
+message("BUILD TYPE: ${CMAKE_BUILD_TYPE}")
 target_include_directories(ursadb PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(ursadb ursa)
+target_link_libraries(ursadb ursa spdlog::spdlog)
 target_enable_ipo(ursadb)
 target_clangformat_setup(ursadb)
 

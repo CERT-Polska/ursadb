@@ -1,6 +1,7 @@
 #include "DatabaseSnapshot.h"
 
 #include <fstream>
+#include "spdlog/spdlog.h"
 
 #include "Database.h"
 #include "DatasetBuilder.h"
@@ -142,7 +143,7 @@ void DatabaseSnapshot::index_path(
     task->work_estimated = targets.size() + 1;
 
     for (const auto &target : targets) {
-        std::cout << "indexing " << target << std::endl;
+        spdlog::debug("indexing {}", target);
         indexer.index(target);
         task->work_done += 1;
     }
