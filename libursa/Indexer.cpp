@@ -73,7 +73,7 @@ void Indexer::make_spill(DatasetBuilder &builder) {
             OnDiskDataset::get_compact_candidates(created_dataset_ptrs());
 
         if (candidates.size() >= INDEXER_COMPACT_THRESHOLD) {
-            spdlog::debug("Merging datasets");
+            spdlog::debug("Merging {} datasets", candidates.size());
             std::string merged_name = snap->allocate_name().get_filename();
             OnDiskDataset::merge(snap->db_base, merged_name, candidates,
                                  nullptr);

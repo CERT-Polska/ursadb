@@ -124,12 +124,12 @@ void NetworkService::handle_dataset_lock_req(WorkerContext *wctx,
     if (!already_locked) {
         for (const std::string &ds_name : ds_names) {
             wctx->snap.lock_dataset(ds_name);
+            spdlog::info("Coordinator: dataset {} locked", ds_name);
         }
 
-        spdlog::info("coordinator: dataset locked");
         s_send_val<NetLockResp>(backend, NetLockResp::LockOk);
     } else {
-        spdlog::warn("coordinator: dataset lock denied");
+        spdlog::warn("Coordinator: dataset lock denied");
         s_send_val<NetLockResp>(backend, NetLockResp::LockDenied);
     }
 }
@@ -162,10 +162,10 @@ void NetworkService::handle_iterator_lock_req(WorkerContext *wctx,
     if (!already_locked) {
         wctx->snap.lock_iterator(iterator_name);
 
-        spdlog::info("coordinator: iterator locked");
+        spdlog::info("Coordinator: iterator {} locked", iterator_name);
         s_send_val<NetLockResp>(backend, NetLockResp::LockOk);
     } else {
-        spdlog::info("coordinator: iterator lock denied");
+        spdlog::info("Coordinator: lock denied for iterator {}", iterator_name);
         s_send_val<NetLockResp>(backend, NetLockResp::LockDenied);
     }
 }
