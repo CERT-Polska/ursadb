@@ -53,7 +53,6 @@ target_include_directories(
     PRIVATE .
     PRIVATE ${PROJECT_BINARY_DIR}/generated
 )
-
 target_link_libraries(ursa -lstdc++fs -lzmq -pthread pegtl json spdlog::spdlog)
 target_enable_ipo(ursa)
 target_clangformat_setup(ursa)
