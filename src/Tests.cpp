@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <variant>
 
-#include "Catch.h"
+#include "catch/Catch.h"
 #include "libursa/BitmapIndexBuilder.h"
 #include "libursa/FlatIndexBuilder.h"
 #include "libursa/IndexBuilder.h"
