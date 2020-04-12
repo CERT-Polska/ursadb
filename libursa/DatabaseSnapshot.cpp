@@ -143,7 +143,7 @@ void DatabaseSnapshot::index_path(
     task->work_estimated = targets.size() + 1;
 
     for (const auto &target : targets) {
-        spdlog::debug("indexing {}", target);
+        spdlog::debug("Indexing {}", target);
         indexer.index(target);
         task->work_done += 1;
     }
@@ -179,7 +179,7 @@ void DatabaseSnapshot::reindex_dataset(Task *task,
     task->work_estimated = source->get_file_count() + 1;
 
     source->for_each_filename([&indexer, &task](const std::string &target) {
-        spdlog::info("Reindexing {}", target);
+        spdlog::debug("Reindexing {}", target);
         indexer.index(target);
         task->work_done += 1;
     });
