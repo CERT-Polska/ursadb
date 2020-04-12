@@ -50,6 +50,7 @@ void NetworkService::run() {
         wctxs[identity] =
             std::make_unique<WorkerContext>(identity, db.snapshot(), nullptr);
         std::thread thread(std::ref(*wctxs[identity].get()));
+        thread.detach();
     }
 
     //  Logic of LRU loop
