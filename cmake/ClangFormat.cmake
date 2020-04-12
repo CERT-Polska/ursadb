@@ -3,20 +3,21 @@
 # (See accompanying file LICENSE_1_0.txt or copy at
 # http://www.boost.org/LICENSE_1_0.txt)
 
-function(target_clangformat_setup)
-  if(NOT CLANGFORMAT_EXECUTABLE)
-    set(CLANGFORMAT_EXECUTABLE clang-format)
-  endif()
+if(NOT CLANGFORMAT_EXECUTABLE)
+  set(CLANGFORMAT_EXECUTABLE clang-format)
+endif()
 
-  if(NOT EXISTS ${CLANGFORMAT_EXECUTABLE})
-    find_program(clangformat_executable_tmp ${CLANGFORMAT_EXECUTABLE})
-    if(clangformat_executable_tmp)
-      set(CLANGFORMAT_EXECUTABLE ${clangformat_executable_tmp})
-      unset(clangformat_executable_tmp)
-    else()
-      message(FATAL_ERROR "ClangFormat: ${CLANGFORMAT_EXECUTABLE} not found! Aborting")
-    endif()
+if(NOT EXISTS ${CLANGFORMAT_EXECUTABLE})
+  find_program(clangformat_executable_tmp ${CLANGFORMAT_EXECUTABLE})
+  if(clangformat_executable_tmp)
+    set(CLANGFORMAT_EXECUTABLE ${clangformat_executable_tmp})
+    unset(clangformat_executable_tmp)
+  else()
+    message("ClangFormat: ${CLANGFORMAT_EXECUTABLE} not found!")
   endif()
+endif()
+
+function(target_clangformat_setup)
 
   get_target_property(target_sources ${ARGV} SOURCES)
 
