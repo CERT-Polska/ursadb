@@ -38,8 +38,14 @@ jobs:
           cpack
           echo "::set-output name=deb_path::$(realpath ursadb*.deb | head -n 1)"
           echo "::set-output name=deb_name::$(realpath ursadb*.deb | head -n 1 | rev | cut -f1 -d/ | rev)"
+      - name: Test package install
+        id: test_package_deb
+        run: |
+          dpkg -i build/ursadb*.deb
+          ursadb_new /tmp/test.ursa
+          ursadb | grep -q Usage
       - name: Upload Debian package
-        id: upload-release-asset
+        id: upload_release_deb
         uses: actions/upload-release-asset@v1
         if: startsWith(github.ref, 'refs/tags/')
         env:
