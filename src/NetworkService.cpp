@@ -1,13 +1,12 @@
 #include "NetworkService.h"
 
-#include <spdlog/spdlog.h>
-
 #include <thread>
 
 #include "Daemon.h"
 #include "libursa/DatabaseHandle.h"
 #include "libursa/Responses.h"
 #include "libursa/ZHelpers.h"
+#include "spdlog/spdlog.h"
 
 [[noreturn]] void WorkerContext::operator()() {
     zmq::context_t context(1);
