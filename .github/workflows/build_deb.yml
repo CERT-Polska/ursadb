@@ -1,0 +1,47 @@
+on:
+  push:
+    tags:        
+      - 'v*'
+
+name: Create and build release
+
+jobs:
+  create_release:
+    name: Create release
+    runs-on: ubuntu-latest
+    container: debian:buster
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Release ${{ github.ref }}
+          draft: true
+          prerelease: false
+      - name: Build for Debian
+        id: build_debian
+        run: |
+          apt-get update && apt-get install -y gcc-7 g++-7 libzmq3-dev cmake build-essential clang-format
+          mkdir build
+          cd build
+          cmake -D CMAKE_C_COMPILER=gcc-7 -D CMAKE_CXX_COMPILER=g++-7 -D CMAKE_BUILD_TYPE=Release ..
+          cpack
+          echo "::set-output name=deb_path::$(realpath ursadb*.deb | head -n 1)"
+          echo "::set-output name=deb_name::$(realpath ursadb*.deb | head -n 1 | rev | cut -f1 -d/ | rev)"
+      - name: Upload Release Asset
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.build_debian.outputs.deb_path }}
+          asset_name: ${{ steps.build_debian.outputs.deb_name }}
+          asset_content_type: application/vnd.debian.binary-package
