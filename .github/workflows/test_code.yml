@@ -33,3 +33,13 @@ jobs:
       run: cmake --build build
     - name: test
       run: ./build/ursadb_test
+  build_docker_image:
+    name: build docker image
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out the repo
+      uses: actions/checkout@v2
+    - name: Build image
+      uses: docker/build-push-action@v1
+      with:
+        push: false
