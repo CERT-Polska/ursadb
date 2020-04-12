@@ -1,7 +1,8 @@
 #include "NetworkService.h"
 
-#include <thread>
 #include <spdlog/spdlog.h>
+
+#include <thread>
 
 #include "Daemon.h"
 #include "libursa/DatabaseHandle.h"

@@ -1,3 +1,4 @@
+#include <spdlog/spdlog.h>
 #include <sys/types.h>
 
 #include <array>
@@ -11,7 +12,6 @@
 #include <variant>
 #include <vector>
 #include <zmq.hpp>
-#include <spdlog/spdlog.h>
 
 #include "NetworkService.h"
 #include "libursa/Command.h"

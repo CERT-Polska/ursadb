@@ -1,13 +1,13 @@
 #include "DatabaseSnapshot.h"
 
 #include <fstream>
-#include "spdlog/spdlog.h"
 
 #include "Database.h"
 #include "DatasetBuilder.h"
 #include "ExclusiveFile.h"
 #include "Indexer.h"
 #include "Json.h"
+#include "spdlog/spdlog.h"
 
 DatabaseName DatabaseName::derive(const std::string &new_type,
                                   const std::string &new_filename) const {
