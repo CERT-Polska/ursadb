@@ -5,8 +5,73 @@ A 3gram search engine for querying Terabytes of data in milliseconds. Optimized 
 
 Created in [CERT.PL](https://cert.pl). Originally by Jarosław Jedynak ([tailcall.net](https://tailcall.net)), extended and improved by Michał Leszczyński.
 
-How does it work?
------------------
+**Please note that this repository is only for UrsaDB project (3gram database). In order to see instructions on how to set up the complete mquery system, see [CERT-Polska/mquery](https://github.com/CERT-Polska/mquery).**
+
+Quick start
+-----------
+
+### Install UrsaDB
+#### From pre-built package
+UrsaDB is distributed in a form of pre-built Debian packages which are targeting Debian Buster and Ubuntu 18.04. You can get the packages from [GitHub Releases](https://github.com/CERT-Polska/ursadb/releases).
+
+You may use this convenience one-liner to install the latest UrsaDB package along with the required dependencies:
+```
+curl https://raw.githubusercontent.com/CERT-Polska/ursadb/master/install_deb.sh | sudo bash
+```
+
+#### From sources
+1. Install necessary dependencies:
+   ```
+   sudo apt update
+   sudo apt install -y gcc-7 g++-7 libzmq3-dev cmake build-essential clang-format
+   ```
+2. Build project:
+   ```
+   mkdir build
+   cd build
+   cmake -D CMAKE_C_COMPILER=gcc-7 -D CMAKE_CXX_COMPILER=g++-7 -D CMAKE_BUILD_TYPE=Release ..
+   make -j$(nproc)
+   ```
+3. Install binaries to `/usr/local/bin`:
+   ```
+   sudo make install
+   ```
+4. (Optional) Consider registering UrsaDB as a systemd service:
+   ```
+   cp contrib/systemd/ursadb.service /etc/systemd/system/
+   systemctl enable ursadb
+   ```
+
+### Perform initial setup
+1. Create new database:
+   ```
+   mkdir /opt/ursadb
+   ursadb_new /opt/ursadb/db.ursa
+   ```
+2. Run UrsaDB server:
+   ```
+   ursadb /opt/ursadb/db.ursa
+   ```
+3. Connect with UrsaCLI:
+   ```
+   $ ursacli
+   [2020-04-13 18:16:36.511] [info] Connected to UrsaDB v1.3.0 (connection id: 006B8B4571)
+   ursadb>
+   ```
+4. Index some files:
+   ```
+   ursadb> index "/opt/samples";
+   ```
+5. Now you can perform queries (e.g. match all files with three null bytes):
+   ```
+   ursadb> select {00 00 00};
+   ```
+
+Check out the "Queries" section in README to learn what kinds of commands can be issued to UrsaDB.
+
+
+Inner workings
+--------------
 
 ### gram3 index
 
@@ -60,61 +125,6 @@ Because searching for `UTF-16` is also useful, there is a special index which wo
 ### hash4
 
 Yet another type of index is `hash4`, which creates trigrams based on hashes of 4-byte sequences in the source file.
-
-
-Full package installation
--------------------------
-
-This repository is only for UrsaDB project (3gram database). In order to see instructions on how to set up the whole mquery system, see [CERT-Polska/mquery](https://github.com/CERT-Polska/mquery).
-
-
-Installation (with Docker)
--------------------------
-
-Docker image may be built by executing `docker build -t ursadb .` on the source code pulled from this repo.
-
-
-Installation (standard way)
----------------------------
-
-1. First, you need a compiled version of the code. You can get one from
-[github releases](https://github.com/CERT-Polska/ursadb/releases), or compile it yourself:
-
-```
-$ sudo apt update && apt install -y gcc-7 g++-7 libzmq3-dev cmake build-essential clang-format
-$ mkdir build
-$ cd build
-$ cmake -D CMAKE_C_COMPILER=gcc-7 -D CMAKE_CXX_COMPILER=g++-7 -D CMAKE_BUILD_TYPE=Release ..
-$ make -j$(nproc)
-```
-
-2. Copy the binaries (`ursadb`, `ursadb_new`) to appropriate place, e.g:
-```
-# cp ursadb ursadb_new /usr/local/bin/
-```
-
-3. Create new database:
-```
-$ mkdir /opt/ursadb
-$ ursadb_new /opt/ursadb/db.ursa
-```
-
-4. Run UrsaDB server:
-```
-$ ursadb /opt/ursadb/db.ursa
-```
-
-5. (Optional) Consider registering UrsaDB as a systemd service:
-```
-cp contrib/systemd/ursadb.service /
-systemctl enable ursadb
-```
-
-
-Usage
------
-
-Interaction with the database could be done using `ursadb-cli` (see another repository).
 
 
 Queries
