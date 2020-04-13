@@ -16,7 +16,7 @@ UrsaDB is distributed in a form of pre-built Debian packages which are targeting
 
 You may use this convenience one-liner to install the latest UrsaDB package along with the required dependencies:
 ```
-curl https://raw.githubusercontent.com/CERT-Polska/ursadb/master/install_deb.sh | sudo bash
+curl https://raw.githubusercontent.com/CERT-Polska/ursadb/master/contrib/install_deb.sh | sudo bash
 ```
 
 #### From sources
