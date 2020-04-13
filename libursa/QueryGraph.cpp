@@ -6,7 +6,7 @@ QueryGraph QueryGraph::dual() const {
     QueryGraph result;
 
     std::map<Edge, NodeId> newnodes;
-    for (int ndx = 0; ndx < nodes_.size(); ndx++) {
+    for (size_t ndx = 0; ndx < nodes_.size(); ndx++) {
         NodeId source(ndx);
         for (NodeId target : get(source).edges()) {
             uint32_t gram = combine(source, target);
@@ -26,25 +26,17 @@ QueryGraph QueryGraph::dual() const {
 QueryGraph QueryGraph::from_qstring(const QString &qstr) {
     QueryGraph result;
 
-    if (qstr.empty()) {
-        return result;
-    }
-
-    for (uint8_t opt : qstr[0].possible_values()) {
-        result.sources_.push_back(result.make_node(opt));
-    }
-
-    std::vector<NodeId> sinks(result.sources_);
-    for (int i = 1; i < qstr.size(); i++) {
+    std::vector<NodeId> sinks;
+    for (const auto &token : qstr) {
         std::vector<NodeId> new_sinks;
-        for (auto opt : qstr[i].possible_values()) {
+        for (auto opt : token.possible_values()) {
             NodeId node = result.make_node(opt);
             for (NodeId left : sinks) {
                 result.get(left).add_edge(node);
             }
             new_sinks.push_back(node);
         }
-        sinks = new_sinks;
+        sinks = std::move(new_sinks);
     }
 
     return result;

@@ -1,7 +1,6 @@
 #pragma once
 
-#include <stdint.h>
-
+#include <cstdint>
 #include <string>
 
 #include "Core.h"
@@ -18,7 +17,7 @@ class NodeId {
     uint32_t get() const { return id_; }
 };
 
-using Edge = std::tuple<NodeId, NodeId>;
+using Edge = std::pair<NodeId, NodeId>;
 
 class QueryGraphNode {
     // N-gram with implicit n. For example, 0x112233 represents {11 22 33}.
