@@ -1,3 +1,5 @@
+#include "Client.h"
+
 #include <iostream>
 #include <thread>
 #include <zmq.hpp>
@@ -5,8 +7,6 @@
 #include "libursa/Json.h"
 #include "libursa/ZHelpers.h"
 #include "spdlog/spdlog.h"
-
-#include "Client.h"
 
 static void wait_sec() {
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
