@@ -180,7 +180,7 @@ Query for the status of tasks running in the database:
 status;
 ```
 
-The output format is a JSON object with the details of all tasks. Exact format of these sub-objects is defined in [Responses.cpp](https://github.com/CERT-Polska/ursadb/blob/master/Responses.cpp). See `ursadb-cli` for a working implementation.
+The output format is a JSON object with the details of all tasks. Exact format of these sub-objects is defined in [Responses.cpp](https://github.com/CERT-Polska/ursadb/blob/master/libursa/Responses.cpp).
 
 ### Topology
 Check current database topology - what datasets are loaded and which index types they use.
