@@ -162,14 +162,14 @@ int UrsaClient::start() {
 UrsaClient::UrsaClient(std::string server_addr, std::string db_command)
     : server_addr(server_addr), db_command(db_command) {}
 
-    static void print_usage(const char *arg0) {
-            spdlog::info("Usage: {} [server_addr] [db_command]", arg0);
-            spdlog::info(
-                "    server_addr - server connection string, default: "
-                "tcp://localhost:9281");
-            spdlog::info(
-                "    db_command - specific command to be run in the database, "
-                "if not provided - interactive mode");
+static void print_usage(const char *arg0) {
+    spdlog::info("Usage: {} [server_addr] [db_command]", arg0);
+    spdlog::info(
+        "    server_addr - server connection string, default: "
+        "tcp://localhost:9281");
+    spdlog::info(
+        "    db_command - specific command to be run in the database, "
+        "if not provided - interactive mode");
 }
 
 int main(int argc, const char *argv[]) {
@@ -181,7 +181,7 @@ int main(int argc, const char *argv[]) {
 
         if (first_arg == "-h" || first_arg == "--help") {
             print_usage(argc >= 1 ? argv[0] : "ursacli");
-	    return 0;
+            return 0;
         }
 
         server_addr = first_arg;
