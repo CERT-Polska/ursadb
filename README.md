@@ -42,7 +42,7 @@ curl https://raw.githubusercontent.com/CERT-Polska/ursadb/master/install_deb.sh 
    systemctl enable ursadb
    ```
 
-### Perform initial setup
+### Database initialization
 1. Create new database:
    ```
    mkdir /opt/ursadb
