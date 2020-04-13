@@ -53,4 +53,3 @@ of dumping them with json to the client.
 - Refactor cmake lists, and revamp the project sructure.
 - Use std::thread instead of raw pthread in the network service code.
 - Add missing unit tests for parsing new commands (and some forgotten ones). 
-
