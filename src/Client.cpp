@@ -1,6 +1,5 @@
 #include <iostream>
 #include <thread>
-
 #include <zmq.hpp>
 
 #include "libursa/Json.h"
