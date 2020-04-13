@@ -162,23 +162,29 @@ int UrsaClient::start() {
 UrsaClient::UrsaClient(std::string server_addr, std::string db_command)
     : server_addr(server_addr), db_command(db_command) {}
 
-int main(int argc, char *argv[]) {
-    std::string server_addr = "tcp://localhost:9281";
-    std::string db_command = "";
-
-    if (argc >= 2) {
-        server_addr = std::string(argv[1]);
-
-        if (server_addr == "-h" || server_addr == "--help") {
-            spdlog::info("Usage: {} [server_addr] [db_command]", argv[0]);
+    static void print_usage(const char *arg0) {
+            spdlog::info("Usage: {} [server_addr] [db_command]", arg0);
             spdlog::info(
                 "    server_addr - server connection string, default: "
                 "tcp://localhost:9281");
             spdlog::info(
                 "    db_command - specific command to be run in the database, "
                 "if not provided - interactive mode");
-            return 0;
+}
+
+int main(int argc, const char *argv[]) {
+    std::string server_addr = "tcp://localhost:9281";
+    std::string db_command = "";
+
+    if (argc >= 2) {
+        std::string first_arg = std::string(argv[1]);
+
+        if (first_arg == "-h" || first_arg == "--help") {
+            print_usage(argc >= 1 ? argv[0] : "ursacli");
+	    return 0;
         }
+
+        server_addr = first_arg;
     }
 
     if (argc >= 3) {
@@ -187,6 +193,7 @@ int main(int argc, char *argv[]) {
 
     if (argc >= 4) {
         spdlog::error("Too many arguments provided in command line.");
+        print_usage(argc >= 1 ? argv[0] : "ursacli");
         return 1;
     }
 
