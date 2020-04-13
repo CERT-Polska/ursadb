@@ -4,6 +4,7 @@ add_library(
     BitmapIndexBuilder.cpp 
     BitmapIndexBuilder.h
     Command.h
+    Core.cpp
     Core.h
     Database.cpp
     Database.h
@@ -33,6 +34,8 @@ add_library(
     OnDiskIterator.h
     Query.cpp
     Query.h
+    QueryGraph.cpp
+    QueryGraph.h
     QueryParser.cpp
     QueryParser.h
     RawFile.cpp

@@ -25,7 +25,7 @@ enum class IndexType : uint32_t {
 };
 
 constexpr bool is_valid_index_type(uint32_t type) {
-    // Be very careful here. This looks complex, but avoids undevined behaviour.
+    // Be careful here. This looks complex, but avoids undefined behaviour.
     switch (static_cast<IndexType>(type)) {
         case IndexType::GRAM3:
             [[fallthrough]];
@@ -63,6 +63,8 @@ class QToken {
                type() == QTokenType::HWILDCARD ||
                type() == QTokenType::LWILDCARD;
     }
+
+    std::vector<uint8_t> possible_values() const;
 
     bool operator==(const QToken &a) const {
         return type_ == a.type_ && val_ == a.val_;
