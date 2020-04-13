@@ -1,5 +1,5 @@
-#include <thread>
 #include <iostream>
+#include <thread>
 
 #include <zmq.hpp>
 
@@ -7,8 +7,7 @@
 #include "libursa/ZHelpers.h"
 #include "spdlog/spdlog.h"
 
-void status_worker(std::string server_addr, std::string conn_id)
-{
+void status_worker(std::string server_addr, std::string conn_id) {
     while (true) {
         zmq::context_t context(1);
         zmq::socket_t socket(context, ZMQ_REQ);
@@ -20,25 +19,30 @@ void status_worker(std::string server_addr, std::string conn_id)
         std::string res_str;
         unsigned int retries = 0;
 
-        while (res_str.empty())
-        {
+        while (res_str.empty()) {
             if (retries == 30) {
-                spdlog::warn("UrsaDB server seems to be unresponsive. Failed to obtain progress for more than 30 seconds.");
+                spdlog::warn(
+                    "UrsaDB server seems to be unresponsive. Failed to obtain "
+                    "progress for more than 30 seconds.");
             }
 
             res_str = s_recv(socket);
-	    retries++;
+            retries++;
         }
 
         auto res = json::parse(res_str);
         auto res_tasks = res["result"]["tasks"];
 
-        for (json::iterator it = res_tasks.begin(); it != res_tasks.end(); ++it) {
+        for (json::iterator it = res_tasks.begin(); it != res_tasks.end();
+             ++it) {
             if ((*it)["connection_id"] == conn_id) {
                 unsigned int work_done = (*it)["work_done"].get<unsigned int>();
-                unsigned int work_estimated = (*it)["work_estimated"].get<unsigned int>();
-                unsigned int work_perc = work_estimated > 0 ? work_done * 100 / work_estimated : 0;
-                spdlog::info("Working... {}% ({} / {})", work_perc, work_done, work_estimated);
+                unsigned int work_estimated =
+                    (*it)["work_estimated"].get<unsigned int>();
+                unsigned int work_perc =
+                    work_estimated > 0 ? work_done * 100 / work_estimated : 0;
+                spdlog::info("Working... {}% ({} / {})", work_perc, work_done,
+                             work_estimated);
             }
         }
 
@@ -55,8 +59,12 @@ int main(int argc, char *argv[]) {
 
         if (server_addr == "-h" || server_addr == "--help") {
             spdlog::info("Usage: {} [server_addr] [db_command]", argv[0]);
-            spdlog::info("    server_addr - server connection string, default: tcp://localhost:9281");
-            spdlog::info("    db_command - specific command to be run in the database, if not provided - interactive mode");
+            spdlog::info(
+                "    server_addr - server connection string, default: "
+                "tcp://localhost:9281");
+            spdlog::info(
+                "    db_command - specific command to be run in the database, "
+                "if not provided - interactive mode");
             return 0;
         }
     }
@@ -95,7 +103,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    spdlog::info("Connected to UrsaDB v{} (connection id: {})", server_version, connection_id);
+    spdlog::info("Connected to UrsaDB v{} (connection id: {})", server_version,
+                 connection_id);
 
     std::thread status_th(status_worker, server_addr, connection_id);
 
@@ -130,7 +139,7 @@ int main(int argc, char *argv[]) {
             }
 
             break;
-        } while(1);
+        } while (1);
 
         if (!db_command.empty()) {
             break;
@@ -139,4 +148,3 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-
