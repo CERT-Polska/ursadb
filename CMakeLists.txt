@@ -34,6 +34,12 @@ target_link_libraries(ursadb_new ursa)
 target_enable_ipo(ursadb_new)
 target_clangformat_setup(ursadb_new)
 
+add_executable(ursacli src/Client.cpp)
+target_include_directories(ursacli PUBLIC ${CMAKE_SOURCE_DIR})
+target_link_libraries(ursacli ursa)
+target_enable_ipo(ursacli)
+target_clangformat_setup(ursacli)
+
 add_executable(ursadb_trim src/Trim.cpp)
 target_include_directories(ursadb_trim PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(ursadb_trim ursa)
@@ -58,6 +64,7 @@ install(TARGETS
         ursadb_trim
         ursadb_test
         ursadb_bench
+        ursacli
         DESTINATION bin)
 
 set(CPACK_GENERATOR "DEB")

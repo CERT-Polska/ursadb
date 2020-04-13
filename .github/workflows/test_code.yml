@@ -21,7 +21,7 @@ jobs:
     - name: clang-format
       run: cmake --build build --target format
     - name: check formatting
-      run: git diff --quiet
+      run: git diff --exit-code || ( >&2 echo "Please run 'make format' to fix these issues automatically." && false )
   run_cmake_build:
     name: run cmake build
     runs-on: ubuntu-latest
