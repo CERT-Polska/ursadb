@@ -6,17 +6,28 @@
 #include "libursa/ZHelpers.h"
 #include "spdlog/spdlog.h"
 
-void status_worker(std::string server_addr, std::string conn_id) {
-    while (true) {
-        zmq::context_t context(1);
-        zmq::socket_t socket(context, ZMQ_REQ);
-        socket.setsockopt(ZMQ_LINGER, 0);
-        socket.setsockopt(ZMQ_RCVTIMEO, 1000);
-        socket.connect(server_addr);
+#include "Client.h"
+
+static void wait_sec() {
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+}
+
+void UrsaClient::status_worker() {
+    zmq::context_t context(1);
+    zmq::socket_t socket(context, ZMQ_REQ);
+    socket.setsockopt(ZMQ_LINGER, 0);
+    socket.setsockopt(ZMQ_RCVTIMEO, 1000);
+    socket.connect(this->server_addr);
+
+    while (!this->terminated) {
+        if (!this->command_active) {
+            wait_sec();
+            continue;
+        }
 
         s_send(socket, "status;");
         std::string res_str;
-        unsigned int retries = 0;
+        uint64_t retries = 0;
 
         while (res_str.empty()) {
             if (retries == 30) {
@@ -32,22 +43,124 @@ void status_worker(std::string server_addr, std::string conn_id) {
         auto res = json::parse(res_str);
         auto res_tasks = res["result"]["tasks"];
 
-        for (json::iterator it = res_tasks.begin(); it != res_tasks.end();
-             ++it) {
-            if ((*it)["connection_id"] == conn_id) {
-                unsigned int work_done = (*it)["work_done"].get<unsigned int>();
-                unsigned int work_estimated =
-                    (*it)["work_estimated"].get<unsigned int>();
-                unsigned int work_perc =
-                    work_estimated > 0 ? work_done * 100 / work_estimated : 0;
-                spdlog::info("Working... {}% ({} / {})", work_perc, work_done,
-                             work_estimated);
+        for (const auto &task : res_tasks) {
+            if (task["connection_id"] != this->connection_id) {
+                continue;
             }
+
+            uint64_t work_done = task["work_done"];
+            uint64_t work_estimated = task["work_estimated"];
+            uint64_t work_perc =
+                work_estimated > 0 ? work_done * 100 / work_estimated : 0;
+            spdlog::info("Working... {}% ({} / {})", work_perc, work_done,
+                         work_estimated);
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        wait_sec();
     }
 }
+
+void UrsaClient::init_conn(zmq::socket_t &socket) {
+    s_send(socket, "ping;");
+    auto res_str = s_recv(socket);
+
+    if (res_str.empty()) {
+        throw std::runtime_error("Failed to connect to the database!");
+    }
+
+    auto res = json::parse(res_str)["result"];
+    std::string server_status = res["status"].get<std::string>();
+
+    if (server_status != "ok") {
+        std::string msg = "Server returned bad status: " + server_status;
+        throw std::runtime_error(msg);
+    }
+
+    this->server_version = res["ursadb_version"];
+    this->connection_id = res["connection_id"];
+
+    spdlog::info("Connected to UrsaDB v{} (connection id: {})", server_version,
+                 connection_id);
+}
+
+void UrsaClient::recv_res(zmq::socket_t &socket) {
+    // enable periodic progress check
+    // which is done by status worker
+    this->command_active = true;
+
+    while (this->command_active) {
+        auto res_str = s_recv(socket);
+
+        if (res_str.empty()) {
+            continue;
+        }
+
+        this->command_active = false;
+        auto res = json::parse(res_str);
+
+        if (res["type"] == "error") {
+            spdlog::error(res["error"]["message"].get<std::string>());
+        } else {
+            spdlog::info(res.dump(4));
+        }
+    }
+}
+
+static void s_send_cmd(zmq::socket_t &socket, std::string cmd) {
+    // for user convenience
+    if (cmd.back() != ';') {
+        cmd = cmd + ";";
+    }
+
+    s_send(socket, cmd);
+}
+
+int UrsaClient::start() {
+    zmq::context_t context(1);
+    zmq::socket_t socket(context, ZMQ_REQ);
+    socket.setsockopt(ZMQ_LINGER, 0);
+    socket.setsockopt(ZMQ_RCVTIMEO, 1000);
+    socket.connect(server_addr);
+
+    try {
+        init_conn(socket);
+    } catch (std::runtime_error &e) {
+        spdlog::error(e.what());
+        return 1;
+    }
+
+    std::thread status_th(&UrsaClient::status_worker, this);
+
+    while (!this->terminated) {
+        if (!db_command.empty()) {
+            // execute single command and exit
+            s_send_cmd(socket, db_command);
+        } else {
+            // interactive mode
+            std::cout << "ursadb> ";
+
+            std::string cmd;
+            std::getline(std::cin, cmd);
+
+            s_send_cmd(socket, cmd);
+        }
+
+        recv_res(socket);
+
+        if (!db_command.empty()) {
+            // single command mode; exit after processing is done
+            this->terminated = true;
+        }
+    }
+
+    // wait for status thread to terminate
+    status_th.join();
+
+    return 0;
+}
+
+UrsaClient::UrsaClient(std::string server_addr, std::string db_command)
+    : server_addr(server_addr), db_command(db_command) {}
 
 int main(int argc, char *argv[]) {
     std::string server_addr = "tcp://localhost:9281";
@@ -77,73 +190,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    zmq::context_t context(1);
-    zmq::socket_t socket(context, ZMQ_REQ);
-    socket.setsockopt(ZMQ_LINGER, 0);
-    socket.setsockopt(ZMQ_RCVTIMEO, 1000);
-    socket.connect(server_addr);
-
-    s_send(socket, "ping;");
-    auto res_str = s_recv(socket);
-
-    if (res_str.empty()) {
-        spdlog::error("Failed to connect to the database!");
-        return 1;
-    }
-
-    auto res = json::parse(res_str)["result"];
-
-    std::string server_version = res["ursadb_version"].get<std::string>();
-    std::string server_status = res["status"].get<std::string>();
-    std::string connection_id = res["connection_id"].get<std::string>();
-
-    if (server_status != "ok") {
-        spdlog::error("Server returned bad status: {}", server_status);
-        return 1;
-    }
-
-    spdlog::info("Connected to UrsaDB v{} (connection id: {})", server_version,
-                 connection_id);
-
-    std::thread status_th(status_worker, server_addr, connection_id);
-
-    while (true) {
-        if (!db_command.empty()) {
-            // execute single command and exit
-            s_send(socket, db_command);
-        } else {
-            // interactive mode
-            std::cout << "ursadb> ";
-
-            std::string cmd;
-            std::getline(std::cin, cmd);
-
-            s_send(socket, cmd);
-        }
-
-        do {
-            auto res_str = s_recv(socket);
-
-            if (res_str.empty()) {
-                continue;
-            }
-
-            auto res = json::parse(res_str);
-            auto res_type = res["type"].get<std::string>();
-
-            if (res_type == "error") {
-                spdlog::error(res["error"]["message"].get<std::string>());
-            } else {
-                spdlog::info(res.dump(4));
-            }
-
-            break;
-        } while (1);
-
-        if (!db_command.empty()) {
-            break;
-        }
-    }
-
-    return 0;
+    UrsaClient client(server_addr, db_command);
+    return client.start();
 }
