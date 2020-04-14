@@ -23,7 +23,7 @@ private:
     void recv_res(zmq::socket_t& socket);
 
 public:
-    UrsaClient(std::string server_addr, std::string db_command, bool silent_mode);
+    UrsaClient(std::string server_addr, std::string db_command, bool quiet_mode);
     int start();
 };
 
