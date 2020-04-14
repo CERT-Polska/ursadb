@@ -190,10 +190,10 @@ static void print_usage(const char *arg0) {
         "    [server_addr]      server connection string, default: "
         "tcp://localhost:9281");
     spdlog::info(
-        "    [-q <db_command>]  specific command to be run in the database, "
+        "    [-c <db_command>]  specific command to be run in the database, "
         "if not provided - interactive mode");
     spdlog::info(
-        "    [-s]               silent mode, dump only command output");
+        "    [-q]               silent mode, dump only command output");
 }
 
 int main(int argc, char *argv[]) {
