@@ -19,7 +19,7 @@ bool UrsaClient::wait_sec() {
 }
 
 void UrsaClient::status_worker() {
-    if (this->quiet_mode) {
+    if (!this->is_interactive) {
         return;
     }
 
@@ -87,7 +87,7 @@ void UrsaClient::init_conn(zmq::socket_t &socket) {
     this->server_version = res["ursadb_version"];
     this->connection_id = res["connection_id"];
 
-    if (!this->quiet_mode) {
+    if (this->is_interactive) {
         spdlog::info("Connected to UrsaDB v{} (connection id: {})",
                      server_version, connection_id);
     }
@@ -109,12 +109,17 @@ void UrsaClient::recv_res(zmq::socket_t &socket) {
         this->command_active = false;
         auto res = json::parse(res_str);
 
-        if (!this->quiet_mode) {
-            if (res["type"] == "error") {
-                spdlog::error(res["error"]["message"].get<std::string>());
-            } else {
-                std::cout << res.dump(4) << std::endl;
+        if (this->raw_json) {
+            std::cout << res.dump(4) << std::endl;
+            return;
+        }
+
+        if (res["type"] == "select") {
+            for (const auto &file : res["result"]["files"]) {
+                std::cout << file.get<std::string>() << std::endl;
             }
+        } else if (res["type"] == "error") {
+            spdlog::error(res["error"]["message"].get<std::string>());
         } else {
             std::cout << res.dump(4) << std::endl;
         }
@@ -152,7 +157,7 @@ int UrsaClient::start() {
             s_send_cmd(socket, db_command);
         } else {
             // interactive mode
-            if (!quiet_mode) {
+            if (is_interactive) {
                 std::cout << "ursadb> ";
             }
 
@@ -179,10 +184,11 @@ int UrsaClient::start() {
 }
 
 UrsaClient::UrsaClient(std::string server_addr, std::string db_command,
-                       bool quiet_mode)
+                       bool is_interactive, bool raw_json)
     : server_addr(server_addr),
       db_command(db_command),
-      quiet_mode(quiet_mode) {}
+      is_interactive(is_interactive),
+      raw_json(raw_json) {}
 
 static void print_usage(const char *arg0) {
     spdlog::info("Usage: {} [server_addr] [args...]", arg0);
@@ -194,22 +200,27 @@ static void print_usage(const char *arg0) {
         "if not provided - interactive mode");
     spdlog::info(
         "    [-q]               silent mode, dump only command output");
+    spdlog::info("    [-j]               force JSON output everywhere");
 }
 
 int main(int argc, char *argv[]) {
     std::string server_addr = "tcp://localhost:9281";
     std::string db_command = "";
-    bool quiet_mode = false;
+    bool is_interactive = isatty(0);
+    bool raw_json = false;
 
     int c;
 
-    while ((c = getopt(argc, argv, "hqc:")) != -1) {
+    while ((c = getopt(argc, argv, "hqjc:")) != -1) {
         switch (c) {
             case 'q':
-                quiet_mode = true;
+                is_interactive = false;
                 break;
             case 'c':
                 db_command = optarg;
+                break;
+            case 'j':
+                raw_json = true;
                 break;
             case 'h':
                 print_usage(argc >= 1 ? argv[0] : "ursacli");
@@ -229,6 +240,6 @@ int main(int argc, char *argv[]) {
         server_addr = argv[optind];
     }
 
-    UrsaClient client(server_addr, db_command, quiet_mode);
+    UrsaClient client(server_addr, db_command, is_interactive, raw_json);
     return client.start();
 }
