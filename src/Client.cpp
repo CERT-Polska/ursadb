@@ -115,7 +115,7 @@ void UrsaClient::recv_res(zmq::socket_t &socket) {
         }
 
         if (res["type"] == "select") {
-            for (auto &file : res["result"]["files"]) {
+            for (const auto &file : res["result"]["files"]) {
                 std::cout << file.get<std::string>() << std::endl;
             }
         } else if (res["type"] == "error") {
