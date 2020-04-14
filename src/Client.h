@@ -13,6 +13,7 @@ private:
     std::string server_addr;
     std::string db_command;
     bool quiet_mode;
+    bool force_json;
 
     std::string server_version;
     std::string connection_id;
@@ -23,7 +24,7 @@ private:
     void recv_res(zmq::socket_t& socket);
 
 public:
-    UrsaClient(std::string server_addr, std::string db_command, bool quiet_mode);
+    UrsaClient(std::string server_addr, std::string db_command, bool quiet_mode, bool force_json);
     int start();
 };
 
