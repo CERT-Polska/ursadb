@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
 #include <functional>
+#include <string>
 
 #include "Core.h"
 #include "QueryResult.h"
