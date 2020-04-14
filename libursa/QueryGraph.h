@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <functional>
 
 #include "Core.h"
 #include "QueryResult.h"
