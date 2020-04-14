@@ -14,9 +14,9 @@ class SelectCommand {
     bool use_iterator;
 
    public:
-    SelectCommand(const Query &query, std::set<std::string> taints,
+    SelectCommand(Query &&query, std::set<std::string> taints,
                   bool use_iterator)
-        : query(query), taints(taints), use_iterator(use_iterator) {}
+        : query(std::move(query)), taints(taints), use_iterator(use_iterator) {}
     const Query &get_query() const { return query; }
     const std::set<std::string> &get_taints() const { return taints; }
     const bool iterator_requested() const { return use_iterator; }
