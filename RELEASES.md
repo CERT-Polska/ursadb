@@ -1,3 +1,18 @@
+# Version 1.3.2
+
+### Bugfixes
+
+* Improved stability of `ursacli`.
+
+### New features
+
+#### Native client
+
+In `ursacli` console client:
+
+- Introduced `-c` (command), `-q` (non-interactive mode) and `-j` (always output raw JSON) command line switches.
+- Better result printing for `select` query results.
+
 # Version 1.3.1
 
 ### New features
