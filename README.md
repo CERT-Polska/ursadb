@@ -5,116 +5,69 @@ A 3gram search engine for querying Terabytes of data in milliseconds. Optimized 
 
 Created in [CERT.PL](https://cert.pl). Originally by Jarosław Jedynak ([tailcall.net](https://tailcall.net)), extended and improved by Michał Leszczyński.
 
-How does it work?
------------------
+**Please note that this repository is only for UrsaDB project (3gram database). In order to see instructions on how to set up the complete mquery system, see [CERT-Polska/mquery](https://github.com/CERT-Polska/mquery).**
 
-### gram3 index
+Quick start
+-----------
 
-UrsaDB is using few slightly different methods of indexing files, having `gram3` indexes as a most basic concept.
+### Install UrsaDB
+#### From pre-built package
+UrsaDB is distributed in a form of pre-built Debian packages which are targeting Debian Buster and Ubuntu 18.04. You can get the packages from [GitHub Releases](https://github.com/CERT-Polska/ursadb/releases).
 
-When the database is about to create a `gram3` index for a given file, it extracts all possible three-byte combinations from it. An index is a big map of: `3gram` => `list of files which contain it`.
-
-For instance, if we would index a text file containing ASCII string `TEST MALWARE` (ASCII: `54 45 53 54 20 4D 41 4C 57 41 52 45`), then the database would generate the following trigrams (`_` denotes space character):
-
-| # | Substring | Trigram    |
-| - | --------- | ---------- |
-| 0 | `TES`     | `544553`   |
-| 1 | `EST`     | `455354`   |
-| 2 | `ST_`     | `535420`   |
-| 3 | `T_M`     | `54204D`   |
-| 4 | `_MA`     | `204D61`   |
-| 5 | `MAL`     | `4D616C`   |
-| 6 | `ALW`     | `414C57`   |
-| 7 | `LWA`     | `4C5741`   |
-| 8 | `WAR`     | `574152`   |
-| 9 | `ARE`     | `415245`   |
-
-![](docs/gram1.png)
-
-An index maps a trigram to a list of files, so the new file will be added to the abovementioned lookups.
-
-### gram3 queries
-When querying for string `TEST MALWARE`, the database will query trigram index in order to determine which files do contain sequence `544553`, then which files contain `455354` and so on till `415245`. Such partial results will be ANDed and then the result set (list of probably matching files) is returned.
-
-The drawing presents how trigrams are mapped to file contents.
-![](docs/gram2.png)
-
-Such searching technique sometimes may yield false positives, but it's never going to yield any true negatives. Thus, it may be appropriate for quick filtering (see [mquery project](https://github.com/CERT-Polska/mquery) - we use UrsaDB there in order to accelerate the process of malware searching).
-
-### text4 index
-
-String literals are very common in binaries. Thus, it's useful to have a specialized index for ASCII characters.
-
-In `text4` index, ASCII characters are packed in a manner similar to [base64](https://en.wikipedia.org/wiki/Base64) algorithm. Due to that, it is possible to generate a trigram out of four characters.
-
-![](docs/4gram3.png)
-
-Note that such an index doesn't respond to queries containing non-ASCII bytes, so it should be combined with at least `gram3` index.
-
-### wide8
-
-Because searching for `UTF-16` is also useful, there is a special index which works similarily to `text4`. In this case, ASCII characters interleaved with zeros are decoded.
-
-![](docs/4gram5.png)
-
-### hash4
-
-Yet another type of index is `hash4`, which creates trigrams based on hashes of 4-byte sequences in the source file.
-
-
-Full package installation
--------------------------
-
-This repository is only for UrsaDB project (3gram database). In order to see instructions on how to set up the whole mquery system, see [CERT-Polska/mquery](https://github.com/CERT-Polska/mquery).
-
-
-Installation (with Docker)
--------------------------
-
-Docker image may be built by executing `docker build -t ursadb .` on the source code pulled from this repo.
-
-
-Installation (standard way)
----------------------------
-
-1. First, you need a compiled version of the code. You can get one from
-[github releases](https://github.com/CERT-Polska/ursadb/releases), or compile it yourself:
-
+You may use this convenience one-liner to install the latest UrsaDB package along with the required dependencies:
 ```
-$ sudo apt update && apt install -y gcc-7 g++-7 libzmq3-dev cmake build-essential clang-format
-$ mkdir build
-$ cd build
-$ cmake -D CMAKE_C_COMPILER=gcc-7 -D CMAKE_CXX_COMPILER=g++-7 -D CMAKE_BUILD_TYPE=Release ..
-$ make -j$(nproc)
+curl https://raw.githubusercontent.com/CERT-Polska/ursadb/master/contrib/install_deb.sh | sudo bash
 ```
 
-2. Copy the binaries (`ursadb`, `ursadb_new`) to appropriate place, e.g:
-```
-# cp ursadb ursadb_new /usr/local/bin/
-```
+#### From sources
+1. Install necessary dependencies:
+   ```
+   sudo apt update
+   sudo apt install -y gcc-7 g++-7 libzmq3-dev cmake build-essential clang-format
+   ```
+2. Build project:
+   ```
+   mkdir build
+   cd build
+   cmake -D CMAKE_C_COMPILER=gcc-7 -D CMAKE_CXX_COMPILER=g++-7 -D CMAKE_BUILD_TYPE=Release ..
+   make -j$(nproc)
+   ```
+3. Install binaries to `/usr/local/bin`:
+   ```
+   sudo make install
+   ```
+4. (Optional) Consider registering UrsaDB as a systemd service:
+   ```
+   cp contrib/systemd/ursadb.service /etc/systemd/system/
+   systemctl enable ursadb
+   ```
 
-3. Create new database:
-```
-$ mkdir /opt/ursadb
-$ ursadb_new /opt/ursadb/db.ursa
-```
+### Database initialization
+1. Create new database:
+   ```
+   mkdir /opt/ursadb
+   ursadb_new /opt/ursadb/db.ursa
+   ```
+2. Run UrsaDB server:
+   ```
+   ursadb /opt/ursadb/db.ursa
+   ```
+3. Connect with UrsaCLI:
+   ```
+   $ ursacli
+   [2020-04-13 18:16:36.511] [info] Connected to UrsaDB v1.3.0 (connection id: 006B8B4571)
+   ursadb>
+   ```
+4. Index some files:
+   ```
+   ursadb> index "/opt/samples";
+   ```
+5. Now you can perform queries (e.g. match all files with three null bytes):
+   ```
+   ursadb> select {00 00 00};
+   ```
 
-4. Run UrsaDB server:
-```
-$ ursadb /opt/ursadb/db.ursa
-```
-
-5. (Optional) Consider registering UrsaDB as a systemd service:
-```
-cp contrib/systemd/ursadb.service /
-systemctl enable ursadb
-```
-
-
-Usage
------
-
-Interaction with the database could be done using `ursadb-cli` (see another repository).
+Check out the "Queries" section in README to learn what kinds of commands can be issued to UrsaDB.
 
 
 Queries
@@ -227,7 +180,7 @@ Query for the status of tasks running in the database:
 status;
 ```
 
-The output format is a JSON object with the details of all tasks. Exact format of these sub-objects is defined in [Responses.cpp](https://github.com/CERT-Polska/ursadb/blob/master/Responses.cpp). See `ursadb-cli` for a working implementation.
+The output format is a JSON object with the details of all tasks. Exact format of these sub-objects is defined in [Responses.cpp](https://github.com/CERT-Polska/ursadb/blob/master/libursa/Responses.cpp).
 
 ### Topology
 Check current database topology - what datasets are loaded and which index types they use.
@@ -274,4 +227,68 @@ In order to force smart compact (database will decide which datasets do need com
 compact smart;
 ```
 
+Inner workings
+--------------
+
+### gram3 index
+
+UrsaDB is using few slightly different methods of indexing files, having `gram3` indexes as a most basic concept.
+
+When the database is about to create a `gram3` index for a given file, it extracts all possible three-byte combinations from it. An index is a big map of: `3gram` => `list of files which contain it`.
+
+For instance, if we would index a text file containing ASCII string `TEST MALWARE` (ASCII: `54 45 53 54 20 4D 41 4C 57 41 52 45`), then the database would generate the following trigrams (`_` denotes space character):
+
+| # | Substring | Trigram    |
+| - | --------- | ---------- |
+| 0 | `TES`     | `544553`   |
+| 1 | `EST`     | `455354`   |
+| 2 | `ST_`     | `535420`   |
+| 3 | `T_M`     | `54204D`   |
+| 4 | `_MA`     | `204D61`   |
+| 5 | `MAL`     | `4D616C`   |
+| 6 | `ALW`     | `414C57`   |
+| 7 | `LWA`     | `4C5741`   |
+| 8 | `WAR`     | `574152`   |
+| 9 | `ARE`     | `415245`   |
+
+![](docs/gram1.png)
+
+An index maps a trigram to a list of files, so the new file will be added to the abovementioned lookups.
+
+### gram3 queries
+When querying for string `TEST MALWARE`, the database will query trigram index in order to determine which files do contain sequence `544553`, then which files contain `455354` and so on till `415245`. Such partial results will be ANDed and then the result set (list of probably matching files) is returned.
+
+The drawing presents how trigrams are mapped to file contents.
+![](docs/gram2.png)
+
+Such searching technique sometimes may yield false positives, but it's never going to yield any true negatives. Thus, it may be appropriate for quick filtering (see [mquery project](https://github.com/CERT-Polska/mquery) - we use UrsaDB there in order to accelerate the process of malware searching).
+
+### text4 index
+
+String literals are very common in binaries. Thus, it's useful to have a specialized index for ASCII characters.
+
+In `text4` index, ASCII characters are packed in a manner similar to [base64](https://en.wikipedia.org/wiki/Base64) algorithm. Due to that, it is possible to generate a trigram out of four characters.
+
+![](docs/4gram3.png)
+
+Note that such an index doesn't respond to queries containing non-ASCII bytes, so it should be combined with at least `gram3` index.
+
+### wide8
+
+Because searching for `UTF-16` is also useful, there is a special index which works similarily to `text4`. In this case, ASCII characters interleaved with zeros are decoded.
+
+![](docs/4gram5.png)
+
+### hash4
+
+Yet another type of index is `hash4`, which creates trigrams based on hashes of 4-byte sequences in the source file.
+
+## Contact
+If you have any problems, bugs or feature requests related to UrsaDB, you're encouraged to create a GitHub issue. If you have other questions or want to contact the developers directly, you can email:
+
+* Michał Leszczyński (monk@cert.pl)
+* Jarosław Jedynak (msm@cert.pl)
+* CERT.PL (info@cert.pl)
+
+## Founding acknowledgement
 ![Co-financed by the Connecting Europe Facility by of the European Union](https://www.cert.pl/wp-content/uploads/2019/02/en_horizontal_cef_logo-1.png)
