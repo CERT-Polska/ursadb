@@ -1,32 +1,5 @@
 #include "Query.h"
 
-void QueryResult::do_or(const QueryResult &&other) {
-    if (this->is_everything() || other.is_everything()) {
-        has_everything = true;
-        return;
-    }
-
-    std::vector<FileId> new_results;
-    std::set_union(other.results.begin(), other.results.end(), results.begin(),
-                   results.end(), std::back_inserter(new_results));
-    std::swap(new_results, results);
-}
-
-void QueryResult::do_and(const QueryResult &&other) {
-    if (other.is_everything()) {
-        return;
-    }
-    if (this->is_everything()) {
-        *this = QueryResult(other);
-        return;
-    }
-
-    auto new_end =
-        std::set_intersection(other.results.begin(), other.results.end(),
-                              results.begin(), results.end(), results.begin());
-    results.erase(new_end, results.end());
-}
-
 const std::vector<Query> &Query::as_queries() const {
     if (type != QueryType::AND && type != QueryType::OR &&
         type != QueryType::MIN_OF) {
@@ -75,6 +48,8 @@ std::ostream &operator<<(std::ostream &os, const Query &query) {
         os << ")";
     } else if (type == QueryType::PRIMITIVE) {
         os << "'" << query.as_string_repr() << "'";
+    } else {
+        throw std::runtime_error("Unknown query type.");
     }
     return os;
 }

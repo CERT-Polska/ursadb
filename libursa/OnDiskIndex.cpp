@@ -5,8 +5,10 @@
 #include <fstream>
 #include <iostream>
 
+#include "FeatureFlags.h"
 #include "Query.h"
 #include "Utils.h"
+#include "spdlog/spdlog.h"
 
 #pragma pack(1)
 struct OnDiskIndexHeader {
@@ -148,11 +150,25 @@ QueryResult OnDiskIndex::query_str(const QString &str) const {
         case IndexType::WIDE8:
             input_len = 8;
             break;
-    }
-    if (input_len == 0) {
-        throw std::runtime_error("unhandled index type");
+        default:
+            throw std::runtime_error("unhandled index type");
     }
 
+    if (::feature::query_graphs && input_len <= 4) {
+        spdlog::info("Experimental graph query for {}",
+                     get_index_type_name(index_type()));
+        QueryGraph graph{QueryGraph::from_qstring(str)};
+        for (int i = 0; i < input_len - 1; i++) {
+            spdlog::info("Computing dual graph ({} nodes)", graph.size());
+            graph = graph.dual();
+        }
+        spdlog::info("Final graph has {} nodes", graph.size());
+        QueryFunc oracle = [this](uint32_t raw_gram) {
+            uint32_t gram = convert_gram(index_type(), raw_gram);
+            return query_primitive(gram);
+        };
+        return graph.run(oracle);
+    }
     return expand_wildcards(str, input_len, generator);
 }
 

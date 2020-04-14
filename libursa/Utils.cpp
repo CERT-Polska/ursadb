@@ -44,6 +44,33 @@ TrigramGenerator get_generator_for(IndexType type) {
     throw std::runtime_error("unhandled index type");
 }
 
+TriGram convert_gram(IndexType type, uint32_t source) {
+    int size;
+    switch (type) {
+        case IndexType::GRAM3:
+            size = 3;
+            break;
+        case IndexType::TEXT4:
+            size = 4;
+            break;
+        case IndexType::HASH4:
+            size = 4;
+            break;
+        case IndexType::WIDE8:
+            throw std::runtime_error("couldn't have possibly packed wide8");
+        default:
+            throw std::runtime_error("invalid index type");
+    }
+    std::vector<TriGram> result;
+    std::vector<uint8_t> mem;
+    for (int i = 0; i < size; i++) {
+        mem.push_back(((source) >> ((size - i - 1) * 8)) & 0xFF);
+    }
+    get_generator_for(type)(
+        mem.data(), size, [&result](uint32_t gram) { result.push_back(gram); });
+    return result[0];
+}
+
 void gen_b64grams(const uint8_t *mem, size_t size, TrigramCallback cb) {
     if (size < 4) {
         return;
@@ -170,35 +197,6 @@ std::vector<FileId> read_compressed_run(const uint8_t *start,
     }
 
     return res;
-}
-
-std::string get_index_type_name(IndexType type) {
-    switch (type) {
-        case IndexType::GRAM3:
-            return "gram3";
-        case IndexType::TEXT4:
-            return "text4";
-        case IndexType::HASH4:
-            return "hash4";
-        case IndexType::WIDE8:
-            return "wide8";
-    }
-
-    throw std::runtime_error("unhandled index type");
-}
-
-std::optional<IndexType> index_type_from_string(const std::string &type) {
-    if (type == "gram3") {
-        return IndexType::GRAM3;
-    } else if (type == "text4") {
-        return IndexType::TEXT4;
-    } else if (type == "hash4") {
-        return IndexType::HASH4;
-    } else if (type == "wide8") {
-        return IndexType::WIDE8;
-    } else {
-        return std::nullopt;
-    }
 }
 
 void store_dataset(const fs::path &db_base, const std::string &fname,

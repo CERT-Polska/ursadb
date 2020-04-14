@@ -9,8 +9,10 @@
 #include "Query.h"
 #include "RawFile.h"
 #include "Task.h"
+#include "Utils.h"
 
 struct IndexMergeHelper;
+class QueryResult;
 
 class OnDiskIndex {
     uint64_t index_size;

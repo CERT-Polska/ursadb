@@ -87,9 +87,9 @@ std::vector<FileId> internal_pick_common(
         }
 
         // fix on that particular value selected in previous step and count
-        // number of repetitions among heads note that it's
-        // implementation-defined that std::vector<FileId> is always sorted and
-        // we use this fact here
+        // number of repetitions among heads.
+        // Note that it's implementation-defined that std::vector<FileId>
+        // is always sorted and we use this fact here.
         int repeat_count = 0;
         for (int i = min_index; i < static_cast<int>(heads.size()); i++) {
             if (*heads[i].first == min_id) {
@@ -138,13 +138,13 @@ QueryResult OnDiskDataset::pick_common(
                 return QueryResult::everything();
             }
         } else {
-            sources_storage.push_back(result);
+            sources_storage.push_back(std::move(result));
         }
     }
 
     // Special case optimization for cutoff==1 and a single source.
     if (cutoff == 1 && sources_storage.size() == 1) {
-        return sources_storage[0];
+        return std::move(sources_storage[0]);
     }
 
     std::vector<const std::vector<FileId> *> sources;

@@ -11,6 +11,8 @@
 #include "Command.h"
 #include "Core.h"
 #include "Query.h"
+#include "QueryGraph.h"
+#include "Version.h"
 #include "pegtl/pegtl.hpp"
 #include "pegtl/pegtl/contrib/abnf.hpp"
 #include "pegtl/pegtl/contrib/parse_tree.hpp"
@@ -243,7 +245,7 @@ QString transform_qstring(const parse_tree::node &n) {
             const std::string &c = atom->content();
 
             if (c[0] == '?' && c[1] == '?') {  // \x??
-                if (wildcard_ticks > 0) {
+                if (wildcard_ticks > 0 && !::feature::query_graphs) {
                     throw std::runtime_error(
                         "too many wildcards, use AND operator instead");
                 }

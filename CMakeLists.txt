@@ -5,6 +5,12 @@ project(
     LANGUAGES CXX C
 )
 
+option(EXPERIMENTAL_QUERY_GRAPHS "Enable experimental feature: query graphs" OFF)
+
+if(EXPERIMENTAL_QUERY_GRAPHS)
+  add_definitions(-DEXPERIMENTAL_QUERY_GRAPHS)
+endif()
+
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 include(ClangFormat)
 include(CheckIPOSupported)

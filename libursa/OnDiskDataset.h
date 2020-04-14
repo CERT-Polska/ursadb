@@ -8,6 +8,7 @@
 #include "OnDiskFileIndex.h"
 #include "OnDiskIndex.h"
 #include "Query.h"
+#include "QueryResult.h"
 #include "ResultWriter.h"
 #include "Task.h"
 

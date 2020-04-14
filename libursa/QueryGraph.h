@@ -4,6 +4,7 @@
 #include <string>
 
 #include "Core.h"
+#include "QueryResult.h"
 
 // Strongly typed integer value, represents a node ID in a QueryGraph.
 class NodeId {
@@ -18,6 +19,8 @@ class NodeId {
 };
 
 using Edge = std::pair<NodeId, NodeId>;
+
+using QueryFunc = std::function<QueryResult(uint32_t)>;
 
 class QueryGraphNode {
     // N-gram with implicit n. For example, 0x112233 represents {11 22 33}.
@@ -67,10 +70,6 @@ class QueryGraph {
     // List of source nodes - nodes that have no incoming edges.
     std::vector<NodeId> sources_;
 
-    QueryGraph() {}
-    QueryGraph(const QueryGraph &other) = delete;
-    QueryGraph(QueryGraph &&other) = default;
-
     // Merges ngrams of two given nodes assuming they're adjacent in query.
     // For example, will merge ABC and BCD into ABCD.
     uint32_t combine(NodeId source, NodeId target) const {
@@ -88,6 +87,13 @@ class QueryGraph {
     QueryGraphNode &get(NodeId id) { return nodes_[id.get()]; }
 
    public:
+    // Constructs an empty query graph. By convention it matches everything.
+    QueryGraph() = default;
+
+    QueryGraph(const QueryGraph &other) = delete;
+    QueryGraph(QueryGraph &&other) = default;
+    QueryGraph &operator=(QueryGraph &&other) = default;
+
     // Constructs the edge-to-vertex dual of this graph, merging ngrams in
     // nodes in the expected way. This transformation maintains the query
     // graph invariant (of matching files). For example this will convert:
@@ -101,6 +107,10 @@ class QueryGraph {
     //   AB -<              >-  CD
     //          BY  ->  YC
     QueryGraph dual() const;
+
+    QueryResult run(const QueryFunc &oracle) const;
+
+    uint32_t size() const { return nodes_.size(); }
 
     // Converts the query to a naive graph of 1-grams.
     // For example, "ABCD" will be changed to `A -> B -> C -> D`.

@@ -16,6 +16,7 @@
 #include "libursa/Command.h"
 #include "libursa/Database.h"
 #include "libursa/DatasetBuilder.h"
+#include "libursa/FeatureFlags.h"
 #include "libursa/OnDiskDataset.h"
 #include "libursa/QueryParser.h"
 #include "libursa/Responses.h"
@@ -218,6 +219,10 @@ int main(int argc, char *argv[]) {
     try {
         Database db(argv[1]);
         spdlog::info("UrsaDB v{}", get_version());
+
+        if (::feature::query_graphs) {
+            spdlog::info("Unstable build: query graphs are enabled");
+        }
 
         std::string bind_address = "tcp://127.0.0.1:9281";
 

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 using FileId = uint32_t;
@@ -38,6 +39,10 @@ constexpr bool is_valid_index_type(uint32_t type) {
     }
     return false;
 }
+
+std::string get_index_type_name(IndexType type);
+
+std::optional<IndexType> index_type_from_string(const std::string &type);
 
 enum class BuilderType { FLAT = 1, BITMAP = 2 };
 

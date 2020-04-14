@@ -38,6 +38,8 @@ add_library(
     QueryGraph.h
     QueryParser.cpp
     QueryParser.h
+    QueryResult.cpp
+    QueryResult.h
     RawFile.cpp
     RawFile.h
     Responses.cpp
