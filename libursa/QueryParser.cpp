@@ -295,12 +295,11 @@ Query transform(const parse_tree::node &n) {
 
         auto it = n.children.cbegin() + 1;
         std::vector<Query> subq;
-
         for (; it != n.children.cend(); ++it) {
             subq.emplace_back(transform(**it));
         }
 
-        return Query(counti, subq);
+        return Query(counti, std::move(subq));
     } else if (n.is<expression>()) {
         if (n.children.size() == 1) {
             return transform(*n.children[0]);
@@ -308,11 +307,15 @@ Query transform(const parse_tree::node &n) {
 
         auto &expr = n.children[1];
         if (expr->is<op_or>()) {
-            return Query(QueryType::OR, {transform(*n.children[0]),
-                                         transform(*n.children[2])});
+            std::vector<Query> opts;
+            opts.emplace_back(transform(*n.children[0]));
+            opts.emplace_back(transform(*n.children[2]));
+            return Query(QueryType::OR, std::move(opts));
         } else if (expr->is<op_and>()) {
-            return Query(QueryType::AND, {transform(*n.children[0]),
-                                          transform(*n.children[2])});
+            std::vector<Query> opts;
+            opts.emplace_back(transform(*n.children[0]));
+            opts.emplace_back(transform(*n.children[2]));
+            return Query(QueryType::AND, std::move(opts));
         } else {
             throw std::runtime_error("encountered unexpected expression");
         }

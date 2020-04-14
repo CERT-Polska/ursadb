@@ -40,15 +40,17 @@ class QueryResult {
 class Query {
    public:
     explicit Query(const QString &qstr);
-    explicit Query(unsigned int count, const std::vector<Query> &queries);
-    explicit Query(const QueryType &type, const std::vector<Query> &queries);
+    explicit Query(unsigned int count, std::vector<Query> &&queries);
+    explicit Query(const QueryType &type, std::vector<Query> &&queries);
+    Query(const Query &other) = delete;
+    Query(Query &&other) = default;
 
     const std::vector<Query> &as_queries() const;
     const QString &as_value() const;
     unsigned int as_count() const;
     std::string as_string_repr() const;
     const QueryType &get_type() const;
-    bool operator==(Query other) const;
+    bool operator==(const Query &other) const;
 
    private:
     QueryType type;
@@ -58,7 +60,7 @@ class Query {
 };
 
 Query q(const QString &qstr);
-Query q_and(const std::vector<Query> &queries);
-Query q_or(const std::vector<Query> &queries);
-Query q_min_of(unsigned int count, const std::vector<Query> &queries);
+Query q_and(std::vector<Query> &&queries);
+Query q_or(std::vector<Query> &&queries);
+Query q_min_of(unsigned int count, std::vector<Query> &&queries);
 std::ostream &operator<<(std::ostream &os, const Query &query);

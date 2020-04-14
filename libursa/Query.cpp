@@ -38,16 +38,16 @@ const std::vector<Query> &Query::as_queries() const {
 
 unsigned int Query::as_count() const { return count; }
 
-Query::Query(const QueryType &type, const std::vector<Query> &queries)
-    : type(type), queries(queries) {}
+Query::Query(const QueryType &type, std::vector<Query> &&queries)
+    : type(type), queries(std::move(queries)) {}
 
-Query::Query(unsigned int count, const std::vector<Query> &queries)
-    : type(QueryType::MIN_OF), count(count), queries(queries) {}
+Query::Query(unsigned int count, std::vector<Query> &&queries)
+    : type(QueryType::MIN_OF), count(count), queries(std::move(queries)) {}
 
 Query::Query(const QString &qstr)
     : type(QueryType::PRIMITIVE), value(qstr), queries() {}
 
-bool Query::operator==(Query other) const {
+bool Query::operator==(const Query &other) const {
     return type == other.type && value == other.value &&
            queries == other.queries;
 }
@@ -109,14 +109,14 @@ std::string Query::as_string_repr() const {
 
 Query q(const QString &qstr) { return Query(qstr); }
 
-Query q_and(const std::vector<Query> &queries) {
-    return Query(QueryType::AND, queries);
+Query q_and(std::vector<Query> &&queries) {
+    return Query(QueryType::AND, std::move(queries));
 }
 
-Query q_or(const std::vector<Query> &queries) {
-    return Query(QueryType::OR, queries);
+Query q_or(std::vector<Query> &&queries) {
+    return Query(QueryType::OR, std::move(queries));
 }
 
-Query q_min_of(unsigned int count, const std::vector<Query> &queries) {
-    return Query(count, queries);
+Query q_min_of(unsigned int count, std::vector<Query> &&queries) {
+    return Query(count, std::move(queries));
 }
