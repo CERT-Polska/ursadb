@@ -1,5 +1,7 @@
 #include "Client.h"
 
+#include <unistd.h>
+
 #include <iostream>
 #include <thread>
 #include <zmq.hpp>
@@ -8,11 +10,19 @@
 #include "libursa/ZHelpers.h"
 #include "spdlog/spdlog.h"
 
-static void wait_sec() {
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+bool UrsaClient::wait_sec() {
+    // make small sleeps so the thread could
+    // terminate quickly if it's requested to do so
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    wait_time += 10;
+    return wait_time >= 1000;
 }
 
 void UrsaClient::status_worker() {
+    if (this->quiet_mode) {
+        return;
+    }
+
     zmq::context_t context(1);
     zmq::socket_t socket(context, ZMQ_REQ);
     socket.setsockopt(ZMQ_LINGER, 0);
@@ -20,11 +30,11 @@ void UrsaClient::status_worker() {
     socket.connect(this->server_addr);
 
     while (!this->terminated) {
-        if (!this->command_active) {
-            wait_sec();
+        if (!this->command_active || !wait_sec()) {
             continue;
         }
 
+        wait_time = 0;
         s_send(socket, "status;");
         std::string res_str;
         uint64_t retries = 0;
@@ -55,8 +65,6 @@ void UrsaClient::status_worker() {
             spdlog::info("Working... {}% ({} / {})", work_perc, work_done,
                          work_estimated);
         }
-
-        wait_sec();
     }
 }
 
@@ -79,14 +87,17 @@ void UrsaClient::init_conn(zmq::socket_t &socket) {
     this->server_version = res["ursadb_version"];
     this->connection_id = res["connection_id"];
 
-    spdlog::info("Connected to UrsaDB v{} (connection id: {})", server_version,
-                 connection_id);
+    if (!this->quiet_mode) {
+        spdlog::info("Connected to UrsaDB v{} (connection id: {})",
+                     server_version, connection_id);
+    }
 }
 
 void UrsaClient::recv_res(zmq::socket_t &socket) {
     // enable periodic progress check
     // which is done by status worker
     this->command_active = true;
+    this->wait_time = 0;
 
     while (this->command_active) {
         auto res_str = s_recv(socket);
@@ -98,10 +109,14 @@ void UrsaClient::recv_res(zmq::socket_t &socket) {
         this->command_active = false;
         auto res = json::parse(res_str);
 
-        if (res["type"] == "error") {
-            spdlog::error(res["error"]["message"].get<std::string>());
+        if (!this->quiet_mode) {
+            if (res["type"] == "error") {
+                spdlog::error(res["error"]["message"].get<std::string>());
+            } else {
+                std::cout << res.dump(4) << std::endl;
+            }
         } else {
-            spdlog::info(res.dump(4));
+            std::cout << res.dump(4) << std::endl;
         }
     }
 }
@@ -137,10 +152,15 @@ int UrsaClient::start() {
             s_send_cmd(socket, db_command);
         } else {
             // interactive mode
-            std::cout << "ursadb> ";
+            if (!quiet_mode) {
+                std::cout << "ursadb> ";
+            }
 
             std::string cmd;
-            std::getline(std::cin, cmd);
+            if (!std::getline(std::cin, cmd)) {
+                this->terminated = true;
+                continue;
+            }
 
             s_send_cmd(socket, cmd);
         }
@@ -153,50 +173,62 @@ int UrsaClient::start() {
         }
     }
 
-    // wait for status thread to terminate
     status_th.join();
 
     return 0;
 }
 
-UrsaClient::UrsaClient(std::string server_addr, std::string db_command)
-    : server_addr(server_addr), db_command(db_command) {}
+UrsaClient::UrsaClient(std::string server_addr, std::string db_command,
+                       bool quiet_mode)
+    : server_addr(server_addr),
+      db_command(db_command),
+      quiet_mode(quiet_mode) {}
 
 static void print_usage(const char *arg0) {
-    spdlog::info("Usage: {} [server_addr] [db_command]", arg0);
+    spdlog::info("Usage: {} [server_addr] [args...]", arg0);
     spdlog::info(
-        "    server_addr - server connection string, default: "
+        "    [server_addr]      server connection string, default: "
         "tcp://localhost:9281");
     spdlog::info(
-        "    db_command - specific command to be run in the database, "
+        "    [-c <db_command>]  specific command to be run in the database, "
         "if not provided - interactive mode");
+    spdlog::info(
+        "    [-q]               silent mode, dump only command output");
 }
 
-int main(int argc, const char *argv[]) {
+int main(int argc, char *argv[]) {
     std::string server_addr = "tcp://localhost:9281";
     std::string db_command = "";
+    bool quiet_mode = false;
 
-    if (argc >= 2) {
-        std::string first_arg = std::string(argv[1]);
+    int c;
 
-        if (first_arg == "-h" || first_arg == "--help") {
-            print_usage(argc >= 1 ? argv[0] : "ursacli");
-            return 0;
+    while ((c = getopt(argc, argv, "hqc:")) != -1) {
+        switch (c) {
+            case 'q':
+                quiet_mode = true;
+                break;
+            case 'c':
+                db_command = optarg;
+                break;
+            case 'h':
+                print_usage(argc >= 1 ? argv[0] : "ursacli");
+                return 0;
+            default:
+                print_usage(argc >= 1 ? argv[0] : "ursacli");
+                spdlog::error("Failed to parse command line.");
+                return 1;
         }
-
-        server_addr = first_arg;
     }
 
-    if (argc >= 3) {
-        db_command = std::string(argv[2]);
-    }
-
-    if (argc >= 4) {
-        spdlog::error("Too many arguments provided in command line.");
+    if (argc - optind > 1) {
+        spdlog::error("Too many positional arguments provided.");
         print_usage(argc >= 1 ? argv[0] : "ursacli");
         return 1;
+    } else if (argc - optind == 1) {
+        server_addr = argv[optind];
     }
 
-    UrsaClient client(server_addr, db_command);
+    UrsaClient client(server_addr, db_command, quiet_mode);
     return client.start();
 }
