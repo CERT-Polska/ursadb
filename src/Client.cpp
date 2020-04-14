@@ -118,7 +118,7 @@ void UrsaClient::recv_res(zmq::socket_t &socket) {
             for (auto &res : res["result"]["files"]) {
                 std::cout << res.get<std::string>() << std::endl;
             }
-	} else if (res["type"] == "error") {
+        } else if (res["type"] == "error") {
             spdlog::error(res["error"]["message"].get<std::string>());
         } else {
             std::cout << res.dump(4) << std::endl;
@@ -200,8 +200,7 @@ static void print_usage(const char *arg0) {
         "if not provided - interactive mode");
     spdlog::info(
         "    [-q]               silent mode, dump only command output");
-    spdlog::info(
-        "    [-j]               force JSON output everywhere");
+    spdlog::info("    [-j]               force JSON output everywhere");
 }
 
 int main(int argc, char *argv[]) {
