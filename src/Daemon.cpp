@@ -217,7 +217,7 @@ int main(int argc, char *argv[]) {
 
     try {
         Database db(argv[1]);
-        spdlog::info("UrsaDB v{}", get_version());
+        spdlog::info("UrsaDB v{}", get_version_string());
 
         std::string bind_address = "tcp://127.0.0.1:9281";
 

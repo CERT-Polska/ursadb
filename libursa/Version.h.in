@@ -3,3 +3,6 @@
 #include <string>
 
 constexpr std::string_view ursadb_version = "@PROJECT_VERSION@";
+constexpr std::string_view ursadb_commit = "@COMMIT_HASH@";
+constexpr std::string_view ursadb_version_string =
+    "@PROJECT_VERSION@+@COMMIT_HASH@";
