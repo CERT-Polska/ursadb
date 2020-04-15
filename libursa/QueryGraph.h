@@ -109,6 +109,7 @@ class QueryGraph {
     //          BY  ->  YC
     QueryGraph dual() const;
 
+    // Gets all files matching the current graph, using a provided oracle.
     QueryResult run(const QueryFunc &oracle) const;
 
     uint32_t size() const { return nodes_.size(); }
