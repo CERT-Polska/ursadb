@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <optional>
 #include <zmq.hpp>
 
 class UrsaClient {
@@ -21,6 +22,8 @@ class UrsaClient {
     void status_worker();
     void init_conn(zmq::socket_t &socket);
     void recv_res(zmq::socket_t &socket);
+
+    std::optional<std::string> read_line(const std::string &prompt);
 
    public:
     UrsaClient(std::string server_addr, std::string db_command,

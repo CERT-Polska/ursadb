@@ -46,7 +46,7 @@ add_executable(
     src/Client.h
 )
 target_include_directories(ursacli PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(ursacli ursa)
+target_link_libraries(ursacli ursa edit)
 target_enable_ipo(ursacli)
 target_clangformat_setup(ursacli)
 

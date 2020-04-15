@@ -1,5 +1,6 @@
 #include "Client.h"
 
+#include <editline/readline.h>
 #include <unistd.h>
 
 #include <iostream>
@@ -126,6 +127,18 @@ void UrsaClient::recv_res(zmq::socket_t &socket) {
     }
 }
 
+std::optional<std::string> UrsaClient::read_line(const std::string &prompt) {
+    char *cmd_ptr{readline(prompt.c_str())};
+    if (cmd_ptr == nullptr) {
+        return std::nullopt;
+    }
+    std::string cmd{cmd_ptr};
+
+    free(cmd_ptr);
+
+    return cmd;
+}
+
 static void s_send_cmd(zmq::socket_t &socket, std::string cmd) {
     // for user convenience
     if (cmd.back() != ';') {
@@ -151,23 +164,20 @@ int UrsaClient::start() {
 
     std::thread status_th(&UrsaClient::status_worker, this);
 
+    std::string prompt{is_interactive ? "ursadb>" : ""};
     while (!this->terminated) {
         if (!db_command.empty()) {
             // execute single command and exit
             s_send_cmd(socket, db_command);
         } else {
-            // interactive mode
-            if (is_interactive) {
-                std::cout << "ursadb> ";
-            }
-
-            std::string cmd;
-            if (!std::getline(std::cin, cmd)) {
+            auto maybe_cmd{read_line(prompt)};
+            if (!maybe_cmd) {
                 this->terminated = true;
+                std::cout << std::endl;
                 continue;
             }
 
-            s_send_cmd(socket, cmd);
+            s_send_cmd(socket, maybe_cmd.value());
         }
 
         recv_res(socket);
