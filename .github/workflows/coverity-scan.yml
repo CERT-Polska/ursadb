@@ -1,4 +1,5 @@
 name: coverity-scan
+on: push
 #on:
 #  push:
 #    branches:
