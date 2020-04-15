@@ -237,6 +237,9 @@ int main(int argc, char *argv[]) {
     } catch (const std::runtime_error &ex) {
         spdlog::error("Runtime error: {}", ex.what());
         return 1;
+    } catch (const json::exception &ex) {
+        spdlog::error("JSON error: {}", ex.what());
+        return 1;
     } catch (const zmq::error_t &ex) {
         spdlog::error("ZeroMQ error: {}", ex.what());
         return 1;

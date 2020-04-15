@@ -24,6 +24,9 @@ int main(int argc, char *argv[]) {
 
     try {
         Database::create(argv[1]);
+    } catch (const std::runtime_error &ex) {
+        spdlog::error("Failed to create database: {}", ex.what());
+        return 1;
     } catch (const json::exception &ex) {
         spdlog::error("Failed to create database: {}", ex.what());
         return 1;
