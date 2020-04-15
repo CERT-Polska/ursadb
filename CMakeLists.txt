@@ -40,7 +40,11 @@ target_link_libraries(ursadb_new ursa)
 target_enable_ipo(ursadb_new)
 target_clangformat_setup(ursadb_new)
 
-add_executable(ursacli src/Client.cpp)
+add_executable(
+    ursacli
+    src/Client.cpp
+    src/Client.h
+)
 target_include_directories(ursacli PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(ursacli ursa)
 target_enable_ipo(ursacli)
