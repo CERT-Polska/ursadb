@@ -127,12 +127,12 @@ QueryResult QueryGraph::run(const QueryFunc &oracle) const {
     QueryResult result{QueryResult::empty()};
     InorderGraphVisitor<QueryResult> visitor(sources_, &nodes_);
     while (!visitor.empty()) {
-        NodeId next = visitor.next();
-        visitor.set(next, std::move(masked_or(
-                              std::move(visitor.predecessor_states(next)),
-                              std::move(QueryResult(oracle(get(next).gram()))))));
-        if (get(next).edges().size() == 0) {
-            result.do_or(visitor.getstate(next));
+        NodeId id = visitor.next();
+        visitor.set(id, std::move(masked_or(
+                            std::move(visitor.predecessor_states(id)),
+                            std::move(QueryResult(oracle(get(id).gram()))))));
+        if (get(id).edges().size() == 0) {
+            result.do_or(visitor.getstate(id));
         }
     }
     return result;
