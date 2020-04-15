@@ -1,6 +1,5 @@
 #include <array>
 #include <fstream>
-#include <iostream>
 #include <list>
 #include <stack>
 #include <utility>

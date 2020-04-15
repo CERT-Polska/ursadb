@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cstring>
 #include <fstream>
-#include <iostream>
 
 #include "FeatureFlags.h"
 #include "Query.h"
