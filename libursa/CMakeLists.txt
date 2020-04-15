@@ -62,6 +62,10 @@ target_link_libraries(ursa -lstdc++fs -lzmq -pthread pegtl json spdlog::spdlog)
 target_enable_ipo(ursa)
 target_clangformat_setup(ursa)
 
+# Suppress cppzmq deprecation warning. Remove when it's fixed
+# See: https://github.com/zeromq/cppzmq/issues/330
+target_compile_options(ursa PUBLIC -Wno-deprecated-declarations)
+
 find_package(Git)
 if(Git_FOUND)
     execute_process(
