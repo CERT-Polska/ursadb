@@ -224,7 +224,7 @@ void Database::commit_task(uint64_t task_id) {
         } else if (change.type == DbChangeType::UpdateIterator) {
             DatabaseName itname = DatabaseName::parse(db_base, change.obj_name);
             std::string param = change.parameter;
-            uint32_t split_loc = param.find(':');
+            size_t split_loc = param.find(':');
             if (split_loc == std::string::npos) {
                 throw std::runtime_error("Invalid iterator update parameter");
             }

@@ -240,6 +240,13 @@ int main(int argc, char *argv[]) {
         server_addr = argv[optind];
     }
 
-    UrsaClient client(server_addr, db_command, is_interactive, raw_json);
-    return client.start();
+    try {
+        UrsaClient client(server_addr, db_command, is_interactive, raw_json);
+        client.start();
+    } catch (const zmq::error_t &ex) {
+        spdlog::error("ZeroMQ error: {}", ex.what());
+	return 1;
+    }
+
+    return 0;
 }
