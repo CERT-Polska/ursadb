@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <optional>
 
 #include <zmq.hpp>
 
@@ -22,6 +23,8 @@ private:
     void status_worker();
     void init_conn(zmq::socket_t& socket);
     void recv_res(zmq::socket_t& socket);
+
+    std::optional<std::string> read_command(const std::string &prompt) const;
 
 public:
     UrsaClient(std::string server_addr, std::string db_command, bool is_interactive, bool raw_json);

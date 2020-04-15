@@ -1,5 +1,6 @@
 #include "Client.h"
 
+#include <readline/readline.h>
 #include <unistd.h>
 
 #include <iostream>
@@ -135,6 +136,20 @@ static void s_send_cmd(zmq::socket_t &socket, std::string cmd) {
     s_send(socket, cmd);
 }
 
+std::optional<std::string> UrsaClient::read_command(
+    const std::string &prompt) const {
+    char *cmd = readline(prompt.c_str());
+
+    if (cmd == nullptr) {
+        return std::nullopt;
+    }
+
+    auto result = std::make_optional(std::string(cmd));
+    free(cmd);
+
+    return result;
+}
+
 int UrsaClient::start() {
     zmq::context_t context(1);
     zmq::socket_t socket(context, ZMQ_REQ);
@@ -150,24 +165,19 @@ int UrsaClient::start() {
     }
 
     std::thread status_th(&UrsaClient::status_worker, this);
+    const std::string prompt{is_interactive ? "ursadb> " : ""};
 
     while (!this->terminated) {
         if (!db_command.empty()) {
             // execute single command and exit
             s_send_cmd(socket, db_command);
         } else {
-            // interactive mode
-            if (is_interactive) {
-                std::cout << "ursadb> ";
-            }
-
-            std::string cmd;
-            if (!std::getline(std::cin, cmd)) {
+            std::optional<std::string> cmd{read_command(prompt)};
+            if (cmd == std::nullopt) {
                 this->terminated = true;
                 continue;
             }
-
-            s_send_cmd(socket, cmd);
+            s_send_cmd(socket, cmd.value());
         }
 
         recv_res(socket);
