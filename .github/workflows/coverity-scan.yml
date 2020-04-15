@@ -1,4 +1,4 @@
-name: coverity-scan
+name: Coverity scan
 on: push
 #on:
 #  push:
@@ -9,6 +9,10 @@ jobs:
   latest:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+        with:
+          submodules: true
       - name: Install libraries
         run: |
           sudo apt-get update && sudo apt-get install -y gcc g++ libzmq3-dev cmake build-essential git
