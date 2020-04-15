@@ -6,7 +6,7 @@ on: push
 #      - master
 
 jobs:
-  latest:
+  coverity_scan:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
