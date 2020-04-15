@@ -23,7 +23,7 @@ curl https://raw.githubusercontent.com/CERT-Polska/ursadb/master/contrib/install
 1. Install necessary dependencies:
    ```
    sudo apt update
-   sudo apt install -y gcc-7 g++-7 libzmq3-dev cmake build-essential clang-format
+   sudo apt install -y gcc-7 g++-7 libzmq3-dev cmake build-essential clang-format git
    ```
 2. Build project:
    ```
