@@ -64,7 +64,7 @@ bool OnDiskIndex::internal_expand(QString::const_iterator qit, uint8_t *out,
 
         gen(out, comb_len, [&](TriGram val) {
             was_generated = true;
-            res.do_or(query_primitive(val));
+            res.do_or(QueryResult(query_primitive(val)));
         });
 
         return was_generated;

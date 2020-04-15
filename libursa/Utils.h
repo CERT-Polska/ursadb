@@ -38,6 +38,8 @@ std::vector<TriGram> get_trigrams_eager(const uint8_t *mem, size_t size) {
     return out;
 }
 
+uint64_t get_mili_timestamp();
+
 using TrigramGetter = std::vector<TriGram> (*)(const uint8_t *, size_t);
 constexpr TrigramGetter get_trigrams = get_trigrams_eager<gen_trigrams>;
 constexpr TrigramGetter get_b64grams = get_trigrams_eager<gen_b64grams>;

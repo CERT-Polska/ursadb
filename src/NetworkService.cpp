@@ -87,7 +87,9 @@ void NetworkService::run() {
 
 void NetworkService::commit_task(WorkerContext *wctx) {
     auto did_task = wctx->task->id;
-    spdlog::info("Task {} finished by worker {}", did_task, wctx->identity);
+    uint64_t task_ms = get_mili_timestamp() - wctx->task->epoch_ms;
+    spdlog::info("Task {} finished by {} in {}", did_task, wctx->identity,
+                 task_ms);
 
     db.commit_task(did_task);
     wctx->task = nullptr;
