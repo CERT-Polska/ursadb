@@ -29,7 +29,7 @@ std::string random_hex_string(unsigned long length) {
     return result;
 }
 
-uint64_t get_mili_timestamp() {
+uint64_t get_milli_timestamp() {
     namespace c = std::chrono;
     auto timestamp = c::steady_clock::now().time_since_epoch();
     return c::duration_cast<c::milliseconds>(timestamp).count();
