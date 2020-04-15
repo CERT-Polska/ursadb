@@ -71,7 +71,8 @@ if(Git_FOUND)
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 else()
-    message(FATAL_ERROR "Git not found")
+    message(WARNING "Git not found. Hash info won't be available")
+    set(COMMIT_HASH "(unknown commit)")
 endif()
 
 configure_file(Version.h.in ${PROJECT_BINARY_DIR}/generated/Version.h)
