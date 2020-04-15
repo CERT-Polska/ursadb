@@ -1,7 +1,7 @@
 FROM debian:buster AS build
 
 RUN apt update \
-    && apt install -y gcc-7 g++-7 libzmq3-dev cmake build-essential git
+    && apt install -y gcc-7 g++-7 libzmq3-dev cmake build-essential git libeditline-dev
 
 RUN mkdir src && mkdir src/build
 COPY . src/
@@ -10,6 +10,9 @@ WORKDIR /src/build
 RUN cmake -D CMAKE_CXX_COMPILER=/usr/bin/g++-7 -D CMAKE_BUILD_TYPE=Release .. && make
 
 FROM debian:buster
+
+RUN apt update \
+    && apt install -y libeditline0
 
 COPY --from=build /src/build/ursadb /usr/bin/ursadb
 COPY --from=build /src/build/ursadb_new /usr/bin/ursadb_new
