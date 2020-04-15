@@ -29,6 +29,7 @@ QueryGraph QueryGraph::dual() const {
     return result;
 }
 
+template <typename T>
 class NodeState {
     std::vector<NodeId> ready_predecessors_;
     uint32_t total_predecessors_;
@@ -56,14 +57,64 @@ class NodeState {
     }
 };
 
-QueryResult masked_or(const std::vector<const QueryResult *> &to_or,
+template <typename T>
+class InorderGraphVisitor {
+    std::vector<NodeId> ready_;
+    const std::vector<QueryGraphNode> *nodes_;
+    std::vector<NodeState<T>> state_;
+
+   public:
+    InorderGraphVisitor(std::vector<NodeId> ready,
+                        const std::vector<QueryGraphNode> *nodes)
+        : ready_(ready), nodes_(nodes), state_(nodes->size()) {
+        for (size_t ndx = 0; ndx < nodes_->size(); ndx++) {
+            for (NodeId target : (*nodes)[ndx].edges()) {
+                state_.at(target.get()).add_predecessor();
+            }
+        }
+    }
+
+    bool empty() const { return ready_.empty(); }
+
+    NodeId next() {
+        NodeId nextid = ready_.back();
+        ready_.pop_back();
+        for (const auto &succ : (*nodes_)[nextid.get()].edges()) {
+            state_[succ.get()].add_ready_predecessor(nextid);
+            if (state_[succ.get()].ready()) {
+                ready_.push_back(succ);
+            }
+        }
+
+        return nextid;
+    }
+
+    std::vector<const T *> predecessor_states(NodeId id) {
+        std::vector<const T *> states;
+        const NodeState<T> &state = state_[id.get()];
+        states.reserve(state.ready_predecessors().size());
+        for (const auto &pred : state.ready_predecessors()) {
+            states.push_back(&state_[pred.get()].state());
+        }
+        return std::move(states);
+    }
+
+    void set(NodeId id, T &&new_state) {
+        state_[id.get()].set(std::move(new_state));
+    }
+
+    const T &getstate(NodeId id) const { return state_[id.get()].state(); }
+};
+
+QueryResult masked_or(std::vector<const QueryResult *> &&to_or,
                       QueryResult &&mask) {
     if (to_or.empty()) {
         return std::move(mask);
     }
     QueryResult result{QueryResult::empty()};
-    for (auto query : to_or) {
-        QueryResult alternative(std::vector<FileId>(query->vector()));
+    for (const auto *query : to_or) {
+        // TODO(msm): we should do everything in parallel here.
+        QueryResult alternative{query->vector()};
         alternative.do_and(mask);
         result.do_or(std::move(alternative));
     }
@@ -74,33 +125,15 @@ QueryResult QueryGraph::run(const QueryFunc &oracle) const {
     if (sources_.empty()) {
         return QueryResult::everything();
     }
-    std::vector<NodeId> ready = sources_;
     QueryResult result{QueryResult::empty()};
-    std::vector<NodeState> states(nodes_.size());
-    for (size_t ndx = 0; ndx < nodes_.size(); ndx++) {
-        for (NodeId target : get(NodeId(ndx)).edges()) {
-            states.at(target.get()).add_predecessor();
-        }
-    }
-    while (ready.size()) {
-        NodeId nextid = ready.back();
-        ready.pop_back();
-        NodeState &next = states[nextid.get()];
-        std::vector<const QueryResult *> pred_states;
-        pred_states.reserve(next.ready_predecessors().size());
-        for (const auto &pred : next.ready_predecessors()) {
-            pred_states.push_back(&states[pred.get()].state());
-        }
-        QueryResult next_state{oracle(get(nextid).gram())};
-        next.set(masked_or(pred_states, std::move(next_state)));
-        for (const auto &succ : get(nextid).edges()) {
-            states[succ.get()].add_ready_predecessor(nextid);
-            if (states[succ.get()].ready()) {
-                ready.push_back(succ);
-            }
-        }
-        if (get(nextid).edges().size() == 0) {
-            result.do_or(next.state());
+    InorderGraphVisitor<QueryResult> visitor(sources_, &nodes_);
+    while (!visitor.empty()) {
+        NodeId next = visitor.next();
+        visitor.set(next, std::move(masked_or(
+                              std::move(visitor.predecessor_states(next)),
+                              std::move(oracle(get(next).gram())))));
+        if (get(next).edges().size() == 0) {
+            result.do_or(visitor.getstate(next));
         }
     }
     return result;
