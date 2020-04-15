@@ -11,6 +11,7 @@
 #include "libursa/Core.h"
 #include "libursa/Database.h"
 #include "libursa/Utils.h"
+#include "spdlog/spdlog.h"
 
 template <typename F, typename... Args>
 static uint64_t benchmark_ms(F &&func, Args &&... args) {
@@ -64,8 +65,16 @@ uint64_t benchmark_index(int files, int file_size) {
 }
 
 int main() {
-    uint64_t time_index_small = benchmark_index(1, 100);
-    uint64_t time_index_mid = benchmark_index(100, 1000000);
-    std::cout << "index_small " << time_index_small << std::endl;
-    std::cout << "index_mid " << time_index_mid << std::endl;
+    try {
+        uint64_t time_index_small = benchmark_index(1, 100);
+        uint64_t time_index_mid = benchmark_index(100, 1000000);
+
+        std::cout << "index_small " << time_index_small << std::endl;
+        std::cout << "index_mid " << time_index_mid << std::endl;
+    } catch (const std::runtime_error &ex) {
+        spdlog::error("internal error: {}", ex.what());
+        return 1;
+    }
+
+    return 0;
 }

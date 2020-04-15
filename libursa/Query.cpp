@@ -12,13 +12,13 @@ const std::vector<Query> &Query::as_queries() const {
 unsigned int Query::as_count() const { return count; }
 
 Query::Query(const QueryType &type, std::vector<Query> &&queries)
-    : type(type), queries(std::move(queries)) {}
+    : type(type), count(0), queries(std::move(queries)) {}
 
 Query::Query(unsigned int count, std::vector<Query> &&queries)
     : type(QueryType::MIN_OF), count(count), queries(std::move(queries)) {}
 
 Query::Query(const QString &qstr)
-    : type(QueryType::PRIMITIVE), value(qstr), queries() {}
+    : type(QueryType::PRIMITIVE), count(0), value(qstr), queries() {}
 
 bool Query::operator==(const Query &other) const {
     return type == other.type && value == other.value &&
