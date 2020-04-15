@@ -1,5 +1,7 @@
 #include "QueryResult.h"
 
+#include <algorithm>
+
 void QueryResult::do_or(const QueryResult &other) {
     if (this->is_everything() || other.is_everything()) {
         has_everything = true;

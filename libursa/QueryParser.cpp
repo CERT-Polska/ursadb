@@ -4,14 +4,12 @@
 
 #include "QueryParser.h"
 
-#include <iostream>
 #include <string>
 #include <type_traits>
 
-#include "Command.h"
 #include "Core.h"
+#include "FeatureFlags.h"
 #include "Query.h"
-#include "QueryGraph.h"
 #include "Version.h"
 #include "pegtl/pegtl.hpp"
 #include "pegtl/pegtl/contrib/abnf.hpp"

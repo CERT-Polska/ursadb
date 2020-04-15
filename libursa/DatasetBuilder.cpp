@@ -2,13 +2,12 @@
 
 #include <experimental/filesystem>
 #include <fstream>
-#include <iostream>
 #include <set>
 
 #include "BitmapIndexBuilder.h"
+#include "FlatIndexBuilder.h"
 #include "Json.h"
 #include "MemMap.h"
-#include "OnDiskDataset.h"
 #include "Utils.h"
 
 DatasetBuilder::DatasetBuilder(BuilderType builder_type,

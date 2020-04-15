@@ -1,7 +1,5 @@
 #pragma once
 
-#include <fstream>
-
 class RawFile {
     int fd;
 

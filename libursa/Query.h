@@ -1,12 +1,10 @@
 #pragma once
 
-#include <algorithm>
-#include <memory>
 #include <ostream>
 #include <string>
 #include <vector>
 
-#include "QueryGraph.h"
+#include "Core.h"
 
 enum QueryType { PRIMITIVE = 1, AND = 2, OR = 3, MIN_OF = 4 };
 

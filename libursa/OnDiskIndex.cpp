@@ -3,10 +3,10 @@
 #include <algorithm>
 #include <cstring>
 #include <fstream>
-#include <iostream>
 
 #include "FeatureFlags.h"
 #include "Query.h"
+#include "QueryGraph.h"
 #include "Utils.h"
 #include "spdlog/spdlog.h"
 

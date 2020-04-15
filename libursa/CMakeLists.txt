@@ -10,6 +10,8 @@ add_library(
     Database.h
     DatabaseHandle.cpp
     DatabaseHandle.h
+    DatabaseName.cpp
+    DatabaseName.h
     DatabaseSnapshot.cpp
     DatabaseSnapshot.h
     DatasetBuilder.cpp

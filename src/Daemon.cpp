@@ -227,7 +227,7 @@ int main(int argc, char *argv[]) {
         std::string bind_address = "tcp://127.0.0.1:9281";
 
         if (argc > 3) {
-            std::cout << "Too many command line arguments." << std::endl;
+            spdlog::error("Too many command line arguments.");
         } else if (argc == 3) {
             bind_address = std::string(argv[2]);
         }

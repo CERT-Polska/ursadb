@@ -1,8 +1,6 @@
 #pragma once
 
-#include <fstream>
-
-#include "Database.h"
+#include "DatabaseName.h"
 
 class OnDiskIterator {
     DatabaseName name;

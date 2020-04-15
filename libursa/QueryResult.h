@@ -1,9 +1,5 @@
 #pragma once
 
-#include <algorithm>
-#include <memory>
-#include <ostream>
-#include <string>
 #include <vector>
 
 #include "Core.h"

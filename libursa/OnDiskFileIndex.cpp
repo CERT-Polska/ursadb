@@ -1,4 +1,6 @@
-#include "OnDiskIndex.h"
+#include "OnDiskFileIndex.h"
+
+#include <fstream>
 
 void OnDiskFileIndex::generate_namecache_file() {
     std::ofstream of;

@@ -1,18 +1,15 @@
 #pragma once
 
-#include <fstream>
 #include <string>
 #include <vector>
 
 #include "Core.h"
-#include "Database.h"
-#include "Query.h"
+#include "QueryResult.h"
 #include "RawFile.h"
 #include "Task.h"
 #include "Utils.h"
 
 struct IndexMergeHelper;
-class QueryResult;
 
 class OnDiskIndex {
     uint64_t index_size;

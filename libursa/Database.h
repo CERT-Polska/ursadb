@@ -1,19 +1,14 @@
 #pragma once
 
 #include <experimental/filesystem>
-#include <iostream>
 #include <map>
-#include <random>
 #include <string>
 #include <vector>
 
 #include "DatabaseSnapshot.h"
-#include "DatasetBuilder.h"
 #include "OnDiskDataset.h"
 #include "OnDiskIterator.h"
-#include "Query.h"
 #include "Task.h"
-#include "Utils.h"
 
 class Database {
     fs::path db_name;

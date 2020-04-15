@@ -5,6 +5,8 @@
 
 #include "catch/Catch.h"
 #include "libursa/BitmapIndexBuilder.h"
+#include "libursa/Database.h"
+#include "libursa/DatabaseSnapshot.h"
 #include "libursa/FlatIndexBuilder.h"
 #include "libursa/IndexBuilder.h"
 #include "libursa/OnDiskDataset.h"

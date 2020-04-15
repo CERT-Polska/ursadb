@@ -4,7 +4,7 @@
 #include <fstream>
 #include <set>
 
-#include "Database.h"
+#include "DatabaseName.h"
 #include "Json.h"
 #include "Query.h"
 
