@@ -1,7 +1,7 @@
 FROM debian:buster AS build
 
 RUN apt update \
-    && apt install -y gcc-7 g++-7 libzmq3-dev cmake build-essential git libeditline-dev
+    && apt install -y gcc-7 g++-7 libzmq3-dev cmake build-essential git libedit-dev
 
 RUN mkdir src && mkdir src/build
 COPY . src/
@@ -12,7 +12,7 @@ RUN cmake -D CMAKE_CXX_COMPILER=/usr/bin/g++-7 -D CMAKE_BUILD_TYPE=Release .. &&
 FROM debian:buster
 
 RUN apt update \
-    && apt install -y libeditline0
+    && apt install -y libedit2
 
 COPY --from=build /src/build/ursadb /usr/bin/ursadb
 COPY --from=build /src/build/ursadb_new /usr/bin/ursadb_new

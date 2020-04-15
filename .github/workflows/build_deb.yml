@@ -31,7 +31,7 @@ jobs:
       - name: Build for Debian
         id: build_debian
         run: |
-          apt-get update && apt-get install -y gcc-7 g++-7 libzmq3-dev cmake build-essential clang-format
+          apt-get update && apt-get install -y gcc-7 g++-7 libzmq3-dev cmake build-essential clang-format libedit-dev
           mkdir build
           cd build
           cmake -D CMAKE_C_COMPILER=gcc-7 -D CMAKE_CXX_COMPILER=g++-7 -D CMAKE_BUILD_TYPE=Release ..
