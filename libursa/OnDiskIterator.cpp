@@ -4,7 +4,7 @@
 
 #include "Json.h"
 
-void write_itermeta(DatabaseName target, uint64_t byte_offset,
+void write_itermeta(const DatabaseName &target, uint64_t byte_offset,
                     uint64_t file_offset, uint64_t total_files,
                     std::string backing_storage) {
     DatabaseName tmp_name = target.derive_temporary();

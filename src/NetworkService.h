@@ -26,8 +26,8 @@ class WorkerContext {
     Task *task;
 
     WorkerContext(const WorkerContext &) = delete;
-    WorkerContext(std::string identity, DatabaseSnapshot snap, Task *task)
-        : identity(identity), snap(snap), task(task) {}
+    WorkerContext(std::string identity, DatabaseSnapshot &&snap, Task *task)
+        : identity(identity), snap(std::move(snap)), task(task) {}
     [[noreturn]] void operator()();
 };
 
