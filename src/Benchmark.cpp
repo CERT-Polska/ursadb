@@ -8,10 +8,10 @@
 #include <random>
 #include <vector>
 
-#include "spdlog/spdlog.h"
 #include "libursa/Core.h"
 #include "libursa/Database.h"
 #include "libursa/Utils.h"
+#include "spdlog/spdlog.h"
 
 template <typename F, typename... Args>
 static uint64_t benchmark_ms(F &&func, Args &&... args) {
@@ -78,4 +78,3 @@ int main() {
 
     return 0;
 }
-

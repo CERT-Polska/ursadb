@@ -245,7 +245,7 @@ int main(int argc, char *argv[]) {
         client.start();
     } catch (const zmq::error_t &ex) {
         spdlog::error("ZeroMQ error: {}", ex.what());
-	return 1;
+        return 1;
     }
 
     return 0;

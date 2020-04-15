@@ -7,13 +7,13 @@
 #include <vector>
 #include <zmq.hpp>
 
-#include "spdlog/spdlog.h"
-#include "libursa/Json.h"
 #include "libursa/Command.h"
 #include "libursa/Database.h"
 #include "libursa/DatasetBuilder.h"
+#include "libursa/Json.h"
 #include "libursa/OnDiskDataset.h"
 #include "libursa/QueryParser.h"
+#include "spdlog/spdlog.h"
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
 
     try {
         Database::create(argv[1]);
-    } catch (const json::exception& ex) {
+    } catch (const json::exception &ex) {
         spdlog::error("Failed to create database: {}", ex.what());
         return 1;
     }
