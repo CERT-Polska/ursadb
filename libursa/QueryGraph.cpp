@@ -113,8 +113,7 @@ QueryResult masked_or(std::vector<const QueryResult *> &&to_or,
     }
     QueryResult result{QueryResult::empty()};
     for (const auto *query : to_or) {
-        // TODO(msm): we should do everything in parallel here.
-        QueryResult alternative{query->vector()};
+        QueryResult alternative(std::vector<FileId>(query->vector()));
         alternative.do_and(mask);
         result.do_or(std::move(alternative));
     }
@@ -131,7 +130,7 @@ QueryResult QueryGraph::run(const QueryFunc &oracle) const {
         NodeId next = visitor.next();
         visitor.set(next, std::move(masked_or(
                               std::move(visitor.predecessor_states(next)),
-                              std::move(oracle(get(next).gram())))));
+                              std::move(QueryResult(oracle(get(next).gram()))))));
         if (get(next).edges().size() == 0) {
             result.do_or(visitor.getstate(next));
         }
