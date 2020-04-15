@@ -19,15 +19,13 @@ jobs:
           tar xzf cov-analysis-linux64.tar.gz --strip 1 -C cov-analysis-linux64
         env:
           TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
-      - name: Configure cov
-        run: |
-          cov-configure --gcc
       - name: Run cmake
         run: |
           cmake .
       - name: Build with cov-build
         run: |
           export PATH=`pwd`/cov-analysis-linux64/bin:$PATH
+          cov-configure --gcc
           cov-build --dir cov-int make -j$(nproc)
       - name: Submit the result to Coverity Scan
         run: |
