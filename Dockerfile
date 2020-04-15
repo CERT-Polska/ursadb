@@ -1,7 +1,7 @@
 FROM debian:buster AS build
 
 RUN apt update \
-    && apt install -y gcc-7 g++-7 libzmq3-dev cmake build-essential
+    && apt install -y gcc-7 g++-7 libzmq3-dev cmake build-essential git
 
 RUN mkdir src && mkdir src/build
 COPY . src/
