@@ -1,10 +1,7 @@
 #include "BitmapIndexBuilder.h"
 
-#include <algorithm>
-#include <cassert>
 #include <fstream>
-#include <functional>
-#include <iostream>
+#include <stdexcept>
 
 #include "Utils.h"
 

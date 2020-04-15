@@ -2,12 +2,12 @@
 
 #include <experimental/filesystem>
 #include <fstream>
-#include <iostream>
 #include <memory>
+#include <stdexcept>
 
+#include "Core.h"
 #include "ExclusiveFile.h"
 #include "Json.h"
-#include "Utils.h"
 #include "spdlog/spdlog.h"
 
 Database::Database(const std::string &fname, bool initialize)

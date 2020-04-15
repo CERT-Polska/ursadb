@@ -1,5 +1,7 @@
 #include "OnDiskIterator.h"
 
+#include <fstream>
+
 #include "Json.h"
 
 void write_itermeta(DatabaseName target, uint64_t byte_offset,

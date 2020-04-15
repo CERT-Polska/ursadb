@@ -1,15 +1,15 @@
 #pragma once
 
-#include <fstream>
+#include <experimental/filesystem>
+#include <functional>
 #include <optional>
 #include <string>
-#include <vector>
 
 #include "Core.h"
-#include "Database.h"
-#include "Query.h"
 #include "RawFile.h"
-#include "Task.h"
+
+// TODO get rid of this define
+namespace fs = std::experimental::filesystem;
 
 class OnDiskFileIndex {
     uint64_t file_count;

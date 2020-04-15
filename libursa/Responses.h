@@ -1,11 +1,11 @@
 #pragma once
 
+#include <set>
 #include <string>
 #include <vector>
 
 #include "Core.h"
 #include "Json.h"
-#include "Utils.h"
 
 struct TaskEntry {
     std::string id;

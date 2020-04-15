@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+#include <vector>
 #include <zmq.hpp>
 
 enum class NetAction : uint32_t {

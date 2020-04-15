@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "DatabaseSnapshot.h"
+#include "DatasetBuilder.h"
 #include "OnDiskDataset.h"
 
 class Indexer {

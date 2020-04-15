@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -11,8 +12,6 @@
 #include "QueryResult.h"
 #include "ResultWriter.h"
 #include "Task.h"
-
-class OnDiskIndex;
 
 class OnDiskDataset {
     std::string name;

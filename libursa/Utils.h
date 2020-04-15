@@ -12,6 +12,8 @@
 using TrigramCallback = std::function<void(TriGram)>;
 using TrigramGenerator = void (*)(const uint8_t *mem, size_t size,
                                   TrigramCallback callback);
+
+// TODO get rid of this define
 namespace fs = std::experimental::filesystem;
 
 std::string_view get_version_string();

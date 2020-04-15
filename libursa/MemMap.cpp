@@ -2,11 +2,7 @@
 
 #include <fcntl.h>
 #include <sys/mman.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
-#include <cstring>
-#include <iostream>
+#include <unistd.h>
 
 MemMap::MemMap(const std::string &fname) : fname(fname) {
     fd = open(fname.c_str(), O_RDONLY, (mode_t)0600);

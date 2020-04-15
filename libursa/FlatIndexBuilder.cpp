@@ -1,10 +1,7 @@
 #include "FlatIndexBuilder.h"
 
 #include <algorithm>
-#include <cassert>
 #include <fstream>
-#include <functional>
-#include <iostream>
 
 #include "Utils.h"
 

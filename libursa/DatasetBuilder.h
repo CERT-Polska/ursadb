@@ -4,8 +4,10 @@
 #include <vector>
 
 #include "Core.h"
-#include "FlatIndexBuilder.h"
-#include "Utils.h"
+#include "IndexBuilder.h"
+
+// TODO get rid of this define
+namespace fs = std::experimental::filesystem;
 
 class DatasetBuilder {
    public:
