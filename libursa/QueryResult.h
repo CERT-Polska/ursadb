@@ -18,7 +18,7 @@ class QueryResult {
 
    public:
     QueryResult(QueryResult &&other) = default;
-    QueryResult(std::vector<FileId> results)
+    explicit QueryResult(std::vector<FileId> &&results)
         : results(results), has_everything(false) {}
     QueryResult &operator=(QueryResult &&other) = default;
 

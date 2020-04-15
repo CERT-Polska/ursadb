@@ -21,7 +21,7 @@ class NodeId {
 
 using Edge = std::pair<NodeId, NodeId>;
 
-using QueryFunc = std::function<QueryResult(uint32_t)>;
+using QueryFunc = std::function<std::vector<FileId>(uint32_t)>;
 
 class QueryGraphNode {
     // N-gram with implicit n. For example, 0x112233 represents {11 22 33}.

@@ -79,9 +79,7 @@ Task *Database::allocate_task(const std::string &request,
     while (true) {
         uint64_t task_id = allocate_task_id();
         auto timestamp = std::chrono::steady_clock::now().time_since_epoch();
-        uint64_t epoch_ms =
-            std::chrono::duration_cast<std::chrono::milliseconds>(timestamp)
-                .count();
+        uint64_t epoch_ms = get_milli_timestamp();
         if (tasks.count(task_id) == 0) {
             return tasks
                 .emplace(task_id, std::make_unique<Task>(Task(

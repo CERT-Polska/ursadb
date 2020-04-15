@@ -3,8 +3,6 @@
 #include <map>
 #include <set>
 
-#include "spdlog/spdlog.h"
-
 QueryGraph QueryGraph::dual() const {
     QueryGraph result;
 
@@ -58,15 +56,14 @@ class NodeState {
     }
 };
 
-QueryResult masked_or(std::vector<const QueryResult *> *to_or,
+QueryResult masked_or(const std::vector<const QueryResult *> &to_or,
                       QueryResult &&mask) {
-    if (to_or->empty()) {
+    if (to_or.empty()) {
         return std::move(mask);
     }
     QueryResult result{QueryResult::empty()};
-    for (auto query : *to_or) {
-        // TODO(msm): we should do everything in parallel here.
-        QueryResult alternative{query->vector()};
+    for (auto query : to_or) {
+        QueryResult alternative(std::vector<FileId>(query->vector()));
         alternative.do_and(mask);
         result.do_or(std::move(alternative));
     }
@@ -95,7 +92,7 @@ QueryResult QueryGraph::run(const QueryFunc &oracle) const {
             pred_states.push_back(&states[pred.get()].state());
         }
         QueryResult next_state{oracle(get(nextid).gram())};
-        next.set(std::move(masked_or(&pred_states, std::move(next_state))));
+        next.set(masked_or(pred_states, std::move(next_state)));
         for (const auto &succ : get(nextid).edges()) {
             states[succ.get()].add_ready_predecessor(nextid);
             if (states[succ.get()].ready()) {
@@ -123,7 +120,6 @@ QueryGraph QueryGraph::from_qstring(const QString &qstr) {
             new_sinks.push_back(node);
         }
         if (result.sources_.empty()) {
-            spdlog::info("Setting up sources with {} nodes", new_sinks.size());
             result.sources_ = new_sinks;
         }
         sinks = std::move(new_sinks);
