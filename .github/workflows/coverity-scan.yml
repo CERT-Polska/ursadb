@@ -34,13 +34,13 @@ jobs:
       - name: Submit the result to Coverity Scan
         run: |
           tar czvf build.tgz cov-int
-          curl \
+          curl -s \
             --form project=cxx \
             --form token=$TOKEN \
             --form email=monk@cert.pl \
             --form file=@build.tgz \
             --form version=trunk \
             --form description="trunk" \
-            https://scan.coverity.com/builds?project=cxx
+            https://scan.coverity.com/builds?project=CERT-Polska%2Fursadb
         env:
           TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
