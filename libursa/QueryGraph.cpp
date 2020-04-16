@@ -43,7 +43,9 @@ class NodeState {
 
    public:
     // Constructs a new instance of NodeState with provided constructor.
-    NodeState() : state_(TM()), total_predecessors_(0) {}
+    NodeState() : state_{TM()}, total_predecessors_{0} {}
+    NodeState(const NodeState &other) = delete;
+    NodeState(NodeState &&other) = default;
 
     // Gets a reference to internal state.
     const T &get() const { return state_; }
@@ -84,13 +86,9 @@ class InorderGraphVisitor {
     // contain verticles with no incoming edges (aka graph sources).
     InorderGraphVisitor(std::vector<NodeId> ready,
                         const std::vector<QueryGraphNode> *nodes)
-        : ready_(std::move(ready)), nodes_(nodes), state_() {
-        state_.reserve(nodes_->size());
-        for (size_t i = 0; i < nodes_->size(); i++) {
-            state_.push_back(NodeState<T, TM>());
-        }
-        for (size_t ndx = 0; ndx < nodes_->size(); ndx++) {
-            for (NodeId target : (*nodes)[ndx].edges()) {
+        : ready_(std::move(ready)), nodes_(nodes), state_(nodes_->size()) {
+        for (const auto &node : *nodes_) {
+            for (NodeId target : node.edges()) {
                 state_.at(target.get()).add_predecessor();
             }
         }
@@ -104,8 +102,9 @@ class InorderGraphVisitor {
         NodeId nextid = ready_.back();
         ready_.pop_back();
         for (const auto &succ : (*nodes_)[nextid.get()].edges()) {
-            state_[succ.get()].add_ready_predecessor(nextid);
-            if (state_[succ.get()].ready()) {
+            auto &successor = state_[succ.get()];
+            successor.add_ready_predecessor(nextid);
+            if (successor.ready()) {
                 ready_.push_back(succ);
             }
         }
@@ -129,7 +128,7 @@ class InorderGraphVisitor {
     }
 
     // Gets a reference to state of a node with a given id.
-    const T &getstate(NodeId id) const { return state_[id.get()].get(); }
+    const T &state(NodeId id) const { return state_[id.get()].get(); }
 };
 
 // Executes a masked_or operation: `(A | B | C | ...) & mask`.
@@ -165,7 +164,7 @@ QueryResult QueryGraph::run(const QueryFunc &oracle) const {
                             std::move(visitor.predecessor_states(id)),
                             std::move(QueryResult(oracle(get(id).gram()))))));
         if (get(id).edges().size() == 0) {
-            result.do_or(visitor.getstate(id));
+            result.do_or(visitor.state(id));
         }
     }
     return result;
