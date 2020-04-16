@@ -4,13 +4,13 @@
 #include <string>
 #include <vector>
 
-#include "Core.h"
+#include "QString.h"
 
 enum QueryType { PRIMITIVE = 1, AND = 2, OR = 3, MIN_OF = 4 };
 
 class Query {
    public:
-    explicit Query(const QString &qstr);
+    explicit Query(QString &&qstr);
     explicit Query(unsigned int count, std::vector<Query> &&queries);
     explicit Query(const QueryType &type, std::vector<Query> &&queries);
     Query(const Query &other) = delete;
@@ -30,7 +30,7 @@ class Query {
     std::vector<Query> queries;  // used for QueryType::AND/OR
 };
 
-Query q(const QString &qstr);
+Query q(QString &&qstr);
 Query q_and(std::vector<Query> &&queries);
 Query q_or(std::vector<Query> &&queries);
 Query q_min_of(unsigned int count, std::vector<Query> &&queries);

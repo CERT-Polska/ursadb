@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "Core.h"
+#include "QString.h"
 
 using TrigramCallback = std::function<void(TriGram)>;
 using TrigramGenerator = void (*)(const uint8_t *mem, size_t size,
@@ -29,7 +30,7 @@ void gen_h4grams(const uint8_t *mem, size_t size, TrigramCallback callback);
 void combinations(const QString &qstr, size_t len, const TrigramGenerator &gen,
                   const TrigramCallback &cb);
 
-TriGram convert_gram(IndexType type, uint32_t source);
+std::optional<TriGram> convert_gram(IndexType type, uint32_t source);
 
 template <TrigramGenerator gen>
 std::vector<TriGram> get_trigrams_eager(const uint8_t *mem, size_t size) {

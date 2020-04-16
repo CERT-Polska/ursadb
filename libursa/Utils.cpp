@@ -50,7 +50,7 @@ TrigramGenerator get_generator_for(IndexType type) {
     throw std::runtime_error("unhandled index type");
 }
 
-TriGram convert_gram(IndexType type, uint32_t source) {
+std::optional<TriGram> convert_gram(IndexType type, uint32_t source) {
     int size;
     switch (type) {
         case IndexType::GRAM3:
@@ -74,7 +74,10 @@ TriGram convert_gram(IndexType type, uint32_t source) {
     }
     get_generator_for(type)(
         mem.data(), size, [&result](uint32_t gram) { result.push_back(gram); });
-    return result[0];
+    if (result.empty()) {
+        return std::nullopt;
+    }
+    return std::make_optional(result[0]);
 }
 
 void gen_b64grams(const uint8_t *mem, size_t size, TrigramCallback cb) {

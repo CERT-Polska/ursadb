@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "Core.h"
+#include "QString.h"
 #include "QueryResult.h"
 #include "RawFile.h"
 #include "Task.h"

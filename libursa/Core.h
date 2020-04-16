@@ -46,35 +46,3 @@ std::string get_index_type_name(IndexType type);
 std::optional<IndexType> index_type_from_string(const std::string &type);
 
 enum class BuilderType { FLAT = 1, BITMAP = 2 };
-
-enum class QTokenType {
-    CHAR = 1,       // normal byte e.g. \xAA
-    WILDCARD = 2,   // full wildcard \x??
-    HWILDCARD = 3,  // high wildcard e.g. \x?A
-    LWILDCARD = 4   // low wildcard e.g. \xA?
-};
-
-class QToken {
-    QTokenType type_;
-    uint8_t val_;
-
-   public:
-    QToken(QTokenType type) : type_(type), val_(0) {}
-    QToken(QTokenType type, uint8_t val) : type_(type), val_(val) {}
-
-    QTokenType type() const { return type_; }
-    uint8_t val() const { return val_; }
-    bool is_wildcard() const {
-        return type() == QTokenType::WILDCARD ||
-               type() == QTokenType::HWILDCARD ||
-               type() == QTokenType::LWILDCARD;
-    }
-
-    std::vector<uint8_t> possible_values() const;
-
-    bool operator==(const QToken &a) const {
-        return type_ == a.type_ && val_ == a.val_;
-    }
-};
-
-using QString = std::vector<QToken>;
