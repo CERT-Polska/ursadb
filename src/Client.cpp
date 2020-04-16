@@ -1,6 +1,6 @@
 #include "Client.h"
 
-#include <histedit.h>
+#include <editline/readline.h>
 #include <unistd.h>
 
 #include <iostream>
