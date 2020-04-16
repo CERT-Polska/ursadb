@@ -3,6 +3,7 @@
 #include <set>
 #include <variant>
 
+#include "Core.h"
 #include "Query.h"
 
 static inline std::vector<IndexType> default_index_types() {

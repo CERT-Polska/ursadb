@@ -164,8 +164,11 @@ QueryResult OnDiskIndex::query_str(const QString &str) const {
         }
         spdlog::info("Final graph has {} nodes", graph.size());
         QueryFunc oracle = [this](uint32_t raw_gram) {
-            uint32_t gram = convert_gram(index_type(), raw_gram);
-            return query_primitive(gram);
+            std::optional<uint32_t> gram = convert_gram(index_type(), raw_gram);
+            if (gram) {
+                return QueryResult(std::move(query_primitive(*gram)));
+            }
+            return QueryResult::everything();
         };
         return graph.run(oracle);
     }

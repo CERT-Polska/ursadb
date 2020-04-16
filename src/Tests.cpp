@@ -41,7 +41,7 @@ T parse(std::string query_text) {
 QString mqs(const std::string &str) {
     QString out;
     for (const auto &c : str) {
-        out.emplace_back(QTokenType::CHAR, c);
+        out.emplace_back(QToken::single(c));
     }
     return out;
 }
@@ -70,52 +70,52 @@ TEST_CASE("select hexstring with mixed spaces", "[queryparser]") {
 
 TEST_CASE("select hexstring with full wildcard", "[queryparser]") {
     QString expect;
-    expect.emplace_back(QTokenType::CHAR, 0x4d);
-    expect.emplace_back(QTokenType::WILDCARD);
-    expect.emplace_back(QTokenType::CHAR, 0x4d);
+    expect.emplace_back(std::move(QToken::single(0x4d)));
+    expect.emplace_back(std::move(QToken::wildcard()));
+    expect.emplace_back(std::move(QToken::single(0x4d)));
 
     auto cmd = parse<SelectCommand>("select { 4d ?? 4d };");
-    REQUIRE(cmd.get_query() == q(expect));
+    REQUIRE(cmd.get_query() == q(std::move(expect)));
 }
 
 TEST_CASE("select hexstring with high wildcard", "[queryparser]") {
     QString expect;
-    expect.emplace_back(QTokenType::CHAR, 0x4d);
-    expect.emplace_back(QTokenType::HWILDCARD, 0x03);
-    expect.emplace_back(QTokenType::CHAR, 0x4d);
+    expect.emplace_back(std::move(QToken::single(0x4d)));
+    expect.emplace_back(std::move(QToken::high_wildcard(0x03)));
+    expect.emplace_back(std::move(QToken::single(0x4d)));
 
     auto cmd = parse<SelectCommand>("select { 4d ?3 4d };");
-    REQUIRE(cmd.get_query() == q(expect));
+    REQUIRE(cmd.get_query() == q(std::move(expect)));
 }
 
 TEST_CASE("select hexstring with low wildcard", "[queryparser]") {
     QString expect;
-    expect.emplace_back(QTokenType::CHAR, 0x4d);
-    expect.emplace_back(QTokenType::LWILDCARD, 0x50);
-    expect.emplace_back(QTokenType::CHAR, 0x4d);
+    expect.emplace_back(std::move(QToken::single(0x4d)));
+    expect.emplace_back(std::move(QToken::low_wildcard(0x50)));
+    expect.emplace_back(std::move(QToken::single(0x4d)));
 
     auto cmd = parse<SelectCommand>("select { 4d 5? 4d };");
-    REQUIRE(cmd.get_query() == q(expect));
+    REQUIRE(cmd.get_query() == q(std::move(expect)));
 }
 
 TEST_CASE("select literal", "[queryparser]") {
     auto cmd = parse<SelectCommand>("select \"MSM\";");
-    REQUIRE(cmd.get_query() == q(mqs("MSM")));
+    REQUIRE(cmd.get_query() == q(std::move(mqs("MSM"))));
 }
 
 TEST_CASE("select literal with hex escapes", "[queryparser]") {
     auto cmd = parse<SelectCommand>("select \"\\x4d\\x53\\x4d\";");
-    REQUIRE(cmd.get_query() == q(mqs("MSM")));
+    REQUIRE(cmd.get_query() == q(std::move(mqs("MSM"))));
 }
 
 TEST_CASE("select literal with uppercase hex escapes", "[queryparser]") {
     auto cmd = parse<SelectCommand>("select \"\\x4D\\x53\\x4D\";");
-    REQUIRE(cmd.get_query() == q(mqs("MSM")));
+    REQUIRE(cmd.get_query() == q(std::move(mqs("MSM"))));
 }
 
 TEST_CASE("select char escapses", "[queryparser]") {
     auto cmd = parse<SelectCommand>("select \"\\n\\t\\r\\f\\b\\\\\\\"\";");
-    REQUIRE(cmd.get_query() == q(mqs("\n\t\r\f\b\\\"")));
+    REQUIRE(cmd.get_query() == q(std::move(mqs("\n\t\r\f\b\\\""))));
 }
 
 TEST_CASE("select OR", "[queryparser]") {
@@ -139,15 +139,15 @@ TEST_CASE("select operator order", "[queryparser]") {
         parse<SelectCommand>("select \"cat\" | \"dog\" & \"msm\" | \"monk\";");
 
     std::vector<Query> expect_or;
-    expect_or.emplace_back(q(mqs("msm")));
-    expect_or.emplace_back(q(mqs("monk")));
+    expect_or.emplace_back(q(std::move(mqs("msm"))));
+    expect_or.emplace_back(q(std::move(mqs("monk"))));
 
     std::vector<Query> expect_and;
-    expect_and.emplace_back(q(mqs("dog")));
+    expect_and.emplace_back(q(std::move(mqs("dog"))));
     expect_and.emplace_back(q_or(std::move(expect_or)));
 
     std::vector<Query> expect_final;
-    expect_final.emplace_back(q(mqs("cat")));
+    expect_final.emplace_back(q(std::move(mqs("cat"))));
     expect_final.emplace_back(q_and(std::move(expect_and)));
 
     REQUIRE(cmd.get_query() == q_or(std::move(expect_final)));
@@ -157,28 +157,28 @@ TEST_CASE("select min .. of", "[queryparser]") {
     auto cmd =
         parse<SelectCommand>("select min 2 of (\"xyz\", \"cat\", \"hmm\");");
     std::vector<Query> expect_min;
-    expect_min.emplace_back(q(mqs("xyz")));
-    expect_min.emplace_back(q(mqs("cat")));
-    expect_min.emplace_back(q(mqs("hmm")));
+    expect_min.emplace_back(q(std::move(mqs("xyz"))));
+    expect_min.emplace_back(q(std::move(mqs("cat"))));
+    expect_min.emplace_back(q(std::move(mqs("hmm"))));
 
     REQUIRE(cmd.get_query() == q_min_of(2, std::move(expect_min)));
 }
 
 TEST_CASE("select literal without iterator", "[queryparser]") {
     auto cmd = parse<SelectCommand>("select \"MSM\";");
-    REQUIRE(cmd.get_query() == q(mqs("MSM")));
+    REQUIRE(cmd.get_query() == q(std::move(mqs("MSM"))));
     REQUIRE(cmd.iterator_requested() == false);
 }
 
 TEST_CASE("select literal into iterator", "[queryparser]") {
     auto cmd = parse<SelectCommand>("select into iterator \"MSM\";");
-    REQUIRE(cmd.get_query() == q(mqs("MSM")));
+    REQUIRE(cmd.get_query() == q(std::move(mqs("MSM"))));
     REQUIRE(cmd.iterator_requested() == true);
 }
 
 TEST_CASE("select literal with taints", "[queryparser]") {
     auto cmd = parse<SelectCommand>("select with taints [\"hmm\"] \"MSM\";");
-    REQUIRE(cmd.get_query() == q(mqs("MSM")));
+    REQUIRE(cmd.get_query() == q(std::move(mqs("MSM"))));
     REQUIRE(cmd.get_taints() == std::set<std::string>{"hmm"});
 }
 

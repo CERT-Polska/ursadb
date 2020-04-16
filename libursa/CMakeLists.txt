@@ -34,6 +34,8 @@ add_library(
     OnDiskIndex.h
     OnDiskIterator.cpp
     OnDiskIterator.h
+    QString.cpp
+    QString.h
     Query.cpp
     Query.h
     QueryGraph.cpp

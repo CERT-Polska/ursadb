@@ -248,18 +248,21 @@ QString transform_qstring(const parse_tree::node &n) {
                         "too many wildcards, use AND operator instead");
                 }
 
-                result.emplace_back(QTokenType::WILDCARD, 0);
+                result.emplace_back(std::move(QToken::wildcard()));
                 wildcard_ticks = 3;
             } else if (c[0] == '?') {  // \x?A
-                result.emplace_back(QTokenType::HWILDCARD, hex2int(c[1]));
+                result.emplace_back(
+                    std::move(QToken::high_wildcard(hex2int(c[1]))));
             } else if (c[1] == '?') {  // \xA?
-                result.emplace_back(QTokenType::LWILDCARD, hex2int(c[0]) << 4U);
+                result.emplace_back(
+                    std::move(QToken::low_wildcard(hex2int(c[0]) << 4U)));
             }
         } else {
-            result.emplace_back(QTokenType::CHAR, transform_char(*atom));
+            result.emplace_back(
+                std::move(QToken::single(transform_char(*atom))));
 
             if (n.is<wide_plaintext>()) {
-                result.emplace_back(QTokenType::CHAR, '\0');
+                result.emplace_back(std::move(QToken::single('\0')));
             }
         }
 
