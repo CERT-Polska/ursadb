@@ -132,6 +132,83 @@ QueryResult OnDiskIndex::expand_wildcards(const QString &qstr, size_t len,
     return total;
 }
 
+// Expands the query to a query graph, but at the same time is careful not to
+// generate a query graph that is too big.
+// This is a pretty limiting heuristics and it can't account for more complex
+// tokens (for example, `(11 | 22 33)`). The proper solution is much harder and
+// will need a efficient graph pruning algorithm. Nevertheless, this solution
+// works and can support everything that the current parser can.
+std::vector<QueryGraph> to_query_graphs(const QString &str, int ngram_size) {
+    // Disjoing subgraphs in the query graph. Logically they are ANDed with
+    // each other when making a query.
+    std::vector<QueryGraph> subgraphs;
+
+    // Maximum number of possible values for the edge to be considered.
+    // If token has more than MAX_EDGE possible values, it will never start
+    // or end a subgraph. This is to avoid starting a subquery with `??`.
+    constexpr uint32_t MAX_EDGE = 16;
+
+    // Maximum number of possible values for ngram to be considered. If ngram
+    // has more than MAX_NGRAM possible values, it won't be included in the
+    // graph and the graph will be split into one or more subgraphs.
+    constexpr uint32_t MAX_NGRAM = 256 * 256;
+
+    spdlog::info("Expand+prune for a query graph size={}", ngram_size);
+
+    int offset = 0;
+    while (offset < str.size()) {
+        spdlog::info("Looking for a new start edge");
+        // Check if this node can become an edge.
+        if (str[offset].num_possible_values() > MAX_EDGE) {
+            offset++;
+            continue;
+        }
+
+        // Insert first ngram_size - 1 tokens.
+        std::vector<QToken> tokens;
+        for (int i = 0; i < ngram_size - 1 && offset < str.size(); i++) {
+            tokens.emplace_back(str[offset].clone());
+            offset++;
+        }
+
+        // Now insert tokens ending ngram, as long as it is small enough.
+        while (offset < str.size()) {
+            uint64_t num_possible = 1;
+            for (int i = 0; i < ngram_size; i++) {
+                num_possible *= str[offset - i].num_possible_values();
+            }
+            if (num_possible > MAX_NGRAM) {
+                break;
+            }
+            tokens.emplace_back(str[offset].clone());
+            offset++;
+        }
+
+        // Finally, prune the subquery from the right (using MAX_EDGE).
+        while (tokens.back().num_possible_values() > MAX_EDGE) {
+            // This is safe, because first element is < MAX_EDGE.
+            tokens.pop_back();
+        }
+
+        if (tokens.size() >= ngram_size) {
+            spdlog::info("Expanding subquery ({} elements)", tokens.size());
+            subgraphs.emplace_back(std::move(QueryGraph::from_qstring(tokens)));
+        }
+    }
+
+    // Now expand every graph separately.
+    for (auto &subgraph : subgraphs) {
+        for (int i = 0; i < ngram_size - 1; i++) {
+            spdlog::info("Computing dual graph ({} nodes)", subgraph.size());
+            subgraph = std::move(subgraph.dual());
+        }
+        spdlog::info("Final subgraph size: {} nodes", subgraph.size());
+    }
+
+    spdlog::info("Query graph expansion succeeded");
+    return subgraphs;
+}
+
 QueryResult OnDiskIndex::query_str(const QString &str) const {
     TrigramGenerator generator = get_generator_for(ntype);
 
@@ -157,20 +234,20 @@ QueryResult OnDiskIndex::query_str(const QString &str) const {
     if (::feature::query_graphs && input_len <= 4) {
         spdlog::info("Experimental graph query for {}",
                      get_index_type_name(index_type()));
-        QueryGraph graph{QueryGraph::from_qstring(str)};
-        for (int i = 0; i < input_len - 1; i++) {
-            spdlog::info("Computing dual graph ({} nodes)", graph.size());
-            graph = graph.dual();
-        }
-        spdlog::info("Final graph has {} nodes", graph.size());
+
         QueryFunc oracle = [this](uint32_t raw_gram) {
-            std::optional<uint32_t> gram = convert_gram(index_type(), raw_gram);
+            auto gram = convert_gram(index_type(), raw_gram);
             if (gram) {
                 return QueryResult(std::move(query_primitive(*gram)));
             }
             return QueryResult::everything();
         };
-        return graph.run(oracle);
+        auto graphs = std::move(to_query_graphs(str, input_len));
+        QueryResult result = QueryResult::everything();
+        for (const auto &graph : graphs) {
+            result.do_and(std::move(graph.run(oracle)));
+        }
+        return result;
     }
     return expand_wildcards(str, input_len, generator);
 }

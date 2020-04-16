@@ -36,7 +36,9 @@ QToken QToken::wildcard() {
     return QToken(std::move(options), 0, QTokenType::WILDCARD);
 }
 
-std::vector<uint8_t> QToken::possible_values() const { return opts_; }
+const std::vector<uint8_t> &QToken::possible_values() const { return opts_; }
+
+uint64_t QToken::num_possible_values() const { return opts_.size(); }
 
 bool QToken::operator==(const QToken &other) const {
     return opts_ == other.opts_;
