@@ -86,7 +86,7 @@ class InorderGraphVisitor {
     // contain verticles with no incoming edges (aka graph sources).
     InorderGraphVisitor(std::vector<NodeId> ready,
                         const std::vector<QueryGraphNode> *nodes)
-        : ready_(std::move(ready)), nodes_(nodes), state_(nodes_->size()) {
+        : ready_{std::move(ready)}, nodes_{nodes}, state_(nodes_->size()) {
         for (const auto &node : *nodes_) {
             for (NodeId target : node.edges()) {
                 state_.at(target.get()).add_predecessor();
