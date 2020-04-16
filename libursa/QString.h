@@ -8,7 +8,8 @@ enum class QTokenType {
     CHAR = 1,       // normal byte e.g. \xAA
     WILDCARD = 2,   // full wildcard \x??
     HWILDCARD = 3,  // high wildcard e.g. \x?A
-    LWILDCARD = 4   // low wildcard e.g. \xA?
+    LWILDCARD = 4,  // low wildcard e.g. \xA?
+    EXPLICIT = 5    // explicit option list. Not understood by legacy methods.
 };
 
 // Represents a single token in a query. For example AA, A?, ?? or (AA | BB).
@@ -41,6 +42,9 @@ class QToken {
 
     // Creates a wildcard token ({??}).
     static QToken wildcard();
+
+    // Creates a wildcard with exactly given option list.
+    static QToken with_values(std::vector<uint8_t> &&values);
 
     // Returns a list of possible values for this token.
     const std::vector<uint8_t> &possible_values() const;

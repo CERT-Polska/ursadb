@@ -51,31 +51,88 @@ struct iterator_token : TAO_PEGTL_STRING("iterator") {};
 struct pop_token : TAO_PEGTL_STRING("pop") {};
 
 // literals
+
+// example: c
 struct hexdigit : abnf::HEXDIG {};
-struct hexbyte : seq<hexdigit, hexdigit> {};
+
+// example: ?
 struct wildcard : seq<one<'?'>> {};
-struct hexwildcard : seq<sor<hexdigit, wildcard>, sor<hexdigit, wildcard>> {};
-struct escaped_x : seq<one<'x'>, sor<hexbyte, hexwildcard>> {};
+
+// example: 1F
+// example: ?3
+struct hexbyte : seq<sor<hexdigit, wildcard>, sor<hexdigit, wildcard>> {};
+
+// example: x73
+struct escaped_x : seq<one<'x'>, hexbyte> {};
+
+// example: n
 struct escaped_char : one<'"', '\\', 'b', 'f', 'n', 'r', 't'> {};
+
+// example: n
+// example: x73
 struct escaped : sor<escaped_char, escaped_x> {};
+
+// example: n
 struct ascii_char : utf8::range<0x20, 0x7e> {};
+
+// example: \x73
+// example: \n
+// example: a
 struct character : if_must_else<one<'\\'>, escaped, ascii_char> {};
+
+// example: this \n is \x?1 a \" text
 struct string_content : until<at<one<'"'>>, must<character>> {};
+
+// example: "this \n is \x?1 a \" text"
 struct plaintext : seq<one<'"'>, must<string_content>, any> {
     using content = string_content;
 };
+
+// example: w"this \n is \x?1 a \" text"
 struct wide_plaintext : seq<one<'w'>, plaintext> {};
+
+// example: 123
 struct number : plus<abnf::DIGIT> {};
+
+// example: &
 struct op_and : pad<one<'&'>, space> {};
+
+// example: |
 struct op_or : pad<one<'|'>, space> {};
+
+// example: (
 struct open_bracket : seq<one<'('>, star<space>> {};
+
+// example: )
 struct close_bracket : seq<star<space>, one<')'>> {};
+
+// example: {
 struct open_curly : seq<one<'{'>, star<space>> {};
+
+// example: }
 struct close_curly : seq<star<space>, one<'}'>> {};
+
+// example: [
 struct open_square : seq<one<'['>, star<space>> {};
+
+// example: ]
 struct close_square : seq<star<space>, one<']'>> {};
-struct hexbytes : opt<list<sor<hexbyte, hexwildcard>, star<space>>> {};
+
+// example: 1B | 3? | ?? | 45
+struct hexalternatives : seq<hexbyte, star<seq<star<space>, one<'|'>, star<space>, hexbyte>>> {};
+
+// example: (1B | 3? | ?? | 45)
+struct hexoptions : seq<one<'('>, star<space>, hexalternatives, star<space>, one<')'>> {};
+
+// example: 112F (3? | 45 | 1F) 3D
+struct hexbytes : opt<list<sor<hexbyte, hexoptions>, star<space>>> {};
+
+// example: {112F (3? | 45 | 1F) 3D}
 struct hexstring : if_must<open_curly, hexbytes, close_curly> {};
+
+// example: w"wide"
+// example: "plain"
+// example: {112F (3? | 45 | 1F) 3D}
 struct string_like : sor<wide_plaintext, plaintext, hexstring> {};
 
 // expressions
@@ -137,8 +194,8 @@ template <> struct store<op_or> : parse_tree::remove_content {};
 template <> struct store<expression> : std::true_type {};
 template <> struct store<hexstring> : std::true_type {};
 template <> struct store<escaped_char> : std::true_type {};
+template <> struct store<hexoptions> : std::true_type {};
 template <> struct store<hexbyte> : std::true_type {};
-template <> struct store<hexwildcard> : std::true_type {};
 template <> struct store<ascii_char> : std::true_type {};
 template <> struct store<number> : std::true_type {};
 template <> struct store<select> : std::true_type {};
@@ -217,7 +274,7 @@ char transform_char(const parse_tree::node &n) {
 
 std::vector<IndexType> transform_index_types(const parse_tree::node &n) {
     std::vector<IndexType> result;
-    for (auto &child : n.children) {
+    for (auto &child : (*&n).children) {
         auto type = index_type_from_string(child->content());
         if (type == std::nullopt) {
             throw std::runtime_error("index type unsupported by parser");
@@ -227,11 +284,26 @@ std::vector<IndexType> transform_index_types(const parse_tree::node &n) {
     return result;
 }
 
+// Returns a QToken representing a given hexbyte
+QToken transform_hexbyte(const parse_tree::node &atom) {
+    const std::string &c = atom.content();
+
+    if (c[0] == '?' && c[1] == '?') {  // \x??
+        return QToken::wildcard();
+    } else if (c[0] == '?') {  // \x?A
+        return QToken::high_wildcard(hex2int(c[1]));
+    } else if (c[1] == '?') {  // \xA?
+        return QToken::low_wildcard(hex2int(c[0]) << 4U);
+    } else {
+        return QToken::single(transform_char(atom));
+    }
+}
+
 QString transform_qstring(const parse_tree::node &n) {
     auto *root = &n;
 
     if (n.is<wide_plaintext>()) {
-        // unpack plaintext from inside wide_plaintext
+        // Unpack plaintext from inside wide_plaintext.
         root = n.children[0].get();
     }
 
@@ -239,24 +311,29 @@ QString transform_qstring(const parse_tree::node &n) {
 
     QString result;
     for (auto &atom : root->children) {
-        if (atom->is<hexwildcard>()) {
-            const std::string &c = atom->content();
+        if (atom->is<hexbyte>()) {
+            // We're getting close to getting rid of this code.
+            if (!::feature::query_graphs) {
+                const std::string &c = atom->content();
 
-            if (c[0] == '?' && c[1] == '?') {  // \x??
-                if (wildcard_ticks > 0 && !::feature::query_graphs) {
-                    throw std::runtime_error(
-                        "too many wildcards, use AND operator instead");
+                if (c[0] == '?' && c[1] == '?') {  // \x??
+                    if (wildcard_ticks > 0) {
+                        throw std::runtime_error(
+                            "too many wildcards, use AND operator instead");
+                    }
+                    wildcard_ticks = 3;
                 }
-
-                result.emplace_back(std::move(QToken::wildcard()));
-                wildcard_ticks = 3;
-            } else if (c[0] == '?') {  // \x?A
-                result.emplace_back(
-                    std::move(QToken::high_wildcard(hex2int(c[1]))));
-            } else if (c[1] == '?') {  // \xA?
-                result.emplace_back(
-                    std::move(QToken::low_wildcard(hex2int(c[0]) << 4U)));
             }
+            result.emplace_back(transform_hexbyte(*atom));
+        } else if (atom->is<hexoptions>()) {
+            std::set<uint8_t> opts;
+            for (const auto &child : (*&atom)->children) {
+                auto child_token{transform_hexbyte(*child)};
+                auto &child_opts{child_token.possible_values()};
+                opts.insert(child_opts.begin(), child_opts.end());
+            }
+            std::vector<uint8_t> opt_vector{opts.begin(), opts.end()};
+            result.emplace_back(QToken::with_values(std::move(opt_vector)));
         } else {
             result.emplace_back(
                 std::move(QToken::single(transform_char(*atom))));
