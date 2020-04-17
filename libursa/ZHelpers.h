@@ -1,28 +1,56 @@
 #pragma once
 
+#include <cassert>
 #include <string>
+#include <type_traits>
 #include <zmq.hpp>
 
-//  Receive 0MQ string from socket and convert into string
-std::string s_recv(zmq::socket_t &socket);
+// Sends one message to socket or throws std::runtime_error if it fails
+void s_send_raw(zmq::socket_t *socket, std::string_view data, int flags);
 
-//  Convert string to 0MQ string and send to socket
-bool s_send(zmq::socket_t &socket, const std::string &string, int flags = 0);
-
-template <typename T>
-T s_recv_val(zmq::socket_t &socket) {
-    zmq::message_t message;
-
-    if (!socket.recv(&message)) {
-        throw std::runtime_error("socket recv failed");
-    }
-
-    return *(static_cast<T *>(message.data()));
-}
+// Receives one message from socket or throws std::runtime_error if it fails
+std::string s_recv_raw(zmq::socket_t *socket);
 
 template <typename T>
-bool s_send_val(zmq::socket_t &socket, const T &value, int flags = 0) {
-    zmq::message_t msg(sizeof(T));
-    memcpy(msg.data(), &value, sizeof(T));
-    return socket.send(msg, flags);
+struct is_transferable
+    : std::integral_constant<bool, std::is_trivial<T>::value &&
+                                       !std::is_array<T>::value> {};
+
+// Receives some POD T from socket
+template <typename T>
+T s_recv(zmq::socket_t *socket) {
+    static_assert(is_transferable<T>::value, "Cannot transfer this type");
+    std::string response{s_recv_raw(socket)};
+
+    T val{};
+    assert(sizeof(T) == response.size());
+    ::memcpy(&val, response.data(), response.size());
+    return val;
 }
+
+// Sends some POD T over socket
+template <typename T>
+void s_send(zmq::socket_t *socket, const T &value, int flags = 0) {
+    static_assert(is_transferable<T>::value, "Cannot transfer this type");
+    std::string msg;
+    msg.resize(sizeof(T));
+    ::memcpy(msg.data(), &value, msg.size());
+
+    s_send_raw(socket, std::string_view(msg), flags);
+}
+
+// Sends a zero-sized frame.
+void s_send_padding(zmq::socket_t *socket, int flags = 0);
+// Receives a zero-sized frame or throws std::runtime_error.
+void s_recv_padding(zmq::socket_t *socket);
+
+// Sends std::string over socket
+template <>
+void s_send(zmq::socket_t *socket, const std::string &value, int flags);
+// Receives std::string from socket
+template <>
+std::string s_recv(zmq::socket_t *socket);
+
+// Sends std::string_view over socket
+template <>
+void s_send(zmq::socket_t *socket, const std::string_view &value, int flags);

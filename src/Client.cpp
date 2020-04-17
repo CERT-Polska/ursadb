@@ -35,7 +35,7 @@ void UrsaClient::status_worker() {
         }
 
         wait_time = 0;
-        s_send(socket, "status;");
+        s_send<std::string_view>(&socket, "status;");
         std::string res_str;
         uint64_t retries = 0;
 
@@ -46,7 +46,7 @@ void UrsaClient::status_worker() {
                     "progress for more than 30 seconds.");
             }
 
-            res_str = s_recv(socket);
+            res_str = s_recv<std::string>(&socket);
             retries++;
         }
 
@@ -69,8 +69,8 @@ void UrsaClient::status_worker() {
 }
 
 void UrsaClient::init_conn(zmq::socket_t &socket) {
-    s_send(socket, "ping;");
-    auto res_str = s_recv(socket);
+    s_send<std::string_view>(&socket, "ping;");
+    auto res_str = s_recv<std::string>(&socket);
 
     if (res_str.empty()) {
         throw std::runtime_error("Failed to connect to the database!");
@@ -100,7 +100,7 @@ void UrsaClient::recv_res(zmq::socket_t &socket) {
     this->wait_time = 0;
 
     while (this->command_active) {
-        auto res_str = s_recv(socket);
+        auto res_str = s_recv<std::string>(&socket);
 
         if (res_str.empty()) {
             continue;
@@ -132,7 +132,7 @@ static void s_send_cmd(zmq::socket_t &socket, std::string cmd) {
         cmd = cmd + ";";
     }
 
-    s_send(socket, cmd);
+    s_send(&socket, cmd);
 }
 
 int UrsaClient::start() {
