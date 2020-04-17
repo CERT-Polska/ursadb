@@ -107,6 +107,8 @@ bool OnDiskIndex::internal_expand(QString::const_iterator qit, uint8_t *out,
                     j += 0x10;
                 }
                 break;
+            default:
+                throw std::runtime_error("unknown token type");
         }
     } while (true);
 }

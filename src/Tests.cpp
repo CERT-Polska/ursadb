@@ -98,6 +98,28 @@ TEST_CASE("select hexstring with low wildcard", "[queryparser]") {
     REQUIRE(cmd.get_query() == q(std::move(expect)));
 }
 
+TEST_CASE("select hexstring with explicit options", "[queryparser]") {
+    QString expect;
+    expect.emplace_back(std::move(QToken::single(0x4d)));
+    expect.emplace_back(std::move(QToken::with_values({0x51, 0x52})));
+    expect.emplace_back(std::move(QToken::single(0x4d)));
+
+    auto cmd = parse<SelectCommand>("select { 4d (51 | 52) 4d };");
+    REQUIRE(cmd.get_query() == q(std::move(expect)));
+}
+
+TEST_CASE("select hexstring with mixed explicit options", "[queryparser]") {
+    QString expect;
+    expect.emplace_back(std::move(QToken::single(0x4d)));
+    expect.emplace_back(std::move(QToken::with_values(
+        {0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5a, 0x5b,
+         0x5c, 0x5d, 0x5e, 0x5f, 0x70})));
+    expect.emplace_back(std::move(QToken::single(0x4d)));
+
+    auto cmd = parse<SelectCommand>("select { 4d (5? | 70) 4d };");
+    REQUIRE(cmd.get_query() == q(std::move(expect)));
+}
+
 TEST_CASE("select literal", "[queryparser]") {
     auto cmd = parse<SelectCommand>("select \"MSM\";");
     REQUIRE(cmd.get_query() == q(std::move(mqs("MSM"))));

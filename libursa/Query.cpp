@@ -74,8 +74,10 @@ std::string Query::as_string_repr() const {
             out += "\\x?" + std::to_string(token.val());
         } else if (token.type() == QTokenType::HWILDCARD) {
             out += "\\x" + std::to_string(token.val() >> 4) + "?";
-        } else {
+        } else if (token.type() == QTokenType::CHAR) {
             out += token.val();
+        } else {
+            throw std::runtime_error("Unknown token type");
         }
     }
 

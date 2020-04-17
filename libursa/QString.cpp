@@ -36,6 +36,10 @@ QToken QToken::wildcard() {
     return QToken(std::move(options), 0, QTokenType::WILDCARD);
 }
 
+QToken QToken::with_values(std::vector<uint8_t> &&values) {
+    return QToken(std::move(values), 0, QTokenType::EXPLICIT);
+}
+
 const std::vector<uint8_t> &QToken::possible_values() const { return opts_; }
 
 uint64_t QToken::num_possible_values() const { return opts_.size(); }
