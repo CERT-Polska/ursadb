@@ -16,18 +16,17 @@
     worker.connect("ipc://backend.ipc");
 
     //  Tell backend we're ready for work
-    s_send_val<NetAction>(worker, NetAction::Ready);
+    s_send<NetAction>(&worker, NetAction::Ready);
 
     for (;;) {
         //  Read and save all frames until we get an empty frame
         //  In this example there is only 1 but it could be more
-        std::string address = s_recv(worker);
-        if (s_recv(worker).size() != 0) {
-            throw std::runtime_error("Expected zero-size frame after address");
-        }
+        auto address{s_recv<std::string>(&worker)};
+
+        s_recv_padding(&worker);
 
         //  Get request, send reply
-        std::string request = s_recv(worker);
+        auto request{s_recv<std::string>(&worker)};
         spdlog::info("Task {} - {}", task->id, request);
 
         snap.set_db_handle(DatabaseHandle(&worker));
@@ -37,11 +36,11 @@
         // time, assigned worker, etc)
         std::string s = response.to_string();
 
-        s_send_val<NetAction>(worker, NetAction::Response, ZMQ_SNDMORE);
-        s_send(worker, "", ZMQ_SNDMORE);
-        s_send(worker, address, ZMQ_SNDMORE);
-        s_send(worker, "", ZMQ_SNDMORE);
-        s_send(worker, s);
+        s_send<NetAction>(&worker, NetAction::Response, ZMQ_SNDMORE);
+        s_send_padding(&worker, ZMQ_SNDMORE);
+        s_send(&worker, address, ZMQ_SNDMORE);
+        s_send_padding(&worker, ZMQ_SNDMORE);
+        s_send(&worker, s);
     }
 }
 
@@ -101,16 +100,14 @@ void NetworkService::handle_dataset_lock_req(WorkerContext *wctx,
     std::string recv_ds_name;
 
     do {
-        if (s_recv(backend).size() != 0) {
-            throw std::runtime_error("Expected zero-size frame");
-        }
+        s_recv_padding(&backend);
 
-        recv_ds_name = s_recv(backend);
+        recv_ds_name = s_recv<std::string>(&backend);
         ds_names.push_back(recv_ds_name);
     } while (!recv_ds_name.empty());
 
-    s_send(backend, worker_addr, ZMQ_SNDMORE);
-    s_send(backend, "", ZMQ_SNDMORE);
+    s_send(&backend, worker_addr, ZMQ_SNDMORE);
+    s_send_padding(&backend, ZMQ_SNDMORE);
 
     bool already_locked = false;
     for (const std::string &ds_name : ds_names) {
@@ -129,27 +126,23 @@ void NetworkService::handle_dataset_lock_req(WorkerContext *wctx,
             spdlog::info("Coordinator: dataset {} locked", ds_name);
         }
 
-        s_send_val<NetLockResp>(backend, NetLockResp::LockOk);
+        s_send<NetLockResp>(&backend, NetLockResp::LockOk);
     } else {
         spdlog::warn("Coordinator: dataset lock denied");
-        s_send_val<NetLockResp>(backend, NetLockResp::LockDenied);
+        s_send<NetLockResp>(&backend, NetLockResp::LockDenied);
     }
 }
 
 void NetworkService::handle_iterator_lock_req(WorkerContext *wctx,
                                               const std::string &worker_addr) {
-    if (s_recv(backend).size() != 0) {
-        throw std::runtime_error("Expected zero-size frame");
-    }
+    s_recv_padding(&backend);
 
-    std::string iterator_name = s_recv(backend);
+    auto iterator_name{s_recv<std::string>(&backend)};
 
-    if (s_recv(backend).size() != 0) {
-        throw std::runtime_error("Expected zero-size frame");
-    }
+    s_recv_padding(&backend);
 
-    s_send(backend, worker_addr, ZMQ_SNDMORE);
-    s_send(backend, "", ZMQ_SNDMORE);
+    s_send(&backend, worker_addr, ZMQ_SNDMORE);
+    s_send_padding(&backend, ZMQ_SNDMORE);
 
     bool already_locked = false;
 
@@ -165,28 +158,24 @@ void NetworkService::handle_iterator_lock_req(WorkerContext *wctx,
         wctx->snap.lock_iterator(iterator_name);
 
         spdlog::info("Coordinator: iterator {} locked", iterator_name);
-        s_send_val<NetLockResp>(backend, NetLockResp::LockOk);
+        s_send<NetLockResp>(&backend, NetLockResp::LockOk);
     } else {
         spdlog::info("Coordinator: lock denied for iterator {}", iterator_name);
-        s_send_val<NetLockResp>(backend, NetLockResp::LockDenied);
+        s_send<NetLockResp>(&backend, NetLockResp::LockDenied);
     }
 }
 
 void NetworkService::handle_response(WorkerContext *wctx) {
-    if (s_recv(backend).size() != 0) {
-        throw std::runtime_error("Expected zero-size frame");
-    }
+    s_recv_padding(&backend);
 
-    std::string client_addr = s_recv(backend);
+    auto client_addr{s_recv<std::string>(&backend)};
 
-    if (s_recv(backend).size() != 0) {
-        throw std::runtime_error("Expected zero-size frame");
-    }
+    s_recv_padding(&backend);
 
-    std::string reply = s_recv(backend);
-    s_send(frontend, client_addr, ZMQ_SNDMORE);
-    s_send(frontend, "", ZMQ_SNDMORE);
-    s_send(frontend, reply);
+    auto reply{s_recv<std::string>(&backend)};
+    s_send(&frontend, client_addr, ZMQ_SNDMORE);
+    s_send_padding(&frontend, ZMQ_SNDMORE);
+    s_send(&frontend, reply);
 
     commit_task(wctx);
 
@@ -203,14 +192,12 @@ void NetworkService::handle_response(WorkerContext *wctx) {
 
 void NetworkService::poll_backend() {
     //  Queue worker address for LRU routing
-    std::string worker_addr = s_recv(backend);
+    auto worker_addr{s_recv<std::string>(&backend)};
     WorkerContext *wctx = wctxs.at(worker_addr).get();
 
-    if (s_recv(backend).size() != 0) {
-        throw std::runtime_error("Expected zero-size frame");
-    }
+    s_recv_padding(&backend);
 
-    auto resp_type = s_recv_val<NetAction>(backend);
+    auto resp_type{s_recv<NetAction>(&backend)};
 
     switch (resp_type) {
         case NetAction::DatasetLockReq:
@@ -232,13 +219,11 @@ void NetworkService::poll_backend() {
 void NetworkService::poll_frontend() {
     //  Now get next client request, route to LRU worker
     //  Client request is [address][empty][request]
-    std::string client_addr = s_recv(frontend);
+    auto client_addr{s_recv<std::string>(&frontend)};
 
-    if (s_recv(frontend).size() != 0) {
-        throw std::runtime_error("Expected zero-size frame");
-    }
+    s_recv_padding(&frontend);
 
-    std::string request = s_recv(frontend);
+    auto request{s_recv<std::string>(&frontend)};
 
     std::string worker_addr = worker_queue.front();  // worker_queue [0];
     worker_queue.pop();
@@ -248,9 +233,9 @@ void NetworkService::poll_frontend() {
     wctx->task = db.allocate_task(request, client_addr);
     wctx->snap = db.snapshot();
 
-    s_send(backend, worker_addr, ZMQ_SNDMORE);
-    s_send(backend, "", ZMQ_SNDMORE);
-    s_send(backend, client_addr, ZMQ_SNDMORE);
-    s_send(backend, "", ZMQ_SNDMORE);
-    s_send(backend, request);
+    s_send(&backend, worker_addr, ZMQ_SNDMORE);
+    s_send_padding(&backend, ZMQ_SNDMORE);
+    s_send(&backend, client_addr, ZMQ_SNDMORE);
+    s_send_padding(&backend, ZMQ_SNDMORE);
+    s_send(&backend, request);
 }
