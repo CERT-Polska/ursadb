@@ -25,15 +25,17 @@ class SelectCommand {
 };
 
 class IndexCommand {
-    std::vector<std::string> paths;
-    std::vector<IndexType> types;
+    std::vector<std::string> paths_;
+    std::vector<IndexType> types_;
+    bool ensure_unique_;
 
    public:
     IndexCommand(const std::vector<std::string> &paths,
-                 const std::vector<IndexType> &types)
-        : paths(paths), types(types) {}
-    const std::vector<std::string> &get_paths() const { return paths; }
-    const std::vector<IndexType> &get_index_types() const { return types; }
+                 const std::vector<IndexType> &types, bool ensure_unique)
+        : paths_(paths), types_(types), ensure_unique_(ensure_unique) {}
+    const std::vector<std::string> &get_paths() const { return paths_; }
+    const std::vector<IndexType> &get_index_types() const { return types_; }
+    const bool ensure_unique() const { return ensure_unique_; }
 };
 
 class IteratorPopCommand {
@@ -48,15 +50,19 @@ class IteratorPopCommand {
 };
 
 class IndexFromCommand {
-    std::string path_list_fname;
-    std::vector<IndexType> types;
+    std::string path_list_fname_;
+    std::vector<IndexType> types_;
+    bool ensure_unique_;
 
    public:
     IndexFromCommand(const std::string &path_list_fname,
-                     const std::vector<IndexType> &types)
-        : path_list_fname(path_list_fname), types(types) {}
-    const std::string &get_path_list_fname() const { return path_list_fname; }
-    const std::vector<IndexType> &get_index_types() const { return types; }
+                     const std::vector<IndexType> &types, bool ensure_unique)
+        : path_list_fname_(path_list_fname),
+          types_(types),
+          ensure_unique_(ensure_unique) {}
+    const std::string &get_path_list_fname() const { return path_list_fname_; }
+    const std::vector<IndexType> &get_index_types() const { return types_; }
+    const bool ensure_unique() const { return ensure_unique_; }
 };
 
 class ReindexCommand {

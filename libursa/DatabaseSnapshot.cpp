@@ -89,30 +89,61 @@ void DatabaseSnapshot::build_target_list(
     }
 }
 
-void DatabaseSnapshot::build_new_target_list(
-    const std::vector<std::string> &filepaths,
-    std::vector<std::string> *targets) const {
-    std::set<std::string> existing_files;
-
+void DatabaseSnapshot::find_all_indexed_files(
+    std::set<std::string> *existing_files) const {
     for (const auto &ds : datasets) {
         ds->for_each_filename([&existing_files](const std::string &fname) {
-            existing_files.insert(fname);
+            existing_files->insert(fname);
         });
     }
-
-    for (const auto &filepath : filepaths) {
-        build_target_list(filepath, existing_files, targets);
-    }
-
-    auto last = std::unique(targets->begin(), targets->end());
-    targets->erase(last, targets->end());
 }
 
-void DatabaseSnapshot::index_path(
+void DatabaseSnapshot::recursive_index_paths(
     Task *task, const std::vector<IndexType> &types,
-    const std::vector<std::string> &filepaths) const {
+    const std::vector<std::string> &root_paths) const {
     std::vector<std::string> targets;
-    build_new_target_list(filepaths, &targets);
+    {
+        std::set<std::string> existing_files;
+        find_all_indexed_files(&existing_files);
+        for (const auto &filepath : root_paths) {
+            build_target_list(filepath, existing_files, &targets);
+        }
+    }
+    force_index_files(task, types, targets);
+}
+
+void DatabaseSnapshot::force_recursive_index_paths(
+    Task *task, const std::vector<IndexType> &types,
+    const std::vector<std::string> &root_paths) const {
+    std::vector<std::string> targets;
+    for (const auto &filepath : root_paths) {
+        build_target_list(filepath, {}, &targets);
+    }
+    force_index_files(task, types, targets);
+}
+
+void DatabaseSnapshot::index_files(
+    Task *task, const std::vector<IndexType> &types,
+    const std::vector<std::string> &filenames) const {
+    std::vector<std::string> unique_filenames;
+    {
+        std::set<std::string> existing_files;
+        find_all_indexed_files(&existing_files);
+        for (const auto &filename : filenames) {
+            if (existing_files.count(filename) == 0) {
+                unique_filenames.push_back(filename);
+            }
+        }
+    }
+    force_index_files(task, types, unique_filenames);
+}
+
+void DatabaseSnapshot::force_index_files(
+    Task *task, const std::vector<IndexType> &types,
+    const std::vector<std::string> &targets) const {
+    if (targets.empty()) {
+        return;
+    }
 
     Indexer indexer(this, types);
 

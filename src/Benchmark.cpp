@@ -56,7 +56,7 @@ uint64_t benchmark_index(int files, int file_size) {
         auto snap = db.snapshot();
         std::vector<IndexType> index_types = {IndexType::GRAM3};
         Task *task = db.allocate_task();
-        snap.index_path(task, index_types, {test_path});
+        snap.recursive_index_paths(task, index_types, {test_path});
         db.commit_task(task->id);
     });
     close(fd);
