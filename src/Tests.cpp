@@ -466,134 +466,86 @@ TEST_CASE("Compress run sanity", "[compress_run]") {
     REQUIRE(s == std::string("\x01\x00\x02\x02\x80\x02", 6));
 }
 
-void add_test_payload(IndexBuilder &builder) {
+void add_test_payload(IndexBuilder *builder) {
     std::string contents;
 
     contents = "kjhg";
-    builder.add_file(1, (const uint8_t *)contents.data(), contents.size());
+    builder->add_file(1, (const uint8_t *)contents.data(), contents.size());
 
     contents = "\xA1\xA2\xA3\xA4\xA5\xA6\xA7\xA8";
-    builder.add_file(2, (const uint8_t *)contents.data(), contents.size());
+    builder->add_file(2, (const uint8_t *)contents.data(), contents.size());
 
     contents = "";
-    builder.add_file(3, (const uint8_t *)contents.data(), contents.size());
+    builder->add_file(3, (const uint8_t *)contents.data(), contents.size());
 
     contents = "\xA1\xA2Xbcde\xA3\xA4\xA5\xA6\xA7systXm32\xA5Xcdef\xA6\xA7";
-    builder.add_file(4, (const uint8_t *)contents.data(), contents.size());
+    builder->add_file(4, (const uint8_t *)contents.data(), contents.size());
 
     contents = "\xAA\xAA\xAA\xAA\xAA\xAAXm32\xA5Xd\xAA\xAA\xAA\xAA\xAA\xAA";
-    builder.add_file(5, (const uint8_t *)contents.data(), contents.size());
+    builder->add_file(5, (const uint8_t *)contents.data(), contents.size());
 }
 
-void test_builder_gram3(IndexBuilder &builder, std::string &index_fname) {
-    add_test_payload(builder);
-    builder.save(index_fname);
+void check_query_is_everything(const OnDiskIndex &ndx, std::string query) {
+    REQUIRE(ndx.query_str(mqs(query)).is_everything());
+}
 
-    OnDiskIndex ndx(index_fname);
-    std::vector<FileId> res;
-
-    REQUIRE(ndx.query_str(mqs("")).is_everything());
-    REQUIRE(ndx.query_str(mqs("a")).is_everything());
-    REQUIRE(ndx.query_str(mqs("ab")).is_everything());
-
-    res = ndx.query_str(mqs("kjhg")).vector();
-    REQUIRE(res.size() == 1);
-    REQUIRE(res[0] == 1);
-
-    res = ndx.query_str(mqs("\xA1\xA2\xA3")).vector();
-    REQUIRE(res.size() == 1);
-    REQUIRE(res[0] == 2);
-
-    res = ndx.query_str(mqs("m32\xA5X")).vector();
-    REQUIRE(res.size() == 2);
-    REQUIRE(res[0] == 4);
-    REQUIRE(res[1] == 5);
-
-    res = ndx.query_str(mqs("Xm32\xA5X")).vector();
-    REQUIRE(res.size() == 2);
-    REQUIRE(res[0] == 4);
-    REQUIRE(res[1] == 5);
-
-    res = ndx.query_str(mqs("Xm32\xA5s")).vector();
-    REQUIRE(res.size() == 0);
-
-    res = ndx.query_str(mqs("Xbcdef")).vector();
-    REQUIRE(res.size() == 1);
-    REQUIRE(res[0] == 4);
-
-    res = ndx.query_str(mqs("\xA4\xA5\xA6\xA7")).vector();
-    REQUIRE(res.size() == 2);
-    REQUIRE(res[0] == 2);
-    REQUIRE(res[1] == 4);
-
-    std::remove(index_fname.c_str());
+void check_query(const OnDiskIndex &ndx, std::string query,
+                 std::vector<uint32_t> results) {
+    REQUIRE(ndx.query_str(mqs(query)).vector() == results);
 }
 
 TEST_CASE("BitmapIndexBuilder for gram3", "[index_builder_gram3]") {
     std::string index_fname = "_test_idx_gram3.ursa";
-
     BitmapIndexBuilder builder(IndexType::GRAM3);
-    test_builder_gram3(builder, index_fname);
-}
-
-void test_builder_text4(IndexBuilder &builder, std::string &index_fname) {
-    add_test_payload(builder);
+    add_test_payload(&builder);
     builder.save(index_fname);
-
     OnDiskIndex ndx(index_fname);
-    std::vector<FileId> res;
 
-    REQUIRE(ndx.query_str(mqs("")).is_everything());
-    REQUIRE(ndx.query_str(mqs("a")).is_everything());
-    REQUIRE(ndx.query_str(mqs("ab")).is_everything());
-    REQUIRE(ndx.query_str(mqs("abc")).is_everything());
-
-    res = ndx.query_str(mqs("Xbcd")).vector();
-    REQUIRE(res.size() == 1);
-    REQUIRE(res[0] == 4);
-
-    res = ndx.query_str(mqs("Xbcdef")).vector();
-    REQUIRE(res.size() == 1);
-    REQUIRE(res[0] == 4);
-
-    res = ndx.query_str(mqs("m32\xA5X")).vector();
-    REQUIRE(res.size() == 0);
-
-    res = ndx.query_str(mqs("Xm32\xA5X")).vector();
-    REQUIRE(res.size() == 2);
-    REQUIRE(res[0] == 4);
-    REQUIRE(res[1] == 5);
-
-    res = ndx.query_str(mqs("Xm32\xA5X")).vector();
-    REQUIRE(res.size() == 2);
-    REQUIRE(res[0] == 4);
-    REQUIRE(res[1] == 5);
-
-    REQUIRE(ndx.query_str(mqs("\xA1\xA2\xA3")).is_everything());
-    REQUIRE(ndx.query_str(mqs("d\xA6\xA7")).is_everything());
-    REQUIRE(ndx.query_str(mqs("\xA4\xA5\xA6\xA7")).is_everything());
+    check_query_is_everything(ndx, "");
+    check_query_is_everything(ndx, "a");
+    check_query_is_everything(ndx, "ab");
+    check_query(ndx, "kjhg", {1});
+    check_query(ndx, "\xA1\xA2\xA3", {2});
+    check_query(ndx, "m32\xA5X", {4, 5});
+    check_query(ndx, "Xm32\xA5X", {4, 5});
+    check_query(ndx, "Xm32\xA5s", {});
+    check_query(ndx, "Xbcdef", {4});
+    check_query(ndx, "\xA4\xA5\xA6\xA7", {2, 4});
 
     std::remove(index_fname.c_str());
 }
 
 TEST_CASE("BitmapIndexBuilder for text4", "[index_builder_text4]") {
     std::string index_fname = "_test_idx_text4.ursa";
-
     BitmapIndexBuilder builder(IndexType::TEXT4);
-    test_builder_text4(builder, index_fname);
+    add_test_payload(&builder);
+    builder.save(index_fname);
+    OnDiskIndex ndx(index_fname);
+
+    check_query_is_everything(ndx, "");
+    check_query_is_everything(ndx, "a");
+    check_query_is_everything(ndx, "ab");
+    check_query_is_everything(ndx, "abc");
+    check_query(ndx, "Xbcd", {4});
+    check_query(ndx, "Xbcdef", {4});
+    check_query(ndx, "m32\xA5X", {});
+    check_query(ndx, "Xm32\xA5X", {4, 5});
+    check_query_is_everything(ndx, "\xA1\xA2\xA3");
+    check_query_is_everything(ndx, "d\xA6\xA7");
+    check_query_is_everything(ndx, "\xA4\xA5\xA6\xA7");
+
+    std::remove(index_fname.c_str());
 }
 
 void make_query(Database &db, std::string query_str,
                 std::set<std::string> expected_out) {
     Task *task = db.allocate_task();
     auto cmd = parse<SelectCommand>(query_str);
-    std::set<std::string> taints;
     InMemoryResultWriter out;
-    db.snapshot().execute(cmd.get_query(), taints, task, &out);
+    db.snapshot().execute(cmd.get_query(), {}, task, &out);
     db.commit_task(task->id);
 
     std::vector<std::string> out_fixed;
-
     for (const auto &x : out.get()) {
         std::string xx = x.substr(x.find_last_of("/") + 1);
         xx.resize(xx.size() - 4);
