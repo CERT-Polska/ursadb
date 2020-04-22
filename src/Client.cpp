@@ -151,7 +151,10 @@ UrsaClient::UrsaClient(std::string server_addr, bool is_interactive,
     : server_addr(server_addr),
       is_interactive(is_interactive),
       raw_json(raw_json),
-      context(1) {}
+      context(1),
+      // deafault constructor workaround
+      cmd_socket(context, ZMQ_REQ),
+      status_socket(context, ZMQ_REQ) {}
 
 void print_usage(std::string_view exec_name) {
     // clang-format off
