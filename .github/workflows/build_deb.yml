@@ -44,7 +44,7 @@ jobs:
           dpkg -i build/ursadb*.deb
           ursadb_new /tmp/test.ursa
           ursadb | grep -q Usage
-          ursacli -h | grep -q Usage
+          ursacli -h 2<&1 | grep -q Usage
       - name: Upload Debian package
         id: upload_release_deb
         uses: actions/upload-release-asset@v1

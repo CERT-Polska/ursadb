@@ -158,11 +158,11 @@ UrsaClient::UrsaClient(std::string server_addr, bool is_interactive,
 
 void print_usage(std::string_view exec_name) {
     // clang-format off
-    fmt::print(stderr, "Usage: {} [option] [server_addr]", exec_name);
-    fmt::print(stderr, "    [server_addr]      server connection string, default: tcp://localhost:9281");
-    fmt::print(stderr, "    [-c <db_command>]  specific command to be run in the database, if not provided - interactive mode");
-    fmt::print(stderr, "    [-q]               silent mode, dump only command output");
-    fmt::print(stderr, "    [-j]               force JSON output everywhere");
+    fmt::print(stderr, "Usage: {} [option] [server_addr]\n", exec_name);
+    fmt::print(stderr, "    [server_addr]      server connection string, default: tcp://localhost:9281\n");
+    fmt::print(stderr, "    [-c <db_command>]  specific command to be run in the database, if not provided - interactive mode\n");
+    fmt::print(stderr, "    [-q]               silent mode, dump only command output\n");
+    fmt::print(stderr, "    [-j]               force JSON output everywhere\n");
     // clang-format on
 }
 
