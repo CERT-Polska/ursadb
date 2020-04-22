@@ -218,6 +218,7 @@ TEST_CASE("index command with default types", "[queryparser]") {
     auto cmd = parse<IndexCommand>("index \"cat\";");
     REQUIRE(cmd.get_paths() == std::vector<std::string>{"cat"});
     REQUIRE(cmd.get_index_types() == std::vector{IndexType::GRAM3});
+    REQUIRE(cmd.ensure_unique() == true);
 }
 
 TEST_CASE("index command with type override", "[queryparser]") {
@@ -225,6 +226,12 @@ TEST_CASE("index command with type override", "[queryparser]") {
     REQUIRE(cmd.get_paths() == std::vector<std::string>{"cat"});
     REQUIRE(cmd.get_index_types() ==
             std::vector{IndexType::TEXT4, IndexType::WIDE8});
+}
+
+TEST_CASE("index command with nocheck", "[queryparser]") {
+    auto cmd = parse<IndexCommand>("index \"cat\" nocheck;");
+    REQUIRE(cmd.get_paths() == std::vector<std::string>{"cat"});
+    REQUIRE(cmd.ensure_unique() == false);
 }
 
 TEST_CASE("index command with empty type override", "[queryparser]") {
@@ -252,12 +259,19 @@ TEST_CASE("index from command", "[queryparser]") {
     auto cmd = parse<IndexFromCommand>("index from list \"aaa\";");
     REQUIRE(cmd.get_path_list_fname() == "aaa");
     REQUIRE(cmd.get_index_types() == std::vector{IndexType::GRAM3});
+    REQUIRE(cmd.ensure_unique() == true);
 }
 
 TEST_CASE("index from command with type override", "[queryparser]") {
     auto cmd = parse<IndexFromCommand>("index from list \"aaa\" with [hash4];");
     REQUIRE(cmd.get_path_list_fname() == "aaa");
     REQUIRE(cmd.get_index_types() == std::vector{IndexType::HASH4});
+}
+
+TEST_CASE("index from command with nocheck", "[queryparser]") {
+    auto cmd = parse<IndexFromCommand>("index from list \"aaa\" nocheck;");
+    REQUIRE(cmd.get_path_list_fname() == "aaa");
+    REQUIRE(cmd.ensure_unique() == false);
 }
 
 TEST_CASE("dataset.taint command", "[queryparser]") {
@@ -562,10 +576,10 @@ TEST_CASE("Query end2end test", "[e2e_test]") {
     DatabaseSnapshot snap = db.snapshot();
 
     Task *task = db.allocate_task();
-    db.snapshot().index_path(task,
-                             {IndexType::GRAM3, IndexType::HASH4,
-                              IndexType::TEXT4, IndexType::WIDE8},
-                             {"test/"});
+    db.snapshot().recursive_index_paths(task,
+                                        {IndexType::GRAM3, IndexType::HASH4,
+                                         IndexType::TEXT4, IndexType::WIDE8},
+                                        {"test/"});
     db.commit_task(task->id);
 
     make_query(db, "select \"nonexistent\";", {});

@@ -88,14 +88,24 @@ Response execute_command(const IndexFromCommand &cmd, Task *task,
         }
     }
 
-    snap->index_path(task, cmd.get_index_types(), paths);
+    if (cmd.ensure_unique()) {
+        snap->index_files(task, cmd.get_index_types(), paths);
+    } else {
+        snap->force_index_files(task, cmd.get_index_types(), paths);
+    }
 
     return Response::ok();
 }
 
 Response execute_command(const IndexCommand &cmd, Task *task,
                          const DatabaseSnapshot *snap) {
-    snap->index_path(task, cmd.get_index_types(), cmd.get_paths());
+    if (cmd.ensure_unique()) {
+        snap->recursive_index_paths(task, cmd.get_index_types(),
+                                    cmd.get_paths());
+    } else {
+        snap->force_recursive_index_paths(task, cmd.get_index_types(),
+                                          cmd.get_paths());
+    }
 
     return Response::ok();
 }

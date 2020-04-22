@@ -46,6 +46,7 @@ struct from_token : TAO_PEGTL_STRING("from") {};
 struct list_token : TAO_PEGTL_STRING("list") {};
 struct min_token : TAO_PEGTL_STRING("min") {};
 struct of_token : TAO_PEGTL_STRING("of") {};
+struct nocheck_token : TAO_PEGTL_STRING("nocheck") {};
 struct into_token : TAO_PEGTL_STRING("into") {};
 struct iterator_token : TAO_PEGTL_STRING("iterator") {};
 struct pop_token : TAO_PEGTL_STRING("pop") {};
@@ -165,14 +166,15 @@ struct iterator_pop: seq<pop_token, plus<space>, number> {};
 struct index_type : sor<gram3_token, hash4_token, text4_token, wide8_token> {};
 struct paths_construct : list<string_like, space> {};
 struct index_type_list : seq<open_square, opt<list<index_type, comma>>, close_square> {};
-struct index_with_construct : seq<with_token, star<space>, index_type_list> {};
+struct index_with_construct : seq<star<space>, with_token, star<space>, index_type_list> {};
+struct nocheck_construct : seq<star<space>, nocheck_token> {};
 struct from_list_construct : seq<from_token, plus<space>, list_token, plus<space>, string_like> {};
 
 // commands
 struct select : seq<select_token, opt<with_taints_construct>, opt<into_iterator_construct>, select_body> {};
 struct dataset : seq<dataset_token, star<space>, plaintext, star<space>, dataset_operation> {};
 struct iterator : seq<iterator_token, star<space>, plaintext, star<space>, iterator_pop> {};
-struct index : seq<index_token, star<space>, sor<paths_construct, from_list_construct>, star<space>, opt<index_with_construct>> {};
+struct index : seq<index_token, star<space>, sor<paths_construct, from_list_construct>, opt<index_with_construct>, opt<nocheck_construct>> {};
 struct reindex : seq<reindex_token, star<space>, string_like, star<space>, index_with_construct> {};
 struct compact : seq<compact_token, star<space>, sor<all_token, smart_token>> {};
 struct status : seq<status_token> {};
@@ -188,6 +190,7 @@ template <typename> struct store : std::false_type {};
 template <> struct store<plaintext> : std::true_type {};
 template <> struct store<with_taints_token> : std::true_type {};
 template <> struct store<into_token> : std::true_type {};
+template <> struct store<nocheck_construct> : std::true_type {};
 template <> struct store<wide_plaintext> : std::true_type {};
 template <> struct store<op_and> : parse_tree::remove_content {};
 template <> struct store<op_or> : parse_tree::remove_content {};
@@ -446,9 +449,14 @@ Command transform_command(const parse_tree::node &n) {
 
         std::vector<std::string> paths;
         std::vector<IndexType> types = default_index_types();
+        bool ensure_unique = true;
 
-        if (n.children.size() == 2) {
-            types = transform_index_types(*n.children[1]);
+        for (size_t mod = 1; mod < n.children.size(); mod++) {
+            if (n.children[mod]->is<nocheck_construct>()) {
+                ensure_unique = false;
+            } else if (n.children[mod]->is<index_type_list>()) {
+                types = transform_index_types(*n.children[1]);
+            }
         }
 
         if (target_n->is<paths_construct>()) {
@@ -457,10 +465,10 @@ Command transform_command(const parse_tree::node &n) {
                 paths.push_back(transform_string(**it));
             }
 
-            return Command(IndexCommand(paths, types));
+            return Command(IndexCommand(paths, types, ensure_unique));
         } else if (target_n->is<from_list_construct>()) {
             std::string list_file = transform_string(*target_n->children[0]);
-            return Command(IndexFromCommand(list_file, types));
+            return Command(IndexFromCommand(list_file, types, ensure_unique));
         } else {
             throw std::runtime_error("unexpected first node in index");
         }

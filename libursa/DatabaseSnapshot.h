@@ -27,8 +27,7 @@ class DatabaseSnapshot {
     size_t max_memory_size;
     DatabaseHandle db_handle;
 
-    void build_new_target_list(const std::vector<std::string> &filepaths,
-                               std::vector<std::string> *targets) const;
+    void find_all_indexed_files(std::set<std::string> *indexed) const;
     void build_target_list(const std::string &filepath,
                            const std::set<std::string> &existing_files,
                            std::vector<std::string> *targets) const;
@@ -64,8 +63,28 @@ class DatabaseSnapshot {
                        std::vector<std::string> *out,
                        uint64_t *out_iterator_position,
                        uint64_t *out_iterator_files) const;
-    void index_path(Task *task, const std::vector<IndexType> &types,
-                    const std::vector<std::string> &filepaths) const;
+
+    // Recursively indexes files under paths in `filepaths`. Ensures that no
+    // file will be indexed twice - this may be a very memory-heavy operation
+    void recursive_index_paths(Task *task, const std::vector<IndexType> &types,
+                               const std::vector<std::string> &filepaths) const;
+
+    // Recursively indexes files under paths in `filepaths`. Does not check for
+    // duplicated files, which makes if faster, but also more dangerous.
+    void force_recursive_index_paths(
+        Task *task, const std::vector<IndexType> &types,
+        const std::vector<std::string> &filepaths) const;
+
+    // Indexes files with given paths. Ensures that no file will be indexed
+    // twice - this may be a very memory-heavy operation.
+    void index_files(Task *task, const std::vector<IndexType> &types,
+                     const std::vector<std::string> &filepaths) const;
+
+    // Indexes files with given paths. Does not check for
+    // duplicated files, which makes if faster, but also more dangerous.
+    void force_index_files(Task *task, const std::vector<IndexType> &types,
+                           const std::vector<std::string> &filepaths) const;
+
     void reindex_dataset(Task *task, const std::vector<IndexType> &types,
                          const std::string &dataset_name) const;
     void execute(const Query &query, const std::set<std::string> &taints,
