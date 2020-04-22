@@ -15,7 +15,6 @@
 #include "pegtl/pegtl/contrib/abnf.hpp"
 #include "pegtl/pegtl/contrib/parse_tree.hpp"
 #include "pegtl/pegtl/contrib/unescape.hpp"
-#include "spdlog/spdlog.h"
 
 using namespace tao::TAO_PEGTL_NAMESPACE;  // NOLINT
 
