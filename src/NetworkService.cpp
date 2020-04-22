@@ -13,7 +13,7 @@
     zmq::socket_t worker(context, ZMQ_REQ);
 
     worker.setsockopt(ZMQ_IDENTITY, identity.c_str(), identity.length());
-    worker.connect("ipc://backend.ipc");
+    worker.connect(std::string(BACKEND_SOCKET));
 
     //  Tell backend we're ready for work
     s_send<NetAction>(&worker, NetAction::Ready);
@@ -21,12 +21,8 @@
     for (;;) {
         //  Read and save all frames until we get an empty frame
         //  In this example there is only 1 but it could be more
-        auto address{s_recv<std::string>(&worker)};
-
-        s_recv_padding(&worker);
-
-        //  Get request, send reply
-        auto request{s_recv<std::string>(&worker)};
+        auto [address, request] =
+            s_recv_message<std::string, std::string>(&worker);
         spdlog::info("Task {} - {}", task->id, request);
 
         snap.set_db_handle(DatabaseHandle(&worker));
@@ -34,17 +30,14 @@
         Response response = dispatch_command_safe(request, task, &snap);
         // Note: optionally add funny metadata to response here (like request
         // time, assigned worker, etc)
-        std::string s = response.to_string();
-
-        s_send<NetAction>(&worker, NetAction::Response, ZMQ_SNDMORE);
-        s_send_padding(&worker, ZMQ_SNDMORE);
-        s_send(&worker, address, ZMQ_SNDMORE);
-        s_send_padding(&worker, ZMQ_SNDMORE);
-        s_send(&worker, s);
+        s_send_message(&worker, std::make_tuple(NetAction::Response, address,
+                                                response.to_string()));
     }
 }
 
 void NetworkService::run() {
+    constexpr std::string backend_socket{"ipc://backend.ipc"};
+    
     for (int worker_no = 0; worker_no < NUM_WORKERS; worker_no++) {
         std::string identity = std::to_string(worker_no);
         wctxs[identity] =
@@ -168,14 +161,9 @@ void NetworkService::handle_iterator_lock_req(WorkerContext *wctx,
 void NetworkService::handle_response(WorkerContext *wctx) {
     s_recv_padding(&backend);
 
-    auto client_addr{s_recv<std::string>(&backend)};
-
-    s_recv_padding(&backend);
-
-    auto reply{s_recv<std::string>(&backend)};
-    s_send(&frontend, client_addr, ZMQ_SNDMORE);
-    s_send_padding(&frontend, ZMQ_SNDMORE);
-    s_send(&frontend, reply);
+    auto [client_addr, reply] =
+        s_recv_message<std::string, std::string>(&backend);
+    s_send_message(&frontend, std::make_tuple(client_addr, reply));
 
     commit_task(wctx);
 
@@ -192,12 +180,9 @@ void NetworkService::handle_response(WorkerContext *wctx) {
 
 void NetworkService::poll_backend() {
     //  Queue worker address for LRU routing
-    auto worker_addr{s_recv<std::string>(&backend)};
+    auto [worker_addr, resp_type] =
+        s_recv_message<std::string, NetAction>(&backend);
     WorkerContext *wctx = wctxs.at(worker_addr).get();
-
-    s_recv_padding(&backend);
-
-    auto resp_type{s_recv<NetAction>(&backend)};
 
     switch (resp_type) {
         case NetAction::DatasetLockReq:
@@ -217,13 +202,8 @@ void NetworkService::poll_backend() {
 }
 
 void NetworkService::poll_frontend() {
-    //  Now get next client request, route to LRU worker
-    //  Client request is [address][empty][request]
-    auto client_addr{s_recv<std::string>(&frontend)};
-
-    s_recv_padding(&frontend);
-
-    auto request{s_recv<std::string>(&frontend)};
+    auto [client_addr, request] =
+        s_recv_message<std::string, std::string>(&frontend);
 
     std::string worker_addr = worker_queue.front();  // worker_queue [0];
     worker_queue.pop();
@@ -233,9 +213,6 @@ void NetworkService::poll_frontend() {
     wctx->task = db.allocate_task(request, client_addr);
     wctx->snap = db.snapshot();
 
-    s_send(&backend, worker_addr, ZMQ_SNDMORE);
-    s_send_padding(&backend, ZMQ_SNDMORE);
-    s_send(&backend, client_addr, ZMQ_SNDMORE);
-    s_send_padding(&backend, ZMQ_SNDMORE);
-    s_send(&backend, request);
+    s_send_message(&backend,
+                   std::make_tuple(worker_addr, client_addr, request));
 }

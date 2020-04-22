@@ -18,6 +18,7 @@
 #include "libursa/Database.h"
 
 constexpr int NUM_WORKERS = 4;
+constexpr std::string_view BACKEND_SOCKET = "ipc://backend.ipc";
 
 class WorkerContext {
    public:
@@ -57,7 +58,7 @@ class NetworkService {
           frontend(context, ZMQ_ROUTER),
           backend(context, ZMQ_ROUTER) {
         frontend.bind(bind_address);
-        backend.bind("ipc://backend.ipc");
+        backend.bind(std::string(BACKEND_SOCKET));
     }
     [[noreturn]] void run();
 };

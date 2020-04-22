@@ -3,6 +3,7 @@
 #include <cassert>
 #include <optional>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <zmq.hpp>
 
@@ -71,4 +72,49 @@ T s_recv(zmq::socket_t *socket) {
         throw std::runtime_error("s_recv failed");
     }
     return *response;
+}
+
+// Sends std::string_view over socket
+template <>
+void s_send(zmq::socket_t *socket, const std::string_view &value, int flags);
+
+template <int Index, int Size, typename T>
+void s_send_helper(zmq::socket_t *socket, const T &t) {
+    constexpr bool is_last = Index + 1 == Size;
+    constexpr bool is_first = Index == 0;
+
+    if constexpr (Index < Size) {
+        if constexpr (!is_first) {
+            s_send_padding(socket, ZMQ_SNDMORE);
+        }
+        int flags{is_last ? 0 : ZMQ_SNDMORE};
+        s_send(socket, std::get<Index>(t), flags);
+        s_send_helper<Index + 1, Size, T>(socket, t);
+    }
+}
+
+template <typename... Ts>
+void s_send_message(zmq::socket_t *socket, const std::tuple<Ts...> &args) {
+    using Ttype = std::tuple<Ts...>;
+    s_send_helper<0, std::tuple_size_v<Ttype>>(socket, args);
+}
+
+template <int Index, int Size, typename T, typename... Ts>
+std::tuple<T, Ts...> s_recv_helper(zmq::socket_t *socket) {
+    if constexpr (Index != 0) {
+        s_recv_padding(socket);
+    }
+    auto val = s_recv<T>(socket);
+    if constexpr (Index + 1 == Size) {
+        return std::make_tuple(val);
+    } else {
+        auto rest = s_recv_helper<Index + 1, Size, Ts...>(socket);
+        return std::tuple_cat(std::make_tuple(val), rest);
+    }
+}
+
+template <typename... Ts>
+std::tuple<Ts...> s_recv_message(zmq::socket_t *socket) {
+    using Ttype = std::tuple<Ts...>;
+    return s_recv_helper<0, std::tuple_size_v<Ttype>, Ts...>(socket);
 }

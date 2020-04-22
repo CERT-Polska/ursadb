@@ -23,11 +23,7 @@ DatabaseHandle::DatabaseHandle(zmq::socket_t *worker) : worker(worker) {}
 
 [[nodiscard]] bool DatabaseHandle::request_iterator_lock(
     const std::string &it_name) const {
-    s_send(worker, NetAction::IteratorLockReq, ZMQ_SNDMORE);
-    s_send_padding(worker, ZMQ_SNDMORE);
-    s_send(worker, it_name, ZMQ_SNDMORE);
-
-    s_send_padding(worker);
+    s_send_message(worker, std::make_tuple(NetAction::IteratorLockReq, it_name));
 
     return s_recv<NetLockResp>(worker) == NetLockResp::LockOk;
 }
