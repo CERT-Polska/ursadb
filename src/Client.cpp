@@ -69,6 +69,8 @@ void UrsaClient::recv_res(zmq::socket_t *socket) {
         auto r{s_try_recv<std::string>(socket)};
         if (r.has_value()) {
             result = *r;
+        } else {
+            check_task_status(connection_id);
         }
     }
 
