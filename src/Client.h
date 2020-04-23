@@ -5,24 +5,25 @@
 
 class UrsaClient {
    private:
+    std::atomic<bool> command_active = false;
+    std::atomic<bool> terminated = false;
+    std::atomic<uint64_t> wait_time = 0;
+
     std::string server_addr;
+    std::string db_command;
     bool is_interactive;
     bool raw_json;
 
     std::string server_version;
     std::string connection_id;
 
-    zmq::context_t context;
-    zmq::socket_t cmd_socket;
-    zmq::socket_t status_socket;
-
-    void check_task_status(const std::string &conn_id);
-    void check_conn_status(zmq::socket_t *socket);
-    void recv_res(zmq::socket_t *socket);
-    void setup_connection();
+    bool wait_sec();
+    void status_worker();
+    void init_conn(zmq::socket_t &socket);
+    void recv_res(zmq::socket_t &socket);
 
    public:
-    UrsaClient(std::string server_addr, bool is_interactive, bool raw_json);
-    void start();
-    void one_shot_command(const std::string &cmd);
+    UrsaClient(std::string server_addr, std::string db_command,
+               bool is_interactive, bool raw_json);
+    int start();
 };
