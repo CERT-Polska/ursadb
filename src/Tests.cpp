@@ -481,23 +481,20 @@ TEST_CASE("Compress run sanity", "[compress_run]") {
     REQUIRE(s == std::string("\x01\x00\x02\x02\x80\x02", 6));
 }
 
-void add_test_payload(IndexBuilder *builder) {
+std::vector<std::string> basic_test_payload{
+    "kjhg", "\xA1\xA2\xA3\xA4\xA5\xA6\xA7\xA8", "",
+    "\xA1\xA2Xbcde\xA3\xA4\xA5\xA6\xA7systXm32\xA5Xcdef\xA6\xA7",
+    "\xAA\xAA\xAA\xAA\xAA\xAAXm32\xA5Xd\xAA\xAA\xAA\xAA\xAA\xAA"};
+
+void add_payload(IndexBuilder *builder,
+                 const std::vector<std::string> &payload) {
     std::string contents;
 
-    contents = "kjhg";
-    builder->add_file(1, (const uint8_t *)contents.data(), contents.size());
-
-    contents = "\xA1\xA2\xA3\xA4\xA5\xA6\xA7\xA8";
-    builder->add_file(2, (const uint8_t *)contents.data(), contents.size());
-
-    contents = "";
-    builder->add_file(3, (const uint8_t *)contents.data(), contents.size());
-
-    contents = "\xA1\xA2Xbcde\xA3\xA4\xA5\xA6\xA7systXm32\xA5Xcdef\xA6\xA7";
-    builder->add_file(4, (const uint8_t *)contents.data(), contents.size());
-
-    contents = "\xAA\xAA\xAA\xAA\xAA\xAAXm32\xA5Xd\xAA\xAA\xAA\xAA\xAA\xAA";
-    builder->add_file(5, (const uint8_t *)contents.data(), contents.size());
+    for (int i = 0; i < payload.size(); i++) {
+        builder->add_file(i + 1,
+                          reinterpret_cast<const uint8_t *>(payload[i].data()),
+                          payload[i].size());
+    }
 }
 
 void check_query_is_everything(const OnDiskIndex &ndx, std::string query) {
@@ -509,13 +506,7 @@ void check_query(const OnDiskIndex &ndx, std::string query,
     REQUIRE(ndx.query_str(mqs(query)).vector() == results);
 }
 
-TEST_CASE("BitmapIndexBuilder for gram3", "[index_builder_gram3]") {
-    std::string index_fname = "_test_idx_gram3.ursa";
-    BitmapIndexBuilder builder(IndexType::GRAM3);
-    add_test_payload(&builder);
-    builder.save(index_fname);
-    OnDiskIndex ndx(index_fname);
-
+void check_test_payload_gram3(const OnDiskIndex &ndx) {
     check_query_is_everything(ndx, "");
     check_query_is_everything(ndx, "a");
     check_query_is_everything(ndx, "ab");
@@ -526,17 +517,9 @@ TEST_CASE("BitmapIndexBuilder for gram3", "[index_builder_gram3]") {
     check_query(ndx, "Xm32\xA5s", {});
     check_query(ndx, "Xbcdef", {4});
     check_query(ndx, "\xA4\xA5\xA6\xA7", {2, 4});
-
-    std::remove(index_fname.c_str());
 }
 
-TEST_CASE("BitmapIndexBuilder for text4", "[index_builder_text4]") {
-    std::string index_fname = "_test_idx_text4.ursa";
-    BitmapIndexBuilder builder(IndexType::TEXT4);
-    add_test_payload(&builder);
-    builder.save(index_fname);
-    OnDiskIndex ndx(index_fname);
-
+void check_test_payload_text4(const OnDiskIndex &ndx) {
     check_query_is_everything(ndx, "");
     check_query_is_everything(ndx, "a");
     check_query_is_everything(ndx, "ab");
@@ -548,8 +531,48 @@ TEST_CASE("BitmapIndexBuilder for text4", "[index_builder_text4]") {
     check_query_is_everything(ndx, "\xA1\xA2\xA3");
     check_query_is_everything(ndx, "d\xA6\xA7");
     check_query_is_everything(ndx, "\xA4\xA5\xA6\xA7");
+}
 
-    std::remove(index_fname.c_str());
+// RAII helper for OnDiskIndex.
+template <typename BuilderT>
+class OnDiskIndexTest {
+    OnDiskIndex index_;
+
+    static std::string build_and_get_fname(IndexType type) {
+        fs::path test_fname = fs::temp_directory_path();
+        test_fname /= "test_ndx_" + random_hex_string(8);
+        BuilderT builder(type);
+        add_payload(&builder, basic_test_payload);
+        builder.save(test_fname);
+        return test_fname;
+    }
+
+   public:
+    OnDiskIndexTest(IndexType type) : index_(build_and_get_fname(type)) {}
+
+    ~OnDiskIndexTest() { fs::remove(index_.get_fpath()); }
+
+    const OnDiskIndex &get() const { return index_; }
+};
+
+TEST_CASE("BitmapIndexBuilder for gram3", "[index_builder]") {
+    OnDiskIndexTest<BitmapIndexBuilder> index(IndexType::GRAM3);
+    check_test_payload_gram3(index.get());
+}
+
+TEST_CASE("BitmapIndexBuilder for text4", "[index_builder]]") {
+    OnDiskIndexTest<BitmapIndexBuilder> index(IndexType::TEXT4);
+    check_test_payload_text4(index.get());
+}
+
+TEST_CASE("FlatIndexBuilder for gram3", "[index_builder]") {
+    OnDiskIndexTest<FlatIndexBuilder> index(IndexType::GRAM3);
+    check_test_payload_gram3(index.get());
+}
+
+TEST_CASE("FlatIndexBuilder for text4", "[index_builder]") {
+    OnDiskIndexTest<FlatIndexBuilder> index(IndexType::TEXT4);
+    check_test_payload_text4(index.get());
 }
 
 void make_query(Database &db, std::string query_str,
