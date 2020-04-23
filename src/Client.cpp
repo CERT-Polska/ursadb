@@ -87,7 +87,7 @@ void UrsaClient::recv_res(zmq::socket_t *socket) {
         return;
     }
 
-    if (res["type"] == "select") {
+    if (res["type"] == "select" && res.find("iterator") == res.end()) {
         for (const auto &file : res["result"]["files"]) {
             std::cout << file.get<std::string>() << std::endl;
         }
@@ -128,8 +128,6 @@ void UrsaClient::one_shot_command(const std::string &cmd) {
 }
 
 void UrsaClient::start() {
-    setup_connection();
-
     for (;;) {
         if (is_interactive) {
             std::cout << "ursadb> ";
@@ -154,7 +152,9 @@ UrsaClient::UrsaClient(std::string server_addr, bool is_interactive,
       context(1),
       // deafault constructor workaround
       cmd_socket(context, ZMQ_REQ),
-      status_socket(context, ZMQ_REQ) {}
+      status_socket(context, ZMQ_REQ) {
+    setup_connection();
+}
 
 void print_usage(std::string_view exec_name) {
     // clang-format off
@@ -204,7 +204,7 @@ int main(int argc, char *argv[]) {
     }
 
     try {
-        UrsaClient client(server_addr, is_interactive, raw_json);
+        UrsaClient client(std::move(server_addr), is_interactive, raw_json);
         if (!db_command.empty()) {
             client.one_shot_command(db_command);
         } else {
