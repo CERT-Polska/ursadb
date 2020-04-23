@@ -49,3 +49,20 @@ jobs:
       uses: docker/build-push-action@v1
       with:
         push: false
+  e2etest:
+    name: run e2e tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+    - name: install dependencies
+      run: sudo apt-get install gcc g++ libzmq3-dev cmake build-essential git python3 python3-pip
+    - name: install python dependencies
+      run: pip3 install pyzmq pytest
+    - name: configure
+      run: mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-Werror" ..
+    - name: build
+      run: cd build && make ursadb ursadb_new
+    - name: test
+      run: python3 -m pytest
