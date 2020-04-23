@@ -14,6 +14,8 @@ add_library(
     DatabaseName.h
     DatabaseSnapshot.cpp
     DatabaseSnapshot.h
+    DatabaseUpgrader.cpp
+    DatabaseUpgrader.h
     DatasetBuilder.cpp
     DatasetBuilder.h
     ExclusiveFile.cpp

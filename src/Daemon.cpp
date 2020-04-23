@@ -15,6 +15,7 @@
 #include "NetworkService.h"
 #include "libursa/Command.h"
 #include "libursa/Database.h"
+#include "libursa/DatabaseUpgrader.h"
 #include "libursa/DatasetBuilder.h"
 #include "libursa/FeatureFlags.h"
 #include "libursa/OnDiskDataset.h"
@@ -225,6 +226,8 @@ int main(int argc, char *argv[]) {
         printf("    %s database-file [bind-address]\n", argv[0]);
         return 1;
     }
+
+    migrate_version(argv[1]);
 
     try {
         Database db(argv[1]);
