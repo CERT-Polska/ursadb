@@ -27,8 +27,8 @@ std::optional<T> s_try_recv(zmq::socket_t *socket) {
     }
 
     T val{};
-    assert(sizeof(T) == (*response).size());
-    ::memcpy(&val, (*response).data(), (*response).size());
+    assert(sizeof(T) == response->size());
+    ::memcpy(&val, response->data(), response->size());
     return val;
 }
 
