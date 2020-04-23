@@ -55,9 +55,12 @@ class OnDiskDataset {
     const std::set<std::string> &get_taints() const { return taints; }
     static std::vector<const OnDiskDataset *> get_compact_candidates(
         const std::vector<const OnDiskDataset *> &datasets);
+
+    // Returns vectors of compatible datasets. Datasets are called compatible
+    // when they can be merged with each other - they have the same types and
+    // the same taints.
     static std::vector<std::vector<const OnDiskDataset *>>
-    get_taint_compatible_datasets(
-        const std::vector<const OnDiskDataset *> &datasets);
+    get_compatible_datasets(const std::vector<const OnDiskDataset *> &datasets);
 };
 
 std::vector<FileId> internal_pick_common(

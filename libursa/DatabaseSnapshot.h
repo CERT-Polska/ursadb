@@ -35,6 +35,13 @@ class DatabaseSnapshot {
 
     friend class Indexer;
 
+    void internal_compact(Task *task,
+                          std::vector<const OnDiskDataset *> datasets) const;
+
+    // Try to find a set of datasets that could use compacting, and compact
+    // them. If smart is true, won't index if the benefit is too small.
+    void try_compact(Task *task, bool smart) const;
+
    public:
     DatabaseName allocate_name(const std::string &type = "set") const;
 
@@ -90,10 +97,15 @@ class DatabaseSnapshot {
                          const std::string &dataset_name) const;
     void execute(const Query &query, const std::set<std::string> &taints,
                  Task *task, ResultWriter *out) const;
-    void smart_compact(Task *task) const;
+
+    // Compact the database. If there are at least two datasets that can be
+    // merged, it's guaranteed that they will be. This function still tries
+    // to find best candidates to merge.
     void compact(Task *task) const;
-    void internal_compact(Task *task,
-                          std::vector<const OnDiskDataset *> datasets) const;
+
+    // Compact the database, but in a "smart" way - if the algorithm decides
+    // that there are no good candidates, it won't do anything.
+    void smart_compact(Task *task) const;
     const OnDiskDataset *find_dataset(const std::string &name) const;
     const std::vector<const OnDiskDataset *> &get_datasets() const {
         return datasets;
