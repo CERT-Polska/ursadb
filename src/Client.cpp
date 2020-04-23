@@ -14,19 +14,11 @@ void UrsaClient::check_task_status(const std::string &conn_id) {
     s_send<std::string_view>(&status_socket, "status;");
 
     std::string res_str;
-    constexpr int max_retries = 30;
-    for (int i = 0; i < max_retries && res_str.empty(); i++) {
-        try {
-            res_str = s_recv<std::string>(&status_socket);
-        } catch (const std::runtime_error &) {
+    while (res_str.empty()) {
+        auto response{s_try_recv<std::string>(&status_socket)};
+        if (response.has_value()) {
+            res_str = *response;
         }
-    }
-
-    if (res_str.empty()) {
-        spdlog::warn(
-            "UrsaDB server seems to be unresponsive. Failed to obtain "
-            "progress for more than 30 seconds.");
-        return;
     }
 
     auto res = json::parse(res_str);
@@ -74,10 +66,9 @@ void UrsaClient::check_conn_status(zmq::socket_t *socket) {
 void UrsaClient::recv_res(zmq::socket_t *socket) {
     std::string result;
     while (result.empty()) {
-        try {
-            result = s_recv<std::string>(socket);
-        } catch (const std::runtime_error &ex) {
-            check_task_status(this->connection_id);
+        auto r{s_try_recv<std::string>(socket)};
+        if (r.has_value()) {
+            result = *r;
         }
     }
 
@@ -122,7 +113,6 @@ void UrsaClient::setup_connection() {
 }
 
 void UrsaClient::one_shot_command(const std::string &cmd) {
-    setup_connection();
     s_send_cmd(&cmd_socket, cmd);
     recv_res(&cmd_socket);
 }
@@ -139,8 +129,7 @@ void UrsaClient::start() {
             break;
         }
 
-        s_send_cmd(&cmd_socket, cmd);
-        recv_res(&cmd_socket);
+        one_shot_command(cmd);
     }
 }
 
