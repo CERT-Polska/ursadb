@@ -1,3 +1,5 @@
+#include <spdlog/fmt/fmt.h>
+#include <spdlog/spdlog.h>
 #include <unistd.h>
 
 #include <chrono>
@@ -11,7 +13,6 @@
 #include "libursa/Core.h"
 #include "libursa/Database.h"
 #include "libursa/Utils.h"
-#include "spdlog/spdlog.h"
 
 template <typename F, typename... Args>
 static uint64_t benchmark_ms(F &&func, Args &&... args) {
@@ -24,7 +25,7 @@ static uint64_t benchmark_ms(F &&func, Args &&... args) {
 
 fs::path produce_test_files(int file_count, int file_size) {
     fs::path directory = fs::temp_directory_path();
-    directory /= "ursabench_" + std::to_string(std::time(nullptr));
+    directory /= "ursabench_" + random_hex_string(8);
     fs::create_directory(directory);
     std::mt19937_64 random(0);
     std::uniform_int_distribution<int> pick(0, 255);
@@ -42,16 +43,11 @@ fs::path produce_test_files(int file_count, int file_size) {
 uint64_t benchmark_index(int files, int file_size) {
     fs::path test_path = produce_test_files(files, file_size);
 
-    char fn[] = "/tmp/ursa_bench_XXXXXX";
-    int fd = mkstemp(fn);
+    fs::path ursa_file = fs::temp_directory_path();
+    ursa_file /= "ursabench_" + random_hex_string(8);
 
-    if (fd == 0 || fd == -1) {
-        throw std::runtime_error("failed to create random_fname");
-    }
-
-    std::string db_path = std::string(fn);
-    Database::create(db_path);
-    Database db(db_path);
+    Database::create(ursa_file);
+    Database db(ursa_file);
     uint64_t result = benchmark_ms([&db, &test_path]() {
         auto snap = db.snapshot();
         std::vector<IndexType> index_types = {IndexType::GRAM3};
@@ -59,22 +55,24 @@ uint64_t benchmark_index(int files, int file_size) {
         snap.recursive_index_paths(task, index_types, {test_path});
         db.commit_task(task->id);
     });
-    close(fd);
-    // TODO(xmsm) - remove test files here
+    for (auto ds : db.working_sets()) {
+        db.drop_dataset(ds->get_name());
+    }
+    std::set<DatabaseSnapshot *> working_snapshots;
+    db.collect_garbage(working_snapshots);
+    fs::remove_all(test_path);
     return result;
 }
 
+void do_bench(int files, int file_size) {
+    fmt::print("index({}, {}): {}\n", files, file_size,
+               benchmark_index(files, file_size));
+}
+
 int main() {
-    try {
-        uint64_t time_index_small = benchmark_index(1, 100);
-        uint64_t time_index_mid = benchmark_index(100, 1000000);
-
-        std::cout << "index_small " << time_index_small << std::endl;
-        std::cout << "index_mid " << time_index_mid << std::endl;
-    } catch (const std::runtime_error &ex) {
-        spdlog::error("internal error: {}", ex.what());
-        return 1;
-    }
-
+    spdlog::set_level(spdlog::level::warn);
+    do_bench(100, 1000000);
+    do_bench(100, 1000000);
+    do_bench(100, 1000000);
     return 0;
 }
