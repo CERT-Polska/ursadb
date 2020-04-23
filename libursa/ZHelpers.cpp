@@ -9,7 +9,7 @@ bool s_send_raw(zmq::socket_t *socket, std::string_view payload,
 
 std::optional<std::string> s_recv_raw(zmq::socket_t *socket) {
     zmq::message_t message;
-    if (socket->recv(&message)) {
+    if (!socket->recv(&message)) {
         return std::nullopt;
     }
     return std::string(static_cast<char *>(message.data()), message.size());
