@@ -9,16 +9,14 @@ bool s_send_raw(zmq::socket_t *socket, std::string_view payload,
 
 std::optional<std::string> s_recv_raw(zmq::socket_t *socket) {
     zmq::message_t message;
-    bool ok{socket->recv(&message)};
-    if (!ok) {
+    if (socket->recv(&message)) {
         return std::nullopt;
     }
     return std::string(static_cast<char *>(message.data()), message.size());
 }
 
 void s_send_padding(zmq::socket_t *socket, int flags) {
-    bool ok = s_send_raw(socket, std::string_view{}, flags);
-    if (!ok) {
+    if (!s_send_raw(socket, std::string_view{}, flags)) {
         throw std::runtime_error("s_send_padding failed");
     }
 }
