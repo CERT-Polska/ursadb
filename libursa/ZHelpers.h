@@ -59,8 +59,7 @@ void s_recv_padding(zmq::socket_t *socket);
 
 template <typename T>
 void s_send(zmq::socket_t *socket, const T &value, int flags = 0) {
-    bool ok = s_try_send<T>(socket, value, flags);
-    if (!ok) {
+    if (!s_try_send<T>(socket, value, flags)) {
         throw std::runtime_error("s_send failed");
     }
 }
