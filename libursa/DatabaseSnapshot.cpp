@@ -12,14 +12,12 @@ DatabaseSnapshot::DatabaseSnapshot(
     fs::path db_name, fs::path db_base,
     std::map<std::string, OnDiskIterator> iterators,
     std::vector<const OnDiskDataset *> datasets,
-    const std::map<uint64_t, std::unique_ptr<Task>> &tasks,
-    size_t max_memory_size)
+    const std::map<uint64_t, std::unique_ptr<Task>> &tasks)
     : db_name(db_name),
       db_base(db_base),
       iterators(iterators),
       datasets(datasets),
-      tasks(),
-      max_memory_size(max_memory_size) {
+      tasks() {
     for (const auto &entry : tasks) {
         this->tasks.emplace(entry.first, *entry.second.get());
     }

@@ -10,6 +10,7 @@ from typing import Dict, Any
 import zmq
 import shutil
 import json
+import tempfile
 
 
 class UrsadbTestContext:
@@ -17,10 +18,10 @@ class UrsadbTestContext:
         self.backend = "tcp://127.0.0.1:9876"
         self.tmpdirs = []
         self.ursadb_dir = self.tmpdir()
-        ursadb_db = self.ursadb_dir / "db.ursa"
+        self.db = self.ursadb_dir / "db.ursa"
 
-        subprocess.check_call([ursadb_new, ursadb_db])
-        self.ursadb = subprocess.Popen([ursadb, ursadb_db, self.backend])
+        subprocess.check_call([ursadb_new, self.db])
+        self.ursadb = subprocess.Popen([ursadb, self.db, self.backend])
 
     def __make_socket(self) -> zmq.Context:
         context = zmq.Context()
@@ -31,7 +32,7 @@ class UrsadbTestContext:
         return socket
 
     def tmpdir(self) -> Path:
-        dirpath = os.urandom(8).hex()
+        dirpath = tempfile.gettempdir() + "/" + os.urandom(8).hex()
         os.mkdir(dirpath)
         self.tmpdirs.append(dirpath)
         return Path(dirpath)
@@ -109,4 +110,4 @@ def store_files(
 
     ursa_names = " ".join(f'"{f}"' for f in filenames)
 
-    ursadb.check_request(f'index {ursa_names} with [{type}];')
+    ursadb.check_request(f"index {ursa_names} with [{type}];")

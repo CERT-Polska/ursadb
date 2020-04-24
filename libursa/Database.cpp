@@ -17,8 +17,6 @@ Database::Database(const std::string &fname, bool initialize)
 
     if (initialize) {
         load_from_disk();
-    } else {
-        max_memory_size = DEFAULT_MAX_MEM_SIZE;
     }
 }
 
@@ -48,9 +46,6 @@ void Database::load_from_disk() {
         throw std::runtime_error("Failed to parse JSON");
     }
 
-    // TODO(msm) - when not present, use default
-    max_memory_size = db_json["config"]["max_mem_size"];
-
     for (const std::string &dataset_fname : db_json["datasets"]) {
         load_dataset(dataset_fname);
     }
@@ -65,7 +60,6 @@ void Database::load_from_disk() {
 void Database::create(const std::string &fname) {
     ExclusiveFile lock(fname);
     if (!lock.is_ok()) {
-        // TODO() implement either-type error class
         throw std::runtime_error("File already exists");
     }
     Database empty(fname, false);
@@ -99,7 +93,7 @@ void Database::save() {
     db_file.open(db_base / tmp_db_name, std::ofstream::binary);
 
     json db_json;
-    db_json["config"] = {{"max_mem_size", max_memory_size}};
+    db_json["config"] = std::map<std::string, std::string>();
 
     std::vector<std::string> dataset_names;
     for (const auto *ds : working_datasets) {
@@ -107,11 +101,14 @@ void Database::save() {
     }
     db_json["datasets"] = dataset_names;
 
-    json iterators_json;
+    json iterators_json = std::map<std::string, std::string>();
     for (const auto &it : iterators) {
         iterators_json[it.first] = it.second.get_name().get_filename();
     }
     db_json["iterators"] = iterators_json;
+    // Explicit version instead of ursadb_version, because this is is a
+    // *file format version*, not necessarily equal to the db version.
+    db_json["version"] = "1.3.2";
 
     db_file << std::setw(4) << db_json << std::endl;
     db_file.flush();
@@ -254,6 +251,5 @@ DatabaseSnapshot Database::snapshot() {
         cds.push_back(d);
     }
 
-    return DatabaseSnapshot(db_name, db_base, iterators, cds, tasks,
-                            max_memory_size);
+    return DatabaseSnapshot(db_name, db_base, iterators, cds, tasks);
 }

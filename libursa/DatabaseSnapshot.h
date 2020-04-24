@@ -24,7 +24,6 @@ class DatabaseSnapshot {
     std::set<std::string> locked_datasets;
     std::set<std::string> locked_iterators;
     std::map<uint64_t, Task> tasks;
-    size_t max_memory_size;
     DatabaseHandle db_handle;
 
     void find_all_indexed_files(std::set<std::string> *indexed) const;
@@ -40,8 +39,7 @@ class DatabaseSnapshot {
     DatabaseSnapshot(fs::path db_name, fs::path db_base,
                      std::map<std::string, OnDiskIterator> iterators,
                      std::vector<const OnDiskDataset *> datasets,
-                     const std::map<uint64_t, std::unique_ptr<Task>> &tasks,
-                     size_t max_memory_size);
+                     const std::map<uint64_t, std::unique_ptr<Task>> &tasks);
     void set_db_handle(DatabaseHandle handle);
 
     // For use by the db coordinator from a synchronised context.

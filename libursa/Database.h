@@ -16,7 +16,6 @@ class Database {
     std::map<std::string, OnDiskIterator> iterators;
     std::vector<OnDiskDataset *> working_datasets;
     std::vector<std::unique_ptr<OnDiskDataset>> loaded_datasets;
-    size_t max_memory_size;
 
     uint64_t last_task_id;
     std::map<uint64_t, std::unique_ptr<Task>> tasks;
