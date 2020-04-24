@@ -1,5 +1,7 @@
 #include "Utils.h"
 
+#include <unistd.h>
+
 #include <fstream>
 #include <iomanip>
 #include <random>
@@ -7,6 +9,7 @@
 
 #include "Json.h"
 #include "Version.h"
+#include "spdlog/spdlog.h"
 
 std::string_view get_version_string() { return ursadb_version_string; }
 
@@ -173,6 +176,84 @@ void RunWriter::write(FileId next) {
     out_bytes++;
     out->put((uint8_t)diff);
     prev = next;
+}
+
+PosixRunWriter::~PosixRunWriter() {
+    if (!buffer_.empty()) {
+        // PosixRunWriter buffer not flushed, fatal error.
+        spdlog::error("PosixRunWriter not flushed before destructing");
+        std::terminate();
+    }
+}
+
+// Arbitrary run buffer size for PosixRunWriter - 4kb.
+const uint64_t RUN_BUFFER_SIZE = 128 * 1024 * 1024;
+
+void PosixRunWriter::write(FileId next) {
+    assert(next > prev_);
+    int64_t diff = (next - prev_) - 1;
+    while (diff >= 0x80U) {
+        out_bytes_++;
+        buffer_.push_back((uint8_t)(0x80U | (diff & 0x7FU)));
+        diff >>= 7;
+    }
+    out_bytes_++;
+    buffer_.push_back((uint8_t)diff);
+    prev_ = next;
+
+    if (buffer_.size() > RUN_BUFFER_SIZE) {
+        flush();
+    }
+}
+
+FileId decompress_single(uint8_t **ptrptr) {
+    uint32_t shift = 0;
+    uint8_t *&ptr = *ptrptr;
+    for (uint64_t acc = 0;; ptr++) {
+        acc += (*ptr & 0x7FU) << shift;
+        if ((*ptr & 0x80U) == 0) {
+            ptr++;
+            return acc;
+        }
+        shift += 7U;
+    }
+}
+
+void PosixRunWriter::write_raw(FileId base, uint8_t *start, uint8_t *end) {
+    // Special case: when the range is empty, do nothing.
+    if (end == start) {
+        return;
+    }
+    // Decompress the first element and write it.
+    uint64_t next = decompress_single(&start);
+    write(base + next);
+
+    // Write all the other bytes unchanged, and compute the new last element.
+    uint64_t acc = 0;
+    uint32_t shift = 0;
+    for (const uint8_t *ptr = start; ptr < end; ++ptr) {
+        out_bytes_++;
+        buffer_.push_back(*ptr);
+        if (buffer_.size() > RUN_BUFFER_SIZE) {
+            flush();
+        }
+        acc += (*ptr & 0x7FU) << shift;
+        shift += 7U;
+        if ((*ptr & 0x80U) == 0) {
+            prev_ += acc + 1;
+            acc = 0;
+            shift = 0;
+        }
+    }
+}
+
+void PosixRunWriter::flush() {
+    if (!buffer_.empty()) {
+        if (::write(fd_, buffer_.data(), buffer_.size()) != buffer_.size()) {
+            throw std::runtime_error("Failed to flush PosixRunWriter");
+        }
+        buffer_.clear();
+    }
 }
 
 uint64_t compress_run(const std::vector<FileId> &run, std::ostream &out) {

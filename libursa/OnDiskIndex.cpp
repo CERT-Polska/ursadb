@@ -1,5 +1,7 @@
 #include "OnDiskIndex.h"
 
+#include <unistd.h>
+
 #include <algorithm>
 #include <cstring>
 #include <fstream>
@@ -281,13 +283,90 @@ std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram) const {
 
 unsigned long OnDiskIndex::real_size() const { return fs::file_size(fpath); }
 
+// Merge the indexes, and stream the results to the `out` stream immediately.
+// This function tries to batch reads, which makes it much more efficient on
+// HDDs (on SSDs the difference is not noticeable).
+// Instead of reading one ngram run at a time, read up to MAX_BATCH ngrams.
+// In a special case of batch size=1, this is equivalent to the older method.
+void OnDiskIndex::on_disk_merge_core(
+    const std::vector<IndexMergeHelper> &indexes, RawFile *out, Task *task) {
+    // Offsets to every run in the file (including the header).
+    std::vector<uint64_t> offsets(NUM_TRIGRAMS + 1);
+
+    // Current offset in the file (equal to out.ftell()).
+    uint64_t out_offset = 16;
+
+    // Arbitrary number describing how much RAM we want to spend on the run
+    // cache during the batched stream pass.
+    constexpr uint64_t MAX_BATCH_BYTES = 2ULL * 1024ULL * 1024ULL * 1024ULL;
+
+    // Vector used for all merge passes (to avoid unnecessary reallocations).
+    std::vector<uint8_t> batch_vector(MAX_BATCH_BYTES);
+    uint8_t *batch_data = batch_vector.data();
+
+    PosixRunWriter writer(out->get());
+
+    // Main merge loop.
+    TriGram trigram = 0;
+    while (trigram < NUM_TRIGRAMS) {
+        // Find the biggest batch size for which size of all runs is still
+        // smaller than MAX_BATCH_BYTES.
+        uint64_t batch_size = 1;
+        for (int i = 2; trigram + i < NUM_TRIGRAMS; i++) {
+            uint64_t batch_bytes = 0;
+            for (const auto &ndx : indexes) {
+                batch_bytes += ndx.run(trigram, i).size();
+            }
+            if (batch_bytes > MAX_BATCH_BYTES) {
+                break;
+            }
+            batch_size = i;
+        }
+
+        // Read batch_size runs at once.
+        uint8_t *batch_ptr = batch_data;
+        for (const auto &ndx : indexes) {
+            OnDiskRun run = ndx.run(trigram, batch_size);
+            ndx.index->ndxfile.pread(batch_ptr, run.size(), run.start());
+            batch_ptr += run.size();
+        }
+
+        // Write the runs to the output file in a proper order.
+        for (int i = 0; i < batch_size; i++) {
+            offsets[trigram + i] = out_offset;
+            uint64_t base_bytes = 0;
+            FileId base_files = 0;
+            for (const auto &ndx : indexes) {
+                uint8_t *run_base = batch_data + base_bytes;
+                uint8_t *run_start = run_base + ndx.run(trigram, i).size();
+                uint8_t *run_end = run_base + ndx.run(trigram, i + 1).size();
+                writer.write_raw(base_files, run_start, run_end);
+                base_bytes += ndx.run(trigram, batch_size).size();
+                base_files += ndx.file_count;
+            }
+            out_offset += writer.bytes_written();
+            writer.reset();
+        }
+
+        // Bookkeeping - update progress and current trigram ndx.
+        if (task != nullptr) {
+            task->work_done += batch_size;
+        }
+        trigram += batch_size;
+    }
+    writer.flush();
+
+    // Write the footer - 128MB header with run offsets.
+    offsets[NUM_TRIGRAMS] = out_offset;
+    out->write((char *)offsets.data(), (NUM_TRIGRAMS + 1) * sizeof(uint64_t));
+}
+
+// Creates necessary headers, and forwards the real work to merge_core
 void OnDiskIndex::on_disk_merge(const fs::path &db_base,
                                 const std::string &fname, IndexType merge_type,
                                 const std::vector<IndexMergeHelper> &indexes,
                                 Task *task) {
-    std::ofstream out;
-    out.exceptions(std::ofstream::badbit);
-    out.open(db_base / fname, std::ofstream::binary);
+    RawFile out(db_base / fname, O_WRONLY | O_CREAT | O_EXCL, 0600);
 
     if (!std::all_of(indexes.begin(), indexes.end(),
                      [merge_type](const IndexMergeHelper &ndx) {
@@ -296,41 +375,15 @@ void OnDiskIndex::on_disk_merge(const fs::path &db_base,
         throw std::runtime_error("Unexpected index type during merge");
     }
 
-    uint32_t magic = DB_MAGIC;
-    uint32_t version = OnDiskIndex::VERSION;
-    uint32_t ndx_type = (uint32_t)merge_type;
-    uint32_t reserved = 0;
+    OnDiskIndexHeader header;
+    header.magic = DB_MAGIC;
+    header.version = OnDiskIndex::VERSION;
+    header.raw_type = (uint32_t)merge_type;
+    header.reserved = 0;
 
-    out.write((char *)&magic, 4);
-    out.write((char *)&version, 4);
-    out.write((char *)&ndx_type, 4);
-    out.write((char *)&reserved, 4);
+    out.write(reinterpret_cast<uint8_t *>(&header), sizeof(header));
 
-    std::vector<uint64_t> out_offsets(NUM_TRIGRAMS + 1);
-
-    for (TriGram trigram = 0; trigram < NUM_TRIGRAMS; trigram++) {
-        out_offsets[trigram] = (uint64_t)out.tellp();
-        FileId baseline = 0;
-
-        RunWriter run_writer(&out);
-        for (const IndexMergeHelper &helper : indexes) {
-            uint64_t ptr = helper.run_offset_cache[trigram];
-            uint64_t next_ptr = helper.run_offset_cache[trigram + 1];
-            std::vector<FileId> new_ids = helper.index->get_run(ptr, next_ptr);
-            for (FileId id : new_ids) {
-                run_writer.write(id + baseline);
-            }
-            baseline += helper.file_count;
-        }
-
-        if (task != nullptr) {
-            task->work_done += 1;
-        }
-    }
-    out_offsets[NUM_TRIGRAMS] = (uint64_t)out.tellp();
-
-    out.write((char *)out_offsets.data(),
-              (NUM_TRIGRAMS + 1) * sizeof(uint64_t));
+    on_disk_merge_core(indexes, &out, task);
 }
 
 std::vector<uint64_t> OnDiskIndex::read_run_offsets() const {

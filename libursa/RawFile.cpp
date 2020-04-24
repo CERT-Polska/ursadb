@@ -1,11 +1,10 @@
-#include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #include "OnDiskIndex.h"
 
-RawFile::RawFile(const std::string &fname) {
-    fd = ::open(fname.c_str(), O_RDONLY);
+RawFile::RawFile(const std::string &fname, int flags, int mode) {
+    fd = ::open(fname.c_str(), flags, mode);
     if (fd < 0) {
         std::string message;
         message += "RawFile::RawFile: open for " + fname + " failed";
@@ -32,15 +31,27 @@ uint64_t RawFile::size() const {
     return st.st_size;
 }
 
-void RawFile::pread(void *buf, size_t count, off_t offset) const {
+void RawFile::pread(void *buf, size_t to_read, off_t offset) const {
     char *buf_raw = static_cast<char *>(buf);
-    while (count > 0) {
-        ssize_t result = ::pread(fd, buf_raw, count, offset);
+    while (to_read > 0) {
+        ssize_t result = ::pread(fd, buf_raw, to_read, offset);
         if (result < 0) {
             throw std::runtime_error("RawFile::pread: pread failed");
         }
         buf_raw += result;
         offset += result;
-        count -= result;
+        to_read -= result;
+    }
+}
+
+void RawFile::write(void *buf, size_t to_write) const {
+    char *buf_raw = static_cast<char *>(buf);
+    while (to_write > 0) {
+        ssize_t result = ::write(fd, buf_raw, to_write);
+        if (result < 0) {
+            throw std::runtime_error("RawFile::write: write failed");
+        }
+        buf_raw += result;
+        to_write -= result;
     }
 }
