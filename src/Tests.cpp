@@ -570,28 +570,6 @@ void make_query(Database &db, std::string query_str,
     REQUIRE(out_set == expected_out);
 }
 
-TEST_CASE("Query end2end test", "[e2e_test]") {
-    Database::create("_test_db.ursa");
-    Database db("_test_db.ursa");
-    DatabaseSnapshot snap = db.snapshot();
-
-    Task *task = db.allocate_task();
-    db.snapshot().recursive_index_paths(task,
-                                        {IndexType::GRAM3, IndexType::HASH4,
-                                         IndexType::TEXT4, IndexType::WIDE8},
-                                        {"test/"});
-    db.commit_task(task->id);
-
-    make_query(db, "select \"nonexistent\";", {});
-    make_query(db, "select min 1 of ({000000}, {010101});", {});
-    make_query(db, "select min 2 of ({000000});", {});
-    make_query(db, "select \"foot\" & \"ing\";",
-               {"ISLT", "WEEC", "GJND", "QTXN"});
-    make_query(db, "select \"dragons\" & \"bridge\";", {"GJND", "QTXN"});
-    make_query(db, "select min 2 of (\"wing\", \"tool\", \"less\");",
-               {"IPVX", "GJND", "IJKZ"});
-}
-
 TEST_CASE("Test internal_pick_common", "[internal_pick_common]") {
     std::vector<FileId> source1 = {1, 2, 3};
     REQUIRE(internal_pick_common(1, {&source1}) ==
