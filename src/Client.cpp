@@ -108,7 +108,9 @@ void UrsaClient::setup_connection() {
         return socket;
     };
 
-    spdlog::info("Connecting to {}", server_addr);
+    if (is_interactive) {
+        spdlog::info("Connecting to {}", server_addr);
+    }
     cmd_socket = make_socket();
     check_conn_status(&cmd_socket);
     status_socket = make_socket();
