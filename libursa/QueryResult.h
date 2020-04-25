@@ -10,7 +10,7 @@ class QueryResult {
     bool has_everything;
 
     QueryResult() : has_everything(true) {}
-    QueryResult(const QueryResult &other) = delete;
+    QueryResult(const QueryResult &other) = default;
 
    public:
     QueryResult(QueryResult &&other) = default;
@@ -31,4 +31,7 @@ class QueryResult {
     bool is_everything() const { return has_everything; }
 
     const std::vector<FileId> &vector() const { return results; }
+
+    // For when you really need to clone the query result
+    QueryResult clone() const { return *this; }
 };

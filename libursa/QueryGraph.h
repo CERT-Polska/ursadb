@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -12,37 +13,72 @@ class NodeId {
     uint32_t id_;
 
    public:
-    NodeId(uint32_t id) : id_(id) {}
+    // Constructs a new nodeid object with assigned value.
+    explicit NodeId(uint32_t id) : id_(id) {}
 
+    // Compares two nodes by node id.
     bool operator<(const NodeId &rhs) const { return id_ < rhs.id_; }
 
+    // Returns wrapped integer value.
     uint32_t get() const { return id_; }
+
+    // Returns a NodeId shifted by `shift. Useful for moving getween graphs.
+    NodeId shifted(size_t shift) { return NodeId(id_ + shift); }
 };
 
+// Edge, when necessary, is represented internally as a pair of nodes.
 using Edge = std::pair<NodeId, NodeId>;
 
+// Signature of the function used to query index by ngram.
 using QueryFunc = std::function<QueryResult(uint32_t)>;
 
 class QueryGraphNode {
-    // N-gram with implicit n. For example, 0x112233 represents {11 22 33}.
-    // For obvious reasons, can't handle n-grams with n bigger than 4.
-    uint32_t gram_;
-
     // Adjacency list for this node. Elements are indices in the parent
     // graph's `nodes` vector.
     std::vector<NodeId> edges_;
 
-   public:
-    QueryGraphNode(uint32_t gram) : gram_(gram) {}
+    // N-gram with implicit n. For example, 0x112233 represents {11 22 33}.
+    // For obvious reasons, can't handle n-grams with n bigger than 4.
+    uint32_t gram_;
 
+    // Is this a special epsilon node. Epsilon nodes are no-ops that accept
+    // every file. They are sometimes added during graph operations.
+    bool is_epsilon_;
+
+    // Constructs an epsilon graph node - private to avoid accidental misuse.
+    QueryGraphNode() : edges_(), gram_(0), is_epsilon_(true) {}
+
+   public:
+    // Constructs a new graph node with assigned ngram value.
+    explicit QueryGraphNode(uint32_t gram) : gram_(gram), is_epsilon_(false) {}
+
+    // Adds edge from this node to another one.
     void add_edge(NodeId to) { edges_.push_back(to); }
 
-    uint32_t gram() const { return gram_; }
+    // Returns true if this node is epsilon, false otherwise.
+    bool is_epsilon() const { return is_epsilon_; }
 
+    // Returns ngram assigned to this node, undefined if the node is epsilon.
+    uint32_t gram() const {
+        assert(!is_epsilon_);
+        return gram_;
+    }
+
+    // Returns a list of edges adjacent to this one.
     const std::vector<NodeId> &edges() const { return edges_; }
+
+    // Constructs an epsilon graph node.
+    static QueryGraphNode epsilon() { return QueryGraphNode(); }
 
     // Sink node is defined as a node with no outgoing edges.
     bool is_sink() const { return edges_.empty(); }
+
+    // Shift this node by `offset` - useful when moving nodes between graphs.
+    void shift(size_t offset) {
+        for (auto &edge : edges_) {
+            edge = edge.shifted(offset);
+        }
+    }
 };
 
 // A directed graph of n-grams. More advanced query representation. Enables
@@ -73,9 +109,7 @@ class QueryGraph {
 
     // Merges ngrams of two given nodes assuming they're adjacent in query.
     // For example, will merge ABC and BCD into ABCD.
-    uint32_t combine(NodeId source, NodeId target) const {
-        return (get(source).gram() << 8) + (get(target).gram() & 0xFF);
-    }
+    uint32_t combine(NodeId source, NodeId target) const;
 
     // Adds a new node to the query graph, and returns its id.
     NodeId make_node(uint32_t gram) {
@@ -83,8 +117,16 @@ class QueryGraph {
         return NodeId(nodes_.size() - 1);
     }
 
+    // Adds a new epsilon node to the query graph, and returns its id.
+    NodeId make_epsilon() {
+        nodes_.emplace_back(QueryGraphNode::epsilon());
+        return NodeId(nodes_.size() - 1);
+    }
+
+    // Gets a QueryGraphNode by its ID
     const QueryGraphNode &get(NodeId id) const { return nodes_[id.get()]; }
 
+    // Gets a QueryGraphNode by its ID
     QueryGraphNode &get(NodeId id) { return nodes_[id.get()]; }
 
    public:
@@ -107,12 +149,17 @@ class QueryGraph {
     //          BX  ->  XC
     //   AB -<              >-  CD
     //          BY  ->  YC
+    //
     QueryGraph dual() const;
 
     // Gets all files matching the current graph, using a provided oracle.
     QueryResult run(const QueryFunc &oracle) const;
 
+    // Returns a number of nodes in this query graph.
     uint32_t size() const { return nodes_.size(); }
+
+    // Joins the second querygrah to this one. This is equivalent to AND.
+    void join(QueryGraph &&other);
 
     // Converts the query to a naive graph of 1-grams.
     // For example, "ABCD" will be changed to `A -> B -> C -> D`.

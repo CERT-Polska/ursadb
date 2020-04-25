@@ -140,10 +140,9 @@ QueryResult OnDiskIndex::expand_wildcards(const QString &qstr, size_t len,
 // tokens (for example, `(11 | 22 33)`). The proper solution is much harder and
 // will need a efficient graph pruning algorithm. Nevertheless, this solution
 // works and can support everything that the current parser can.
-std::vector<QueryGraph> to_query_graphs(const QString &str, int ngram_size) {
-    // Disjoing subgraphs in the query graph. Logically they are ANDed with
-    // each other when making a query.
-    std::vector<QueryGraph> subgraphs;
+QueryGraph to_query_graph(const QString &str, int ngram_size) {
+    // Graph representing the final query equivalent to qstring.
+    QueryGraph result;
 
     // Maximum number of possible values for the edge to be considered.
     // If token has more than MAX_EDGE possible values, it will never start
@@ -192,23 +191,24 @@ std::vector<QueryGraph> to_query_graphs(const QString &str, int ngram_size) {
             tokens.pop_back();
         }
 
-        if (tokens.size() >= ngram_size) {
-            spdlog::info("Expanding subquery ({} elements)", tokens.size());
-            subgraphs.emplace_back(std::move(QueryGraph::from_qstring(tokens)));
+        if (tokens.size() < ngram_size) {
+            continue;
         }
-    }
 
-    // Now expand every graph separately.
-    for (auto &subgraph : subgraphs) {
+        spdlog::info("Got a subgraph candidate, size={}", tokens.size());
+        QueryGraph subgraph{QueryGraph::from_qstring(tokens)};
+
         for (int i = 0; i < ngram_size - 1; i++) {
             spdlog::info("Computing dual graph ({} nodes)", subgraph.size());
             subgraph = std::move(subgraph.dual());
         }
-        spdlog::info("Final subgraph size: {} nodes", subgraph.size());
+
+        spdlog::info("Merging subgraph into the result");
+        result.join(std::move(subgraph));
     }
 
-    spdlog::info("Query graph expansion succeeded");
-    return subgraphs;
+    spdlog::info("Query graph expansion succeeded ({} nodes)", result.size());
+    return result;
 }
 
 QueryResult OnDiskIndex::query_str(const QString &str) const {
@@ -244,12 +244,8 @@ QueryResult OnDiskIndex::query_str(const QString &str) const {
             }
             return QueryResult::everything();
         };
-        auto graphs = std::move(to_query_graphs(str, input_len));
-        QueryResult result = QueryResult::everything();
-        for (const auto &graph : graphs) {
-            result.do_and(std::move(graph.run(oracle)));
-        }
-        return result;
+        QueryGraph graph{to_query_graph(str, input_len)};
+        return graph.run(oracle);
     }
     return expand_wildcards(str, input_len, generator);
 }
