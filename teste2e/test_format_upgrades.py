@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 import tempfile
 import os
+import zmq
 import json
 from typing import Dict, Any
 
@@ -13,11 +14,13 @@ from typing import Dict, Any
 class TemporaryStorage:
     def __init__(self):
         self.tmpfiles = []
+        self.tmpdir = tempfile.gettempdir()
 
     def tmpfile(self, name=None) -> Path:
         if name is None:
-            name = os.urandom(8)
-        filepath = tempfile.gettempdir() + "/" + os.urandom(8).hex()
+            filepath = self.tmpdir + "/" + os.urandom(8).hex()
+        else:
+            filepath = self.tmpdir + "/" + name
         self.tmpfiles.append(filepath)
         return Path(filepath)
 
@@ -53,7 +56,7 @@ def upgrade_json(data: Dict[str, Any]) -> Dict[str, Any]:
         )
 
     if data.get("iterators") is not None:
-        for itermeta in data["iterators"]:
+        for itermeta in data["iterators"].values():
             iterf = ctx.write_text("").name
             ctx.write_json(
                 {
@@ -66,8 +69,16 @@ def upgrade_json(data: Dict[str, Any]) -> Dict[str, Any]:
             )
 
     ursadb = subprocess.Popen([ursadb, db, backend])
-    # TODO remove this after we have some sort of quit command
-    time.sleep(1)
+
+    # Wait for the database to boot.
+    context = zmq.Context()
+    socket = context.socket(zmq.REQ)
+    socket.setsockopt(zmq.LINGER, 0)
+    socket.setsockopt(zmq.RCVTIMEO, 10000)
+    socket.connect(backend)
+    socket.send_string("status;")
+    socket.recv_string()
+
     ursadb.terminate()
 
     return json.loads(db.read_text())

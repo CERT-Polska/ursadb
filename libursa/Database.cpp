@@ -8,6 +8,7 @@
 #include "Core.h"
 #include "ExclusiveFile.h"
 #include "Json.h"
+#include "Version.h"
 #include "spdlog/spdlog.h"
 
 Database::Database(const std::string &fname, bool initialize)
@@ -106,9 +107,7 @@ void Database::save() {
         iterators_json[it.first] = it.second.get_name().get_filename();
     }
     db_json["iterators"] = iterators_json;
-    // Explicit version instead of ursadb_version, because this is is a
-    // *file format version*, not necessarily equal to the db version.
-    db_json["version"] = "1.3.2";
+    db_json["version"] = std::string(ursadb_format_version);
 
     db_file << std::setw(4) << db_json << std::endl;
     db_file.flush();
