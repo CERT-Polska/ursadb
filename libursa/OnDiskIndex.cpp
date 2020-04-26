@@ -305,7 +305,7 @@ uint64_t find_max_batch(const std::vector<IndexMergeHelper> &indexes,
 // Instead of reading one ngram run at a time, read up to MAX_BATCH ngrams.
 // In a special case of batch size=1, this is equivalent to the older method.
 void OnDiskIndex::on_disk_merge_core(
-    const std::vector<IndexMergeHelper> &indexes, RawFile *out, Task *task) {
+    const std::vector<IndexMergeHelper> &indexes, RawFile *out, TaskSpec *task) {
     // Offsets to every run in the file (including the header).
     std::vector<uint64_t> offsets(NUM_TRIGRAMS + 1);
 
@@ -354,7 +354,7 @@ void OnDiskIndex::on_disk_merge_core(
 
         // Bookkeeping - update progress and current trigram ndx.
         if (task != nullptr) {
-            task->work_done += batch_size;
+            task->add_progress(batch_size);
         }
         trigram += batch_size;
     }
@@ -369,8 +369,10 @@ void OnDiskIndex::on_disk_merge_core(
 void OnDiskIndex::on_disk_merge(const fs::path &db_base,
                                 const std::string &fname, IndexType merge_type,
                                 const std::vector<IndexMergeHelper> &indexes,
-                                Task *task) {
-    RawFile out(db_base / fname, O_WRONLY | O_CREAT | O_EXCL, 0600);
+                                TaskSpec *task) {
+    std::ofstream out;
+    out.exceptions(std::ofstream::badbit);
+    out.open(db_base / fname, std::ofstream::binary);
 
     if (!std::all_of(indexes.begin(), indexes.end(),
                      [merge_type](const IndexMergeHelper &ndx) {
@@ -386,6 +388,7 @@ void OnDiskIndex::on_disk_merge(const fs::path &db_base,
     header.reserved = 0;
 
     out.write(reinterpret_cast<uint8_t *>(&header), sizeof(header));
+
 
     on_disk_merge_core(indexes, &out, task);
 }

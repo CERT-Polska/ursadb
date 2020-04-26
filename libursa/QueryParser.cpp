@@ -484,12 +484,12 @@ Command transform_command(const parse_tree::node &n) {
             throw std::runtime_error("unexpected first node in index");
         }
     } else if (n.is<reindex>()) {
-        std::string dataset_name = transform_string(*n.children[0]);
+        std::string dataset_id = transform_string(*n.children[0]);
         std::vector<IndexType> types;
         if (n.children.size() > 1) {
             types = transform_index_types(*n.children[1]);
         }
-        return Command(ReindexCommand(dataset_name, types));
+        return Command(ReindexCommand(dataset_id, types));
     } else if (n.is<compact>()) {
         if (n.children[0]->is<all_token>()) {
             return Command(CompactCommand(CompactType::All));

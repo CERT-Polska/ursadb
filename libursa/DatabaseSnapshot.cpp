@@ -12,17 +12,13 @@ DatabaseSnapshot::DatabaseSnapshot(
     fs::path db_name, fs::path db_base, DatabaseConfig config,
     std::map<std::string, OnDiskIterator> iterators,
     std::vector<const OnDiskDataset *> datasets,
-    const std::unordered_map<uint64_t, std::unique_ptr<Task>> &tasks)
+    const std::unordered_map<uint64_t, TaskSpec *> &tasks)
     : db_name(db_name),
       db_base(db_base),
       config(config),
       iterators(iterators),
       datasets(datasets),
-      tasks() {
-    for (const auto &entry : tasks) {
-        this->tasks.emplace(entry.first, *entry.second.get());
-    }
-}
+      tasks(std::move(tasks)) {}
 
 const OnDiskDataset *DatabaseSnapshot::find_dataset(
     const std::string &name) const {
@@ -34,7 +30,7 @@ const OnDiskDataset *DatabaseSnapshot::find_dataset(
     return nullptr;
 }
 
-bool DatabaseSnapshot::read_iterator(Task *task, const std::string &iterator_id,
+void DatabaseSnapshot::read_iterator(Task *task, const std::string &iterator_id,
                                      int count, std::vector<std::string> *out,
                                      uint64_t *out_iterator_position,
                                      uint64_t *out_iterator_files) const {
@@ -46,11 +42,6 @@ bool DatabaseSnapshot::read_iterator(Task *task, const std::string &iterator_id,
         throw std::runtime_error("tried to read non-existent iterator");
     }
 
-    // TODO maybe should busy-wait on failure?
-    if (!db_handle.request_iterator_lock(iterator_id)) {
-        return false;
-    }
-
     OnDiskIterator iterator_copy = it->second;
     iterator_copy.pop(count, out);
     *out_iterator_files = iterator_copy.get_total_files();
@@ -59,9 +50,8 @@ bool DatabaseSnapshot::read_iterator(Task *task, const std::string &iterator_id,
     std::string byte_offset = std::to_string(iterator_copy.get_byte_offset());
     std::string file_offset = std::to_string(iterator_copy.get_file_offset());
     std::string param = byte_offset + ":" + file_offset;
-    task->changes.emplace_back(DbChangeType::UpdateIterator,
-                               iterator_copy.get_name().get_filename(), param);
-    return true;
+    task->change(DBChange(DbChangeType::UpdateIterator,
+                          iterator_copy.get_name().get_filename(), param));
 }
 
 void DatabaseSnapshot::build_target_list(
@@ -146,19 +136,19 @@ void DatabaseSnapshot::force_index_files(
 
     Indexer indexer(this, types);
 
-    task->work_estimated = targets.size() + 1;
+    task->spec().estimate_work(targets.size() + 1);
 
     for (const auto &target : targets) {
         spdlog::debug("Indexing {}", target);
         indexer.index(target);
-        task->work_done += 1;
+        task->spec().add_progress(1);
     }
 
     for (const auto *ds : indexer.finalize()) {
-        task->changes.emplace_back(DbChangeType::Insert, ds->get_name());
+        task->change(DBChange(DbChangeType::Insert, ds->get_name()));
     }
 
-    task->work_done += 1;
+    task->spec().add_progress(1);
 }
 
 void DatabaseSnapshot::reindex_dataset(Task *task,
@@ -170,30 +160,26 @@ void DatabaseSnapshot::reindex_dataset(Task *task,
         throw std::runtime_error("source dataset was not found");
     }
 
-    if (!db_handle.request_dataset_lock({source->get_name()})) {
-        throw std::runtime_error("can't lock the dataset - try again later");
-    }
-
     Indexer indexer(this, types);
 
-    task->work_estimated = source->get_file_count() + 1;
+    task->spec().estimate_work(source->get_file_count() + 1);
 
     source->for_each_filename([&indexer, &task](const std::string &target) {
         spdlog::debug("Reindexing {}", target);
         indexer.index(target);
-        task->work_done += 1;
+        task->spec().add_progress(1);
     });
 
     for (const auto *ds : indexer.finalize()) {
-        task->changes.emplace_back(DbChangeType::Insert, ds->get_name());
+        task->change(DBChange(DbChangeType::Insert, ds->get_name()));
         for (const auto &taint : source->get_taints()) {
-            task->changes.emplace_back(DbChangeType::ToggleTaint,
-                                       ds->get_name(), taint);
+            task->change(
+                DBChange(DbChangeType::ToggleTaint, ds->get_name(), taint));
         }
     }
 
-    task->changes.emplace_back(DbChangeType::Drop, source->get_name());
-    task->work_done += 1;
+    task->change(DBChange(DbChangeType::Drop, source->get_name()));
+    task->spec().add_progress(1);
 }
 
 DatabaseName DatabaseSnapshot::allocate_name(const std::string &type) const {
@@ -215,14 +201,14 @@ DatabaseName DatabaseSnapshot::allocate_name(const std::string &type) const {
 void DatabaseSnapshot::execute(const Query &query,
                                const std::set<std::string> &taints, Task *task,
                                ResultWriter *out) const {
-    task->work_estimated = datasets.size();
+    task->spec().estimate_work(datasets.size());
 
     for (const auto &ds : datasets) {
+        task->spec().add_progress(1);
         if (!ds->has_all_taints(taints)) {
             continue;
         }
         ds->execute(query, out);
-        task->work_done += 1;
     }
 }
 
@@ -233,17 +219,26 @@ void DatabaseSnapshot::execute(const Query &query,
 // This should be parametrised by the DB - right now just hardcode it to 100.
 constexpr int MAX_DATASETS_TO_MERGE = 100;
 
-void DatabaseSnapshot::smart_compact(Task *task) const {
-    spdlog::info("Smart compact operation initiated");
-    try_compact(task, /*smart=*/true);
+std::vector<std::string> DatabaseSnapshot::compact_smart_candidates() const {
+    return find_compact_cancidate(/*smart=*/true);
 }
 
-void DatabaseSnapshot::compact(Task *task) const {
-    spdlog::info("Full compact operation initiated");
-    try_compact(task, /*smart=*/false);
+std::vector<std::string> DatabaseSnapshot::compact_full_candidates() const {
+    return find_compact_cancidate(/*smart=*/false);
 }
 
-void DatabaseSnapshot::try_compact(Task *task, bool smart) const {
+bool is_dataset_locked(const std::unordered_map<uint64_t, TaskSpec *> &tasks,
+                       std::string_view dsname) {
+    for (const auto &[k, task] : tasks) {
+        if (task->locks_dataset(dsname)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::vector<std::string> DatabaseSnapshot::find_compact_cancidate(
+    bool smart) const {
     // Try to find a best compact candidate. As a rating function, we use
     // "number of datasets" - "average number of files", because we want to
     // maximise number of datasets being compacted and minimise number of
@@ -264,7 +259,7 @@ void DatabaseSnapshot::try_compact(Task *task, bool smart) const {
         // Ignore datasets that are locked.
         std::vector<const OnDiskDataset *> ready_candidates;
         for (const auto &candidate : candidates) {
-            if (!is_dataset_locked(candidate->get_name())) {
+            if (!is_dataset_locked(tasks, candidate->get_id())) {
                 ready_candidates.push_back(candidate);
             }
         }
@@ -296,14 +291,34 @@ void DatabaseSnapshot::try_compact(Task *task, bool smart) const {
         }
     }
 
-    // If we found a valid compact candidate, compact it.
     if (best_compact.empty()) {
         spdlog::info("No suitable compact candidate found.");
     } else {
         spdlog::info("Good candidate (cost: {}, datasets: {}).",
                      best_compact_value, best_compact.size());
-        internal_compact(task, std::move(best_compact));
     }
+
+    std::vector<std::string> names;
+    names.reserve(best_compact.size());
+    for (const auto &ds : best_compact) {
+        names.emplace_back(ds->get_id());
+    }
+
+    return names;
+}
+
+void DatabaseSnapshot::compact_locked_datasets(Task *task) const {
+    std::vector<const OnDiskDataset *> datasets;
+    for (const auto &lock : task->spec().locks()) {
+        if (const auto *dslock = std::get_if<DatasetLock>(&lock)) {
+            const OnDiskDataset *ds = find_dataset(dslock->target());
+            if (!ds) {
+                throw std::runtime_error("Locked DS doesn't exist");
+            }
+            datasets.push_back(ds);
+        }
+    }
+    internal_compact(task, std::move(datasets));
 }
 
 // Do some plumbing necessary to pass the data to OnDiskDataset::merge.
@@ -317,36 +332,12 @@ void DatabaseSnapshot::internal_compact(
         ds_names.push_back(ds->get_name());
     }
 
-    if (!db_handle.request_dataset_lock(ds_names)) {
-        throw std::runtime_error("can't lock the datasets - try again later");
-    }
-
     std::string dataset_name = allocate_name().get_filename();
-    OnDiskDataset::merge(db_base, dataset_name, datasets, task);
+    OnDiskDataset::merge(db_base, dataset_name, datasets, &task->spec());
 
     for (auto &dataset : datasets) {
-        task->changes.emplace_back(DbChangeType::Drop, dataset->get_name());
+        task->change(DBChange(DbChangeType::Drop, dataset->get_name()));
     }
 
-    task->changes.emplace_back(DbChangeType::Insert, dataset_name);
-}
-
-void DatabaseSnapshot::set_db_handle(DatabaseHandle handle) {
-    db_handle = handle;
-}
-
-void DatabaseSnapshot::lock_dataset(const std::string &ds_name) {
-    locked_datasets.insert(ds_name);
-}
-
-void DatabaseSnapshot::lock_iterator(const std::string &it_name) {
-    locked_iterators.insert(it_name);
-}
-
-bool DatabaseSnapshot::is_dataset_locked(const std::string &ds_name) const {
-    return locked_datasets.count(ds_name) > 0;
-}
-
-bool DatabaseSnapshot::is_iterator_locked(const std::string &it_name) const {
-    return locked_iterators.count(it_name) > 0;
+    task->change(DBChange(DbChangeType::Insert, dataset_name));
 }

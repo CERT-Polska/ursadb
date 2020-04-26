@@ -7,15 +7,7 @@
 
 #include "Core.h"
 #include "Json.h"
-
-struct TaskEntry {
-    std::string id;
-    std::string connection_id;
-    std::string request;
-    uint64_t work_done;
-    uint64_t work_estimated;
-    uint64_t epoch_ms;
-};
+#include "Task.h"
 
 struct IndexEntry {
     IndexType type;
@@ -47,6 +39,7 @@ class Response {
     static Response ping(const std::string &connection_id);
     static Response error(const std::string &message, bool retry = false);
     static Response topology(const std::vector<DatasetEntry> &datasets);
-    static Response status(const std::vector<TaskEntry> &tasks);
+    static Response status(
+        const std::unordered_map<uint64_t, TaskSpec *> &tasks);
     std::string to_string() const;
 };

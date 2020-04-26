@@ -205,7 +205,7 @@ std::string OnDiskDataset::get_id() const {
 
 void OnDiskDataset::merge(const fs::path &db_base, const std::string &outname,
                           const std::vector<const OnDiskDataset *> &datasets,
-                          Task *task) {
+                          TaskSpec *task) {
     std::set<IndexType> index_types;
 
     if (datasets.size() < 2) {
@@ -243,14 +243,14 @@ void OnDiskDataset::merge(const fs::path &db_base, const std::string &outname,
     }
 
     if (task != nullptr) {
-        task->work_estimated = NUM_TRIGRAMS * index_types.size();
+        task->estimate_work(NUM_TRIGRAMS * index_types.size());
     }
 
-    spdlog::info("Pre-checks succeeded, merge can begin.");
+    spdlog::debug("Pre-checks succeeded, merge can begin.");
 
     std::set<std::string> index_names;
     for (const auto &ndxtype : index_types) {
-        spdlog::info("Load run offsets: {}.", get_index_type_name(ndxtype));
+        spdlog::debug("Load run offsets: {}.", get_index_type_name(ndxtype));
         std::string index_name = get_index_type_name(ndxtype) + "." + outname;
         index_names.insert(index_name);
         std::vector<IndexMergeHelper> indexes;
@@ -260,11 +260,11 @@ void OnDiskDataset::merge(const fs::path &db_base, const std::string &outname,
                 IndexMergeHelper(&index, dataset->files_index->get_file_count(),
                                  index.read_run_offsets()));
         }
-        spdlog::info("On disk merge: {}.", get_index_type_name(ndxtype));
+        spdlog::debug("On disk merge: {}.", get_index_type_name(ndxtype));
         OnDiskIndex::on_disk_merge(db_base, index_name, ndxtype, indexes, task);
     }
 
-    spdlog::info("Merge filename lists.");
+    spdlog::debug("Merge filename lists.");
 
     std::string fname_list = "files." + outname;
     std::ofstream of;
@@ -280,7 +280,7 @@ void OnDiskDataset::merge(const fs::path &db_base, const std::string &outname,
     store_dataset(db_base, outname, index_names, fname_list,
                   datasets[0]->get_taints());
 
-    spdlog::info("Merge finished successfully.");
+    spdlog::debug("Merge finished successfully.");
 }
 
 const OnDiskIndex &OnDiskDataset::get_index_with_type(

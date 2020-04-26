@@ -69,24 +69,46 @@ void Database::create(const std::string &fname) {
     empty.save();
 }
 
-uint64_t Database::allocate_task_id() { return ++last_task_id; }
-
-Task *Database::allocate_task(const std::string &request,
-                              const std::string &conn_id) {
-    while (true) {
-        uint64_t task_id = allocate_task_id();
-        auto timestamp = std::chrono::steady_clock::now().time_since_epoch();
-        uint64_t epoch_ms = get_milli_timestamp();
-        if (tasks.count(task_id) == 0) {
-            return tasks
-                .emplace(task_id, std::make_unique<Task>(Task(
-                                      task_id, epoch_ms, request, conn_id)))
-                .first->second.get();
+bool Database::can_acquire(const DatasetLock &newlock) const {
+    for (const auto &[k, task] : tasks) {
+        if (task->locks_dataset(newlock.target())) {
+            return false;
         }
     }
+    return true;
 }
 
-Task *Database::allocate_task() { return allocate_task("N/A", "N/A"); }
+bool Database::can_acquire(const IteratorLock &newlock) const {
+    for (const auto &[k, task] : tasks) {
+        if (task->locks_iterator(newlock.target())) {
+            return false;
+        }
+    }
+    return true;
+}
+
+uint64_t Database::allocate_task_id() { return ++last_task_id; }
+
+TaskSpec *Database::allocate_task(const std::string &request,
+                                  const std::string &conn_id,
+                                  const std::vector<DatabaseLock> &locks) {
+    for (const auto &lock : locks) {
+        spdlog::info("Locking {}...", describe_lock(lock));
+        if (!std::visit([this](auto &l) { return can_acquire(l); }, lock)) {
+            spdlog::warn("Can't lock {}!", describe_lock(lock));
+            throw std::runtime_error("Can't acquire lock");
+        }
+    }
+    uint64_t task_id = allocate_task_id();
+    auto timestamp = std::chrono::steady_clock::now().time_since_epoch();
+    uint64_t epoch_ms = get_milli_timestamp();
+    return tasks
+        .emplace(task_id, std::make_unique<TaskSpec>(task_id, conn_id, request,
+                                                     epoch_ms, locks))
+        .first->second.get();
+}
+
+TaskSpec *Database::allocate_task() { return allocate_task("N/A", "N/A", {}); }
 
 void Database::save() {
     std::string tmp_db_name =
@@ -196,10 +218,11 @@ void Database::collect_garbage(
     }
 }
 
-void Database::commit_task(uint64_t task_id) {
-    Task *task = get_task(task_id);
+void Database::commit_task(const TaskSpec &spec,
+                           const std::vector<DBChange> &changes) {
+    uint64_t task_id = spec.id();
 
-    for (const auto &change : task->changes) {
+    for (const auto &change : changes) {
         spdlog::info("Change: {} {} ({})", db_change_to_string(change.type),
                      change.obj_name, change.parameter);
         if (change.type == DbChangeType::Insert) {
@@ -239,23 +262,30 @@ void Database::commit_task(uint64_t task_id) {
         }
     }
 
-    if (!task->changes.empty()) {
+    if (!changes.empty()) {
         save();
     }
 
     erase_task(task_id);
 }
 
-Task *Database::get_task(uint64_t task_id) { return tasks.at(task_id).get(); }
+const TaskSpec &Database::get_task(uint64_t task_id) {
+    return *tasks.at(task_id).get();
+}
 
 void Database::erase_task(uint64_t task_id) { tasks.erase(task_id); }
 
 DatabaseSnapshot Database::snapshot() {
     std::vector<const OnDiskDataset *> cds;
-
     for (const auto *d : working_datasets) {
         cds.push_back(d);
     }
 
-    return DatabaseSnapshot(db_name, db_base, config, iterators, cds, tasks);
+    std::unordered_map<uint64_t, TaskSpec *> taskspecs;
+    for (const auto &[k, v] : tasks) {
+        taskspecs.emplace(k, v.get());
+    }
+
+    return DatabaseSnapshot(db_name, db_base, config, iterators, cds,
+                            taskspecs);
 }

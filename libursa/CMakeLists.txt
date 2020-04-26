@@ -10,8 +10,8 @@ add_library(
     Database.h
     DatabaseConfig.cpp
     DatabaseConfig.h
-    DatabaseHandle.cpp
-    DatabaseHandle.h
+    DatabaseLock.cpp
+    DatabaseLock.h
     DatabaseName.cpp
     DatabaseName.h
     DatabaseSnapshot.cpp

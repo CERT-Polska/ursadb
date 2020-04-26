@@ -27,7 +27,7 @@ class UrsadbTestContext:
         context = zmq.Context()
         socket = context.socket(zmq.REQ)
         socket.setsockopt(zmq.LINGER, 0)
-        socket.setsockopt(zmq.RCVTIMEO, 30000)
+        socket.setsockopt(zmq.RCVTIMEO, 60000)
         socket.connect(self.backend)
         return socket
 
@@ -41,6 +41,11 @@ class UrsadbTestContext:
         sock = self.__make_socket()
         sock.send_string(cmd)
         return json.loads(sock.recv_string())
+
+    def start_request(self, cmd: str) -> zmq.Context:
+        sock = self.__make_socket()
+        sock.send_string(cmd)
+        return sock
 
     def check_request(self, cmd: str, pattern: Any = None) -> Dict[str, Any]:
         response = self.request(cmd)

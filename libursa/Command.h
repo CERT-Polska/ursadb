@@ -66,15 +66,15 @@ class IndexFromCommand {
 };
 
 class ReindexCommand {
-    std::string dataset_name;
-    std::vector<IndexType> types;
+    std::string dataset_id_;
+    std::vector<IndexType> types_;
 
    public:
-    ReindexCommand(const std::string &dataset_name,
+    ReindexCommand(const std::string &dataset_id,
                    const std::vector<IndexType> &types)
-        : dataset_name(dataset_name), types(types) {}
-    const std::string &get_dataset_name() const { return dataset_name; }
-    const std::vector<IndexType> &get_index_types() const { return types; }
+        : dataset_id_(dataset_id), types_(types) {}
+    const std::string &dataset_id() const { return dataset_id_; }
+    const std::vector<IndexType> &get_index_types() const { return types_; }
 };
 
 enum CompactType { All = 1, Smart = 2 };

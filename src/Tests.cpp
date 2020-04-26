@@ -297,7 +297,7 @@ TEST_CASE("iterator.pop command", "[queryparser]") {
 
 TEST_CASE("reindex command", "[queryparser]") {
     auto cmd = parse<ReindexCommand>("reindex \"xyz\" with [wide8];");
-    REQUIRE(cmd.get_dataset_name() == "xyz");
+    REQUIRE(cmd.dataset_id() == "xyz");
     REQUIRE(cmd.get_index_types() == std::vector{IndexType::WIDE8});
 }
 
@@ -578,11 +578,12 @@ TEST_CASE("FlatIndexBuilder for text4", "[index_builder]") {
 
 void make_query(Database &db, std::string query_str,
                 std::set<std::string> expected_out) {
-    Task *task = db.allocate_task();
+    TaskSpec *task_spec = db.allocate_task();
+    Task task(task_spec);
     auto cmd = parse<SelectCommand>(query_str);
     InMemoryResultWriter out;
-    db.snapshot().execute(cmd.get_query(), {}, task, &out);
-    db.commit_task(task->id);
+    db.snapshot().execute(cmd.get_query(), {}, &task, &out);
+    db.commit_task(*task_spec, task.changes());
 
     std::vector<std::string> out_fixed;
     for (const auto &x : out.get()) {
