@@ -164,13 +164,7 @@ void DatabaseSnapshot::force_index_files(
 void DatabaseSnapshot::reindex_dataset(Task *task,
                                        const std::vector<IndexType> &types,
                                        const std::string &dataset_name) const {
-    const OnDiskDataset *source = nullptr;
-
-    for (const auto *ds : datasets) {
-        if (ds->get_id() == dataset_name) {
-            source = ds;
-        }
-    }
+    const OnDiskDataset *source = find_dataset(dataset_name);
 
     if (source == nullptr) {
         throw std::runtime_error("source dataset was not found");
@@ -192,6 +186,10 @@ void DatabaseSnapshot::reindex_dataset(Task *task,
 
     for (const auto *ds : indexer.finalize()) {
         task->changes.emplace_back(DbChangeType::Insert, ds->get_name());
+        for (const auto &taint : source->get_taints()) {
+            task->changes.emplace_back(DbChangeType::ToggleTaint,
+                                       ds->get_name(), taint);
+        }
     }
 
     task->changes.emplace_back(DbChangeType::Drop, source->get_name());

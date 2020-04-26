@@ -6,7 +6,7 @@ import subprocess
 import os
 from pathlib import Path
 import pytest
-from typing import Dict, Any
+from typing import Dict, Any, List
 import zmq
 import shutil
 import json
@@ -46,7 +46,12 @@ class UrsadbTestContext:
         response = self.request(cmd)
         assert "error" not in response
         if pattern:
-            assert match_pattern(response["result"], pattern)
+            matches = match_pattern(response["result"], pattern)
+            if not matches:
+                # for better error message
+                print(json.dumps(pattern, indent=4))
+                print(json.dumps(response["result"], indent=4))
+                assert matches
         return response
 
     def close(self):
@@ -71,6 +76,8 @@ def match_pattern(value: Any, pattern: Any):
     if isinstance(pattern, dict):
         # If the pattern is a dict, every key must match to value.
         if not isinstance(value, dict):
+            return False
+        if len(value.keys()) != len(pattern.keys()):
             return False
         for k, v in pattern.items():
             # Special #UNK# keys match to any key
@@ -111,3 +118,13 @@ def store_files(
     ursa_names = " ".join(f'"{f}"' for f in filenames)
 
     ursadb.check_request(f"index {ursa_names} with [{type}];")
+
+
+def check_query(ursadb: UrsadbTestContext, query: str, expected: List[str]):
+    response = ursadb.check_request(f"select {query};")
+    assert response["type"] == "select"
+    assert response["result"]["mode"] == "raw"
+    assert len(response["result"]["files"]) == len(expected)
+
+    for fpath in response["result"]["files"]:
+        assert any(fpath.endswith(f"/{fname}") for fname in expected)

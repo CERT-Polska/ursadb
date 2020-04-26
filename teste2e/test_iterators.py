@@ -9,7 +9,8 @@ def test_pop(ursadb: UrsadbTestContext) -> None:
         {"file0": b"file0", "file1": b"file1", "file2": b"file2"},
     )
     response = ursadb.check_request(
-        'select into iterator "file";', {"mode": "iterator"}
+        'select into iterator "file";',
+        {"mode": "iterator", "file_count": 3, "iterator": "#UNK#",},
     )
     iterator = response["result"]["iterator"]
 

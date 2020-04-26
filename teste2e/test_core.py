@@ -1,18 +1,8 @@
-from util import UrsadbTestContext, store_files
+from util import UrsadbTestContext, store_files, check_query
 from util import ursadb  # noqa
 from typing import List
 import os
 import hashlib
-
-
-def check_query(ursadb: UrsadbTestContext, query: str, expected: List[str]):
-    response = ursadb.check_request(f"select {query};")
-    assert response["type"] == "select"
-    assert response["result"]["mode"] == "raw"
-    assert len(response["result"]["files"]) == len(expected)
-
-    for fpath in response["result"]["files"]:
-        assert any(fpath.endswith(f"/{fname}") for fname in expected)
 
 
 def test_indexing_small(ursadb: UrsadbTestContext):
@@ -24,7 +14,8 @@ def test_indexing_small(ursadb: UrsadbTestContext):
             "datasets": {
                 "#UNK#": {
                     "file_count": 1,
-                    "indexes": [{"type": "gram3"}],
+                    "indexes": [{"type": "gram3", "size": "#UNK#"}],
+                    "size": "#UNK#",
                     "taints": [],
                 }
             }
