@@ -35,6 +35,7 @@ class OnDiskIndex {
     OnDiskIndex(OnDiskIndex &&) = default;
 
     const std::string &get_fname() const { return fname; }
+    const fs::path &get_fpath() const { return fpath; }
     IndexType index_type() const { return ntype; }
     QueryResult query_str(const QString &str) const;
     unsigned long real_size() const;
