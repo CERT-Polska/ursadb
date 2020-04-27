@@ -42,7 +42,7 @@ class Response {
                                          uint64_t iterator_position,
                                          uint64_t total_files);
     static Response ok();
-    static Response config(std::map<std::string, uint64_t> values);
+    static Response config(std::unordered_map<std::string, uint64_t> values);
     static Response ping(const std::string &connection_id);
     static Response error(const std::string &message, bool retry = false);
     static Response topology(const std::vector<DatasetEntry> &datasets);

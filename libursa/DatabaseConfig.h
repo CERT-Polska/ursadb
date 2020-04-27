@@ -29,6 +29,6 @@ class DatabaseConfig {
 
     uint64_t get(const ConfigKey &key) const;
     void set(const ConfigKey &key, uint64_t value);
-    std::map<std::string, uint64_t> get_all() const;
+    std::unordered_map<std::string, uint64_t> get_all() const;
     const json get_raw() const { return config_; }
 };

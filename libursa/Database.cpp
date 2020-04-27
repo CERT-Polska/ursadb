@@ -57,7 +57,7 @@ void Database::load_from_disk() {
         load_iterator(name);
     }
 
-    config = std::move(DatabaseConfig(db_json["config"]));
+    config = DatabaseConfig(db_json["config"]);
 }
 
 void Database::create(const std::string &fname) {

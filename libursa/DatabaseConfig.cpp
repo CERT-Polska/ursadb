@@ -21,8 +21,7 @@ uint64_t DatabaseConfig::get(const ConfigKey &key) const {
     if (defvals_.count(key.key()) == 0) {
         throw std::runtime_error("Invalid config key (get)");
     }
-    const auto &it = config_.find(key.key());
-    if (it == config_.end()) {
+    if (const auto &it = config_.find(key.key()); it == config_.end()) {
         return defvals_.at(key.key());
     }
     return *it;
@@ -35,8 +34,8 @@ void DatabaseConfig::set(const ConfigKey &key, uint64_t value) {
     config_[key.key()] = value;
 }
 
-std::map<std::string, uint64_t> DatabaseConfig::get_all() const {
-    std::map<std::string, uint64_t> result;
+std::unordered_map<std::string, uint64_t> DatabaseConfig::get_all() const {
+    std::unordered_map<std::string, uint64_t> result;
     for (const auto &[k, v] : defvals_) {
         result.emplace(k, get(k));
     }

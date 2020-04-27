@@ -116,7 +116,7 @@ Response execute_command(const ConfigGetCommand &cmd, Task *task,
     if (cmd.keys().empty()) {
         return Response::config(snap->get_config().get_all());
     }
-    std::map<std::string, uint64_t> vals;
+    std::unordered_map<std::string, uint64_t> vals;
     for (const auto &key : cmd.keys()) {
         vals[key] = snap->get_config().get(ConfigKey(key));
     }
