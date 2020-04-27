@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "DatabaseConfig.h"
 #include "DatabaseHandle.h"
 #include "DatabaseName.h"
 #include "OnDiskDataset.h"
@@ -20,6 +21,7 @@ class DatabaseSnapshot {
     fs::path db_name;
     fs::path db_base;
     std::map<std::string, OnDiskIterator> iterators;
+    DatabaseConfig config;
     std::vector<const OnDiskDataset *> datasets;
     std::set<std::string> locked_datasets;
     std::set<std::string> locked_iterators;
@@ -37,7 +39,7 @@ class DatabaseSnapshot {
     DatabaseName allocate_name(const std::string &type = "set") const;
 
     DatabaseSnapshot(
-        fs::path db_name, fs::path db_base,
+        fs::path db_name, fs::path db_base, DatabaseConfig config,
         std::map<std::string, OnDiskIterator> iterators,
         std::vector<const OnDiskDataset *> datasets,
         const std::unordered_map<uint64_t, std::unique_ptr<Task>> &tasks);
@@ -97,4 +99,6 @@ class DatabaseSnapshot {
         return datasets;
     };
     const std::map<uint64_t, Task> &get_tasks() const { return tasks; };
+
+    const DatabaseConfig &get_config() const { return config; }
 };

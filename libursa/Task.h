@@ -9,7 +9,8 @@ enum class DbChangeType {
     Reload = 3,
     ToggleTaint = 4,
     NewIterator = 5,
-    UpdateIterator = 6
+    UpdateIterator = 6,
+    ConfigChange = 7,
 };
 
 std::string db_change_to_string(DbChangeType change);

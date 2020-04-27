@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "DatabaseConfig.h"
 #include "DatabaseSnapshot.h"
 #include "OnDiskDataset.h"
 #include "OnDiskIterator.h"
@@ -17,6 +18,7 @@ class Database {
     std::map<std::string, OnDiskIterator> iterators;
     std::vector<OnDiskDataset *> working_datasets;
     std::vector<std::unique_ptr<OnDiskDataset>> loaded_datasets;
+    DatabaseConfig config;
 
     uint64_t last_task_id;
     std::unordered_map<uint64_t, std::unique_ptr<Task>> tasks;

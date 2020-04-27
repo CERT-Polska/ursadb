@@ -87,6 +87,25 @@ class CompactCommand {
     const CompactType get_type() const { return type; }
 };
 
+class ConfigGetCommand {
+    std::vector<std::string> keys_;
+
+   public:
+    ConfigGetCommand(const std::vector<std::string> keys) : keys_(keys) {}
+    const std::vector<std::string> &keys() const { return keys_; }
+};
+
+class ConfigSetCommand {
+    std::string key_;
+    uint64_t value_;
+
+   public:
+    ConfigSetCommand(const std::string &key, uint64_t value)
+        : key_(key), value_(value) {}
+    const std::string &key() const { return key_; }
+    const uint64_t &value() const { return value_; }
+};
+
 class StatusCommand {
    public:
     StatusCommand() {}
@@ -120,7 +139,7 @@ class TaintCommand {
     const std::string &get_taint() const { return taint; }
 };
 
-using Command =
-    std::variant<SelectCommand, IndexCommand, IndexFromCommand,
-                 IteratorPopCommand, ReindexCommand, CompactCommand,
-                 StatusCommand, TopologyCommand, PingCommand, TaintCommand>;
+using Command = std::variant<SelectCommand, IndexCommand, IndexFromCommand,
+                             IteratorPopCommand, ReindexCommand, CompactCommand,
+                             ConfigGetCommand, ConfigSetCommand, StatusCommand,
+                             TopologyCommand, PingCommand, TaintCommand>;

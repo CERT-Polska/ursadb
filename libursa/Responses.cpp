@@ -89,4 +89,10 @@ Response Response::status(const std::vector<TaskEntry> &tasks) {
     return r;
 }
 
+Response Response::config(std::map<std::string, uint64_t> values) {
+    Response r("config");
+    r.content["result"]["keys"] = values;
+    return r;
+}
+
 std::string Response::to_string() const { return content.dump(); }
