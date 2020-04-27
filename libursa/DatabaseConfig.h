@@ -1,8 +1,8 @@
 #pragma once
 
-#include <map>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 #include "Json.h"
 
@@ -21,7 +21,7 @@ const ConfigKey query_max_ngram = ConfigKey("query_max_ngram");
 
 class DatabaseConfig {
     json config_;
-    std::map<std::string, uint64_t> defvals_;
+    std::unordered_map<std::string, uint64_t> defvals_;
 
    public:
     DatabaseConfig() : config_() {}

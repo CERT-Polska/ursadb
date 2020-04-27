@@ -21,10 +21,10 @@ uint64_t DatabaseConfig::get(const ConfigKey &key) const {
     if (defvals_.count(key.key()) == 0) {
         throw std::runtime_error("Invalid config key (get)");
     }
-    if (const auto &it = config_.find(key.key()); it == config_.end()) {
-        return defvals_.at(key.key());
+    if (const auto &it = config_.find(key.key()); it != config_.end()) {
+        return *it;
     }
-    return *it;
+    return defvals_.at(key.key());
 }
 
 void DatabaseConfig::set(const ConfigKey &key, uint64_t value) {
