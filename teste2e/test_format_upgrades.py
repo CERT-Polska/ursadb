@@ -16,7 +16,7 @@ class TemporaryStorage:
         self.tmpfiles = []
         self.tmpdir = tempfile.gettempdir()
 
-    def tmpfile(self, name=None) -> Path:
+    def tmpfile(self, name: Optional[str] = None) -> Path:
         if name is None:
             filepath = self.tmpdir + "/" + os.urandom(8).hex()
         else:
@@ -24,12 +24,12 @@ class TemporaryStorage:
         self.tmpfiles.append(filepath)
         return Path(filepath)
 
-    def write_json(self, data: Dict[str, Any], name=None) -> Path:
+    def write_json(self, data: Dict[str, Any], name: Optional[str] = None) -> Path:
         p = self.tmpfile(name=name)
         p.write_text(json.dumps(data))
         return p
 
-    def write_text(self, text: str, name=None) -> Path:
+    def write_text(self, text: str, name: Optional[str] = None) -> Path:
         p = self.tmpfile(name=name)
         p.write_text(text)
         return p
