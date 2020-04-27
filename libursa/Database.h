@@ -3,6 +3,7 @@
 #include <experimental/filesystem>
 #include <map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "DatabaseSnapshot.h"
@@ -16,10 +17,9 @@ class Database {
     std::map<std::string, OnDiskIterator> iterators;
     std::vector<OnDiskDataset *> working_datasets;
     std::vector<std::unique_ptr<OnDiskDataset>> loaded_datasets;
-    size_t max_memory_size;
 
     uint64_t last_task_id;
-    std::map<uint64_t, std::unique_ptr<Task>> tasks;
+    std::unordered_map<uint64_t, std::unique_ptr<Task>> tasks;
 
     uint64_t allocate_task_id();
     void load_from_disk();
@@ -31,7 +31,7 @@ class Database {
 
     const fs::path &get_name() const { return db_name; };
     const fs::path &get_base() const { return db_base; };
-    const std::map<uint64_t, std::unique_ptr<Task>> &current_tasks() {
+    const std::unordered_map<uint64_t, std::unique_ptr<Task>> &current_tasks() {
         return tasks;
     }
     void commit_task(uint64_t task_id);

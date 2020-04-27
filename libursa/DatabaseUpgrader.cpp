@@ -27,8 +27,8 @@ json read_json(std::string_view path) {
     return db_json;
 }
 
-void save_json(std::string_view path, const json &dbjson) {
-    std::string tmp_db_name = "tmp-" + random_hex_string(8);
+void save_json(fs::path root, std::string_view path, const json &dbjson) {
+    std::string tmp_db_name = root / ("upgrade." + random_hex_string(8));
     std::ofstream db_file;
     db_file.exceptions(std::ofstream::badbit);
     db_file.open(tmp_db_name, std::ofstream::binary);
@@ -38,11 +38,27 @@ void save_json(std::string_view path, const json &dbjson) {
     fs::rename(tmp_db_name, path);
 }
 
-void upgrade_v1_0_0(json *dbjson) { (*dbjson)["version"] = "1.3.2"; }
+void upgrade_v1_0_0(json *dbjson) {
+    json &db = *dbjson;
+    db["version"] = "1.3.2";
+
+    if (db.find("config") != db.end()) {
+        db["config"] = std::map<std::string, std::string>();
+    }
+
+    if (db["config"].find("max_mem_size") != db["config"].end()) {
+        db["config"].erase("max_mem_size");
+    }
+
+    if (db["iterators"] == nullptr) {
+        db["iterators"] = std::unordered_map<std::string, std::string>();
+    }
+}
 
 void migrate_version(std::string_view path) {
     std::string most_recent = "1.3.2";
     std::string prev_version = "";
+    auto db_root = fs::path(path).parent_path();
     while (true) {
         json db_json = std::move(read_json(path));
         std::string version = extract_version(db_json);
@@ -59,6 +75,6 @@ void migrate_version(std::string_view path) {
             upgrade_v1_0_0(&db_json);
         }
         prev_version = version;
-        save_json(path, db_json);
+        save_json(db_root, path, db_json);
     }
 }
