@@ -43,7 +43,7 @@ class NodeState {
 
    public:
     // Constructs a new instance of NodeState with provided constructor.
-    NodeState() : state_{TM()}, total_predecessors_{0} {}
+    NodeState() : total_predecessors_{0}, state_{TM()} {}
     NodeState(const NodeState &other) = delete;
     NodeState(NodeState &&other) = default;
 
@@ -119,7 +119,7 @@ class InorderGraphVisitor {
         for (const auto &pred : state.ready_predecessors()) {
             states.push_back(&state_[pred.get()].get());
         }
-        return std::move(states);
+        return states;
     }
 
     // Sets a state for a node with a given id. New state is moved.
@@ -141,11 +141,20 @@ QueryResult masked_or(std::vector<const QueryResult *> &&to_or,
     }
     QueryResult result{QueryResult::empty()};
     for (const auto *query : to_or) {
-        QueryResult alternative(std::vector<FileId>(query->vector()));
+        QueryResult alternative(query->clone());
         alternative.do_and(mask);
         result.do_or(std::move(alternative));
     }
     return result;
+}
+
+uint32_t QueryGraph::combine(NodeId source, NodeId target) const {
+    if (get(source).is_epsilon() || get(target).is_epsilon()) {
+        // It's not that it's hard or slow to combine epsilons. We just
+        // don't expect this, so this may warrant investigation.
+        throw new std::runtime_error("Unexpected epsilon combine op");
+    }
+    return (get(source).gram() << 8) + (get(target).gram() & 0xFF);
 }
 
 QueryResult QueryGraph::run(const QueryFunc &oracle) const {
@@ -192,4 +201,52 @@ QueryGraph QueryGraph::from_qstring(const QString &qstr) {
     }
 
     return result;
+}
+
+// This method will join two graphs, effectively ANDing them. The way it works
+// is best understood by picture, for example:
+//
+// Graph A:              Graph B:
+//               C           F  --  H
+// A  ->  B  -<                         >-  J
+//               D           G  --  I
+//
+// To join these graphs, we introduce imaginary epsilon node, that will glue
+// them together. Epsilon nodes accept every file, so the behaviour will not
+// change:
+//
+//               C           F  --  H
+// A  ->  B  -<     >-(E)-<            >-  J
+//               D           G  --  I
+//
+void QueryGraph::join(QueryGraph &&other) {
+    // 1. Special case - if the current graph is empty, just replace it with
+    // the other one.
+    if (nodes_.empty()) {
+        *this = std::move(other);
+        return;
+    }
+
+    // 2. Create the epsilon node that will serve as a bridge.
+    NodeId epsilon{make_epsilon()};
+
+    // 3. Append it to all sinks of this graph (C and D above).
+    std::vector<NodeId> sinks;
+    for (auto &node : nodes_) {
+        if (node.is_sink()) {
+            node.add_edge(epsilon);
+        }
+    }
+
+    // 4. Paste the second graph into this one, updating IDs along the way.
+    size_t shift = nodes_.size();
+    for (auto &node : other.nodes_) {
+        node.shift(shift);
+        nodes_.emplace_back(std::move(node));
+    }
+
+    // 5. Append sources of the second graph (F and G above).
+    for (auto &source : other.sources_) {
+        get(epsilon).add_edge(source.shifted(shift));
+    }
 }

@@ -26,7 +26,7 @@ class QToken {
 
     QToken(const QToken &other) = default;
     QToken(std::vector<uint8_t> &&opts, uint8_t val, QTokenType type)
-        : opts_(std::move(opts)), legacy_type_(type), legacy_val_(val) {}
+        : legacy_type_(type), legacy_val_(val), opts_(std::move(opts)) {}
 
    public:
     QToken(QToken &&other) = default;

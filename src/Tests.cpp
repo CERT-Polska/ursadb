@@ -12,6 +12,7 @@
 #include "libursa/OnDiskDataset.h"
 #include "libursa/OnDiskIndex.h"
 #include "libursa/Query.h"
+#include "libursa/QueryGraph.h"
 #include "libursa/QueryParser.h"
 #include "libursa/ResultWriter.h"
 #include "libursa/Utils.h"
@@ -620,4 +621,70 @@ TEST_CASE("Test internal_pick_common", "[internal_pick_common]") {
             std::vector<FileId>{1, 2, 3});
     REQUIRE(internal_pick_common(2, {&source1, &source5, &source1}) ==
             std::vector<FileId>{1, 2, 3});
+}
+
+QueryGraph make_kot() {
+    // Basically:  k -> o -> t
+    return QueryGraph::from_qstring(mqs("kot"));
+}
+
+QueryGraph make_caet() {
+    //                  a
+    // Basically:  c -<   >- t
+    //                  e
+    QString expect;
+    expect.emplace_back(std::move(QToken::single('c')));
+    expect.emplace_back(std::move(QToken::with_values({'a', 'e'})));
+    expect.emplace_back(std::move(QToken::single('t')));
+    return QueryGraph::from_qstring(expect);
+}
+
+TEST_CASE("Simple query graph parse", "[query_graphs]") {
+    auto graph{make_kot()};
+
+    REQUIRE(graph.size() == 3);
+}
+
+TEST_CASE("Graph parse with wildcard", "[query_graphs]") {
+    auto graph{make_caet()};
+
+    REQUIRE(graph.size() == 4);
+}
+
+TEST_CASE("Simple graph join", "[query_graphs]") {
+    auto graph{make_kot()};
+
+    SECTION("With kot") {
+        graph.join(std::move(make_kot()));
+        REQUIRE(graph.size() == 7);
+    }
+
+    SECTION("With caet") {
+        graph.join(std::move(make_caet()));
+        REQUIRE(graph.size() == 8);
+    }
+}
+
+QueryFunc make_oracle(std::string accepting) {
+    return [accepting](uint32_t gram1) {
+        if (accepting.find(static_cast<char>(gram1)) != std::string::npos) {
+            return QueryResult::everything();
+        }
+        return QueryResult::empty();
+    };
+}
+
+TEST_CASE("Test basic query", "[query_graphs]") {
+    auto graph{make_kot()};
+
+    REQUIRE(graph.run(make_oracle("tok")).is_everything());
+    REQUIRE(!graph.run(make_oracle("abc")).is_everything());
+}
+
+TEST_CASE("Test wildcard query", "[query_graphs]") {
+    auto graph{make_caet()};
+
+    REQUIRE(graph.run(make_oracle("cat")).is_everything());
+    REQUIRE(graph.run(make_oracle("cet")).is_everything());
+    REQUIRE(!graph.run(make_oracle("abc")).is_everything());
 }
