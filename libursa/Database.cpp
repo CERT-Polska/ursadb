@@ -212,7 +212,8 @@ void Database::commit_task(uint64_t task_id) {
         } else if (change.type == DbChangeType::ToggleTaint) {
             OnDiskDataset *ds = find_working_dataset(change.obj_name);
             if (!ds) {
-                return;  // suspicious, but maybe delayed task
+                spdlog::info("ToggleTaint failed - nonexistent dataset");
+                continue;  // suspicious, but maybe task was delayed?
             }
             ds->toggle_taint(change.parameter);
             ds->save();
