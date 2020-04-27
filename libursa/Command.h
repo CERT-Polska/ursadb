@@ -91,7 +91,7 @@ class ConfigGetCommand {
     std::vector<std::string> keys_;
 
    public:
-    ConfigGetCommand(const std::vector<std::string> keys) : keys_(keys) {}
+    ConfigGetCommand(const std::vector<std::string> &keys) : keys_(keys) {}
     const std::vector<std::string> &keys() const { return keys_; }
 };
 
