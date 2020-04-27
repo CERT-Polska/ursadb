@@ -24,7 +24,7 @@ class DatabaseConfig {
     std::unordered_map<std::string, uint64_t> defvals_;
 
    public:
-    DatabaseConfig() : config_() {}
+    DatabaseConfig() : config_(std::unordered_map<std::string, uint64_t>()) {}
     explicit DatabaseConfig(json config);
 
     uint64_t get(const ConfigKey &key) const;
