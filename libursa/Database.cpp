@@ -94,7 +94,7 @@ void Database::save() {
     db_file.open(db_base / tmp_db_name, std::ofstream::binary);
 
     json db_json;
-    db_json["config"] = std::map<std::string, std::string>();
+    db_json["config"] = std::unordered_map<std::string, std::string>();
 
     std::vector<std::string> dataset_names;
     for (const auto *ds : working_datasets) {
@@ -102,7 +102,7 @@ void Database::save() {
     }
     db_json["datasets"] = dataset_names;
 
-    json iterators_json = std::map<std::string, std::string>();
+    json iterators_json = std::unordered_map<std::string, std::string>();
     for (const auto &it : iterators) {
         iterators_json[it.first] = it.second.get_name().get_filename();
     }

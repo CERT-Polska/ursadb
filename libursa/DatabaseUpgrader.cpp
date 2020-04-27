@@ -51,7 +51,7 @@ void upgrade_v1_0_0(json *dbjson) {
     }
 
     if (db["iterators"] == nullptr) {
-        db["iterators"] = std::map<std::string, std::string>();
+        db["iterators"] = std::unordered_map<std::string, std::string>();
     }
 }
 
