@@ -8,7 +8,7 @@ import tempfile
 import os
 import zmq
 import json
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 
 class TemporaryStorage:
