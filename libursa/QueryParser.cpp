@@ -50,6 +50,9 @@ struct nocheck_token : TAO_PEGTL_STRING("nocheck") {};
 struct into_token : TAO_PEGTL_STRING("into") {};
 struct iterator_token : TAO_PEGTL_STRING("iterator") {};
 struct pop_token : TAO_PEGTL_STRING("pop") {};
+struct config_token : TAO_PEGTL_STRING("config") {};
+struct get_token : TAO_PEGTL_STRING("get") {};
+struct set_token : TAO_PEGTL_STRING("set") {};
 
 // literals
 
@@ -170,6 +173,10 @@ struct index_with_construct : seq<star<space>, with_token, star<space>, index_ty
 struct nocheck_construct : seq<star<space>, nocheck_token> {};
 struct from_list_construct : seq<from_token, plus<space>, list_token, plus<space>, string_like> {};
 
+// config command 
+struct get_construct : seq<get_token, star<space>, opt<list<plaintext, space>>> {};
+struct set_construct : seq<set_token, star<space>, plaintext, star<space>, number> {};
+
 // commands
 struct select : seq<select_token, opt<with_taints_construct>, opt<into_iterator_construct>, select_body> {};
 struct dataset : seq<dataset_token, star<space>, plaintext, star<space>, dataset_operation> {};
@@ -177,12 +184,13 @@ struct iterator : seq<iterator_token, star<space>, plaintext, star<space>, itera
 struct index : seq<index_token, star<space>, sor<paths_construct, from_list_construct>, opt<index_with_construct>, opt<nocheck_construct>> {};
 struct reindex : seq<reindex_token, star<space>, string_like, star<space>, index_with_construct> {};
 struct compact : seq<compact_token, star<space>, sor<all_token, smart_token>> {};
+struct config : seq<config_token, star<space>, sor<get_construct, set_construct>> {};
 struct status : seq<status_token> {};
 struct topology : seq<topology_token> {};
 struct ping : seq<ping_token> {};
 
 // api
-struct command : seq<sor<select, index, iterator, reindex, compact, status, topology, ping, dataset>, star<space>, one<';'>> {};
+struct command : seq<sor<select, index, iterator, reindex, compact, config, status, topology, ping, dataset>, star<space>, one<';'>> {};
 struct grammar : seq<command, star<space>, eof> {};
 
 // store configuration (what to keep and what to drop)
@@ -207,6 +215,9 @@ template <> struct store<iterator> : std::true_type {};
 template <> struct store<index> : std::true_type {};
 template <> struct store<reindex> : std::true_type {};
 template <> struct store<compact> : std::true_type {};
+template <> struct store<config> : std::true_type {};
+template <> struct store<get_token> : std::true_type {};
+template <> struct store<set_token> : std::true_type {};
 template <> struct store<topology> : std::true_type {};
 template <> struct store<status> : std::true_type {};
 template <> struct store<ping> : std::true_type {};
@@ -484,6 +495,18 @@ Command transform_command(const parse_tree::node &n) {
             return Command(CompactCommand(CompactType::All));
         } else {
             return Command(CompactCommand(CompactType::Smart));
+        }
+    } else if (n.is<config>()) {
+        if (n.children[0]->is<get_token>()) {
+            std::vector<std::string> elms;
+            for (int i = 1; i < n.children.size(); i++) {
+                elms.push_back(transform_string(*n.children[i]));
+            }
+            return Command(ConfigGetCommand(elms));
+        } else {
+            std::string key = transform_string(*n.children[1]);
+            uint64_t value = std::stoi(n.children[2]->content());
+            return Command(ConfigSetCommand(key, value));
         }
     } else if (n.is<status>()) {
         return Command(StatusCommand());

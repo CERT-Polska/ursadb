@@ -56,6 +56,8 @@ void Database::load_from_disk() {
                           iterator.value());
         load_iterator(name);
     }
+
+    config = DatabaseConfig(db_json["config"]);
 }
 
 void Database::create(const std::string &fname) {
@@ -94,8 +96,6 @@ void Database::save() {
     db_file.open(db_base / tmp_db_name, std::ofstream::binary);
 
     json db_json;
-    db_json["config"] = std::unordered_map<std::string, std::string>();
-
     std::vector<std::string> dataset_names;
     for (const auto *ds : working_datasets) {
         dataset_names.push_back(ds->get_name());
@@ -108,6 +108,8 @@ void Database::save() {
     }
     db_json["iterators"] = iterators_json;
     db_json["version"] = std::string(ursadb_format_version);
+
+    db_json["config"] = config.get_raw();
 
     db_file << std::setw(4) << db_json << std::endl;
     db_file.flush();
@@ -227,6 +229,10 @@ void Database::commit_task(uint64_t task_id) {
             uint64_t new_bytes = std::atoi(param.substr(0, split_loc).c_str());
             uint64_t new_files = std::atoi(param.substr(split_loc + 1).c_str());
             update_iterator(itname, new_bytes, new_files);
+        } else if (change.type == DbChangeType::ConfigChange) {
+            std::string key = change.obj_name;
+            uint64_t value = std::atoi(change.parameter.c_str());
+            config.set(key, value);
         } else {
             throw std::runtime_error("unknown change type requested");
         }
@@ -250,5 +256,5 @@ DatabaseSnapshot Database::snapshot() {
         cds.push_back(d);
     }
 
-    return DatabaseSnapshot(db_name, db_base, iterators, cds, tasks);
+    return DatabaseSnapshot(db_name, db_base, config, iterators, cds, tasks);
 }

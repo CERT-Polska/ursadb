@@ -7,6 +7,7 @@
 #include <queue>
 #include <sstream>
 #include <stack>
+#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -108,6 +109,25 @@ Response execute_command(const IndexCommand &cmd, Task *task,
                                           cmd.get_paths());
     }
 
+    return Response::ok();
+}
+
+Response execute_command(const ConfigGetCommand &cmd, Task *task,
+                         const DatabaseSnapshot *snap) {
+    if (cmd.keys().empty()) {
+        return Response::config(snap->get_config().get_all());
+    }
+    std::unordered_map<std::string, uint64_t> vals;
+    for (const auto &key : cmd.keys()) {
+        vals[key] = snap->get_config().get(ConfigKey(key));
+    }
+    return Response::config(vals);
+}
+
+Response execute_command(const ConfigSetCommand &cmd, Task *task,
+                         const DatabaseSnapshot *snap) {
+    task->changes.emplace_back(DbChangeType::ConfigChange, cmd.key(),
+                               std::to_string(cmd.value()));
     return Response::ok();
 }
 

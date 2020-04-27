@@ -8,6 +8,8 @@ add_library(
     Core.h
     Database.cpp
     Database.h
+    DatabaseConfig.cpp
+    DatabaseConfig.h
     DatabaseHandle.cpp
     DatabaseHandle.h
     DatabaseName.cpp

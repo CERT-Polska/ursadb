@@ -8,6 +8,8 @@ std::string db_change_to_string(DbChangeType change) {
             return "DROP";
         case DbChangeType::Reload:
             return "RELOAD";
+        case DbChangeType::ConfigChange:
+            return "CONFIG_CHANGE";
         case DbChangeType::ToggleTaint:
             return "TOGGLE_TAINT";
         case DbChangeType::NewIterator:

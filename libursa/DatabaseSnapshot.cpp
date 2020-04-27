@@ -9,12 +9,13 @@
 #include "spdlog/spdlog.h"
 
 DatabaseSnapshot::DatabaseSnapshot(
-    fs::path db_name, fs::path db_base,
+    fs::path db_name, fs::path db_base, DatabaseConfig config,
     std::map<std::string, OnDiskIterator> iterators,
     std::vector<const OnDiskDataset *> datasets,
     const std::unordered_map<uint64_t, std::unique_ptr<Task>> &tasks)
     : db_name(db_name),
       db_base(db_base),
+      config(config),
       iterators(iterators),
       datasets(datasets),
       tasks() {
