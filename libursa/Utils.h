@@ -50,25 +50,59 @@ constexpr TrigramGetter get_wide_b64grams =
     get_trigrams_eager<gen_wide_b64grams>;
 constexpr TrigramGetter get_h4grams = get_trigrams_eager<gen_h4grams>;
 
-/* Represents an object that can be used to writre runs (increasing sequences
-of integers - in our case, FileIds. Runs are written in a compressed way -
-only differences between consecutive values are saved, and variable length
-encoding is used.
-*/
+// Represents an object that can be used to write runs (increasing sequences
+// of integers - in our case, FileIds. Runs are written in a compressed way -
+// only differences between consecutive values are saved, and variable length
+// encoding is used.
 class RunWriter {
     std::ostream *out;
     uint64_t out_bytes;
     int64_t prev;
 
    public:
-    /* Create a new clean instance of RunWriter. */
+    // Create a new clean instance of RunWriter.
     RunWriter(std::ostream *out) : out(out), out_bytes(0), prev(-1) {}
 
-    /* Write next FileId to the output stream */
+    // Write next FileId to the output stream
     void write(FileId next);
 
-    /* How many bytes was written by this RunWriter object so far */
+    // How many bytes was written by this RunWriter object so far.
     uint64_t written_bytes() { return out_bytes; }
+};
+
+// Equivalent to RunWriter, but uses file descriptors instead of ostream.
+// Also buffers intermediate results explicitly.
+// Eventually we'll migrate everything to this class.
+class PosixRunWriter {
+    int fd_;
+    uint64_t out_bytes_;
+    int64_t prev_;
+    std::vector<uint8_t> buffer_;
+
+   public:
+    // Creates a new clean instance of RunWriter.
+    PosixRunWriter(int fd) : fd_(fd), out_bytes_(0), prev_(-1), buffer_() {}
+
+    PosixRunWriter(const PosixRunWriter &other) = delete;
+    PosixRunWriter(PosixRunWriter &&other) = default;
+    ~PosixRunWriter();
+
+    // Writes next FileId to the output stream.
+    void write(FileId next);
+
+    // Writes run of FileIds without decompressing them.
+    void write_raw(FileId base, uint8_t *start, uint8_t *end);
+
+    // Flush buffered changes to the backing fd.
+    void flush();
+
+    // How many bytes were written by this RunWriter object so far
+    uint64_t bytes_written() const { return out_bytes_; }
+
+    void reset() {
+        out_bytes_ = 0;
+        prev_ = -1;
+    }
 };
 
 uint64_t compress_run(const std::vector<FileId> &run, std::ostream &out);

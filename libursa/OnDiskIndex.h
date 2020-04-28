@@ -29,6 +29,9 @@ class OnDiskIndex {
     QueryResult expand_wildcards(const QString &qstr, size_t len,
                                  const TrigramGenerator &gen) const;
 
+    static void on_disk_merge_core(const std::vector<IndexMergeHelper> &indexes,
+                                   RawFile *out, Task *task);
+
    public:
     explicit OnDiskIndex(const std::string &fname);
     OnDiskIndex(const OnDiskIndex &) = delete;
@@ -46,6 +49,17 @@ class OnDiskIndex {
     std::vector<uint64_t> read_run_offsets() const;
 };
 
+class OnDiskRun {
+    uint64_t start_;
+    uint64_t end_;
+
+   public:
+    OnDiskRun(uint64_t start, uint64_t end) : start_(start), end_(end) {}
+    uint64_t end() const { return end_; }
+    uint64_t start() const { return start_; }
+    uint64_t size() const { return end_ - start_; }
+};
+
 struct IndexMergeHelper {
     const OnDiskIndex *index;
     uint32_t file_count;
@@ -58,4 +72,9 @@ struct IndexMergeHelper {
           run_offset_cache(run_offset_cache) {}
     IndexMergeHelper(const IndexMergeHelper &) = delete;
     IndexMergeHelper(IndexMergeHelper &&) = default;
+
+    OnDiskRun run(uint32_t gram, size_t count = 1) const {
+        return OnDiskRun(run_offset_cache[gram],
+                         run_offset_cache[gram + count]);
+    }
 };
