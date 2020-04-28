@@ -3,7 +3,7 @@
 #include <thread>
 
 #include "Daemon.h"
-#include "libursa/DatabaseHandle.h"
+#include "libursa/QueryParser.h"
 #include "libursa/Responses.h"
 #include "libursa/ZHelpers.h"
 #include "spdlog/spdlog.h"
@@ -27,11 +27,9 @@
 
         //  Get request, send reply
         auto request{s_recv<std::string>(&worker)};
-        spdlog::info("Task {} - {}", task->id, request);
+        spdlog::info("Task {} - {}", task->spec().id(), request);
 
-        snap.set_db_handle(DatabaseHandle(&worker));
-
-        Response response = dispatch_command_safe(request, task, &snap);
+        Response response = dispatch_command_safe(request, &*task, &snap);
         // Note: optionally add funny metadata to response here (like request
         // time, assigned worker, etc)
         std::string s = response.to_string();
@@ -85,84 +83,12 @@ void NetworkService::run() {
 }
 
 void NetworkService::commit_task(WorkerContext *wctx) {
-    auto did_task = wctx->task->id;
-    uint64_t task_ms = get_milli_timestamp() - wctx->task->epoch_ms;
-    spdlog::info("Task {} finished by {} in {}", did_task, wctx->identity,
-                 task_ms);
+    uint64_t task_ms = get_milli_timestamp() - wctx->task->spec().epoch_ms();
+    spdlog::info("Task {} finished by {} in {}", wctx->task->spec().id(),
+                 wctx->identity, task_ms);
 
-    db.commit_task(did_task);
-    wctx->task = nullptr;
-}
-
-void NetworkService::handle_dataset_lock_req(WorkerContext *wctx,
-                                             const std::string &worker_addr) {
-    std::vector<std::string> ds_names;
-    std::string recv_ds_name;
-
-    do {
-        s_recv_padding(&backend);
-
-        recv_ds_name = s_recv<std::string>(&backend);
-        ds_names.push_back(recv_ds_name);
-    } while (!recv_ds_name.empty());
-
-    s_send(&backend, worker_addr, ZMQ_SNDMORE);
-    s_send_padding(&backend, ZMQ_SNDMORE);
-
-    bool already_locked = false;
-    for (const std::string &ds_name : ds_names) {
-        for (const auto &p : wctxs) {
-            if (p.second->task != nullptr &&
-                p.second->snap.is_dataset_locked(ds_name)) {
-                already_locked = true;
-                break;
-            }
-        }
-    }
-
-    if (!already_locked) {
-        for (const std::string &ds_name : ds_names) {
-            wctx->snap.lock_dataset(ds_name);
-            spdlog::info("Coordinator: dataset {} locked", ds_name);
-        }
-
-        s_send<NetLockResp>(&backend, NetLockResp::LockOk);
-    } else {
-        spdlog::warn("Coordinator: dataset lock denied");
-        s_send<NetLockResp>(&backend, NetLockResp::LockDenied);
-    }
-}
-
-void NetworkService::handle_iterator_lock_req(WorkerContext *wctx,
-                                              const std::string &worker_addr) {
-    s_recv_padding(&backend);
-
-    auto iterator_name{s_recv<std::string>(&backend)};
-
-    s_recv_padding(&backend);
-
-    s_send(&backend, worker_addr, ZMQ_SNDMORE);
-    s_send_padding(&backend, ZMQ_SNDMORE);
-
-    bool already_locked = false;
-
-    for (const auto &p : wctxs) {
-        if (p.second->task != nullptr &&
-            p.second->snap.is_iterator_locked(iterator_name)) {
-            already_locked = true;
-            break;
-        }
-    }
-
-    if (!already_locked) {
-        wctx->snap.lock_iterator(iterator_name);
-
-        spdlog::info("Coordinator: iterator {} locked", iterator_name);
-        s_send<NetLockResp>(&backend, NetLockResp::LockOk);
-    } else {
-        spdlog::info("Coordinator: lock denied for iterator {}", iterator_name);
-        s_send<NetLockResp>(&backend, NetLockResp::LockDenied);
-    }
+    db.commit_task(wctx->task->spec(), wctx->task->changes());
+    wctx->task = std::nullopt;
 }
 
 void NetworkService::handle_response(WorkerContext *wctx) {
@@ -182,7 +108,7 @@ void NetworkService::handle_response(WorkerContext *wctx) {
     std::set<DatabaseSnapshot *> working_snapshots;
 
     for (const auto &p : wctxs) {
-        if (p.second->task != nullptr) {
+        if (p.second->task != std::nullopt) {
             working_snapshots.insert(&p.second->snap);
         }
     }
@@ -200,12 +126,6 @@ void NetworkService::poll_backend() {
     auto resp_type{s_recv<NetAction>(&backend)};
 
     switch (resp_type) {
-        case NetAction::DatasetLockReq:
-            handle_dataset_lock_req(wctx, worker_addr);
-            break;
-        case NetAction::IteratorLockReq:
-            handle_iterator_lock_req(wctx, worker_addr);
-            break;
         case NetAction::Response:
             worker_queue.push(worker_addr);
             handle_response(wctx);
@@ -225,13 +145,38 @@ void NetworkService::poll_frontend() {
 
     auto request{s_recv<std::string>(&frontend)};
 
-    std::string worker_addr = worker_queue.front();  // worker_queue [0];
+    std::vector<DatabaseLock> locks;
+    DatabaseSnapshot snapshot = db.snapshot();
+
+    try {
+        Command cmd{parse_command(request)};
+        locks = std::move(dispatch_locks(cmd, &snapshot));
+    } catch (const std::runtime_error &err) {
+        s_send(&frontend, client_addr, ZMQ_SNDMORE);
+        s_send_padding(&frontend, ZMQ_SNDMORE);
+        s_send(&frontend, Response::error("Parse error").to_string());
+        return;
+    }
+
+    TaskSpec *spec = nullptr;
+    try {
+        spec = db.allocate_task(request, client_addr, locks);
+    } catch (const std::runtime_error &err) {
+        s_send(&frontend, client_addr, ZMQ_SNDMORE);
+        s_send_padding(&frontend, ZMQ_SNDMORE);
+        s_send(&frontend,
+               Response::error("Can't acquire lock, try again later", true)
+                   .to_string());
+        return;
+    }
+
+    Task task{Task(spec)};
+
+    std::string worker_addr = worker_queue.front();
     worker_queue.pop();
-
     WorkerContext *wctx = wctxs.at(worker_addr).get();
-
-    wctx->task = db.allocate_task(request, client_addr);
-    wctx->snap = db.snapshot();
+    wctx->task = std::move(task);
+    wctx->snap = std::move(snapshot);
 
     s_send(&backend, worker_addr, ZMQ_SNDMORE);
     s_send_padding(&backend, ZMQ_SNDMORE);

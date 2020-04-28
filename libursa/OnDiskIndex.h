@@ -30,7 +30,7 @@ class OnDiskIndex {
                                  const TrigramGenerator &gen) const;
 
     static void on_disk_merge_core(const std::vector<IndexMergeHelper> &indexes,
-                                   RawFile *out, Task *task);
+                                   RawFile *out, TaskSpec *task);
 
    public:
     explicit OnDiskIndex(const std::string &fname);
@@ -45,7 +45,7 @@ class OnDiskIndex {
     static void on_disk_merge(const fs::path &db_base, const std::string &fname,
                               IndexType merge_type,
                               const std::vector<IndexMergeHelper> &indexes,
-                              Task *task);
+                              TaskSpec *task);
     std::vector<uint64_t> read_run_offsets() const;
 };
 

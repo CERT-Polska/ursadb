@@ -19,3 +19,29 @@ std::string db_change_to_string(DbChangeType change) {
     }
     return "<invalid?>";
 }
+
+bool TaskSpec::has_typed_lock(const DatasetLock &other) const {
+    for (const auto &lock : locks_) {
+        if (const auto *dslock = std::get_if<DatasetLock>(&lock)) {
+            if (dslock->target() == other.target()) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool TaskSpec::has_typed_lock(const IteratorLock &other) const {
+    for (const auto &lock : locks_) {
+        if (const auto *itlock = std::get_if<IteratorLock>(&lock)) {
+            if (itlock->target() == other.target()) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool TaskSpec::has_lock(const DatabaseLock &oth) const {
+    return std::visit([this](const auto &l) { return has_typed_lock(l); }, oth);
+}

@@ -19,18 +19,5 @@ def test_topology(ursadb: UrsadbTestContext):
 
 def test_status(ursadb: UrsadbTestContext):
     ursadb.check_request(
-        "status;",
-        {
-            "tasks": [
-                {
-                    "connection_id": "#UNK#",
-                    "epoch_ms": "#UNK#",
-                    "id": "1",
-                    "request": "status;",
-                    "work_done": 0,
-                    "work_estimated": 0,
-                }
-            ],
-            "ursadb_version": "#UNK#",
-        },
+        "status;", {"tasks": [], "ursadb_version": "#UNK#",},
     )

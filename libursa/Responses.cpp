@@ -70,17 +70,18 @@ Response Response::topology(const std::vector<DatasetEntry> &datasets) {
     return r;
 }
 
-Response Response::status(const std::vector<TaskEntry> &tasks) {
+Response Response::status(
+    const std::unordered_map<uint64_t, TaskSpec *> &tasks) {
     Response r("status");
     std::vector<json> tasks_json;
-    for (auto &task : tasks) {
+    for (auto &[k, task] : tasks) {
         json task_json;
-        task_json["id"] = task.id;
-        task_json["connection_id"] = task.connection_id;
-        task_json["request"] = task.request;
-        task_json["work_done"] = task.work_done;
-        task_json["work_estimated"] = task.work_estimated;
-        task_json["epoch_ms"] = task.epoch_ms;
+        task_json["id"] = task->id();
+        task_json["connection_id"] = task->hex_conn_id();
+        task_json["request"] = task->request_str();
+        task_json["work_done"] = task->work_done();
+        task_json["work_estimated"] = task->work_estimated();
+        task_json["epoch_ms"] = task->epoch_ms();
         tasks_json.push_back(task_json);
     }
     r.content["result"]["tasks"] = tasks_json;

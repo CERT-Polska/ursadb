@@ -147,8 +147,7 @@ void FlatIndexBuilder::add_file(FileId fid, const uint8_t *data, size_t size) {
 }
 
 bool FlatIndexBuilder::can_still_add(uint64_t bytes, int file_count) const {
-    uint64_t max_number_of_trigrams_produced = bytes - 2;
-    uint64_t max_trigrams_after_add =
-        raw_data.size() + max_number_of_trigrams_produced;
+    uint64_t max_trigrams_produced = bytes < 3 ? 0 : bytes - 2;
+    uint64_t max_trigrams_after_add = raw_data.size() + max_trigrams_produced;
     return max_trigrams_after_add < MAX_TRIGRAMS;
 }

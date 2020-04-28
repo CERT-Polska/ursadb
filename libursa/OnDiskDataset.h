@@ -47,7 +47,7 @@ class OnDiskDataset {
     }
     static void merge(const fs::path &db_base, const std::string &outname,
                       const std::vector<const OnDiskDataset *> &datasets,
-                      Task *task);
+                      TaskSpec *task);
     void save();
     void drop();
     std::string get_id() const;

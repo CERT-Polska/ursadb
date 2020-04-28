@@ -1,7 +1,11 @@
 #pragma once
 
+#include <atomic>
 #include <string>
 #include <vector>
+
+#include "DatabaseLock.h"
+#include "Utils.h"
 
 enum class DbChangeType {
     Insert = 1,
@@ -26,31 +30,74 @@ class DBChange {
         : type(type), obj_name(obj_name), parameter(parameter) {}
 };
 
+// Shared task object. This class can be read by multiple threads at once, but
+// only one thread can write (either worker task or controller reaping results).
+// Most of the fields are immutable after creation
+class TaskSpec {
+    // Task id.
+    const uint64_t id_;
+    // Remote requestor identity.
+    const std::string conn_id_;
+    // Command issued.
+    const std::string request_str_;
+    // miliseconds since epoch, for ETA calculation
+    const uint64_t epoch_ms_;
+    // Arbitrary number, for example "number of bytes to index" or "number of
+    // trigrams to merge".
+    std::atomic_uint64_t work_estimated_;
+    // Arbitrary number lesser than work_estimated.
+    std::atomic_uint64_t work_done_;
+    // Immutable vector of locks acquired by this task.
+    std::vector<DatabaseLock> locks_;
+
+    // Helpers for std::visit
+    bool has_typed_lock(const DatasetLock &lock) const;
+    bool has_typed_lock(const IteratorLock &lock) const;
+
+   public:
+    TaskSpec(uint64_t id, std::string conn_id, std::string request_str,
+             uint64_t epoch_ms, std::vector<DatabaseLock> locks)
+        : id_(id),
+          conn_id_(std::move(conn_id)),
+          request_str_(std::move(request_str)),
+          epoch_ms_(epoch_ms),
+          work_estimated_(0),
+          work_done_(0),
+          locks_(locks) {}
+
+    uint64_t id() const { return id_; }
+    const std::string &request_str() const { return request_str_; }
+    uint64_t epoch_ms() const { return epoch_ms_; }
+    uint64_t work_estimated() const { return work_estimated_; }
+    uint64_t work_done() const { return work_done_; }
+    const std::vector<DatabaseLock> &locks() const { return locks_; };
+
+    bool has_lock(const DatabaseLock &lock) const;
+
+    std::string hex_conn_id() const { return bin_str_to_hex(conn_id_); }
+
+    void estimate_work(uint64_t new_estimation) {
+        work_estimated_ = new_estimation;
+    }
+
+    void set_work(uint64_t new_work) { work_done_ = new_work; }
+
+    void add_progress(uint64_t done_units) { work_done_ += done_units; }
+};
+
+// Thread-local task object. Must not be shared by multiple threads because of
+// potentially thread-unsafe collections used.
 class Task {
    public:
-    // task id
-    uint64_t id;
-    // remote requestor identity
-    std::string conn_id;
-    // command issued
-    std::string request_str;
-    // arbitrary number <= work_done
-    uint64_t work_estimated;
-    // arbitrary number, for example "number of bytes to index" or "number of
-    // trigrams to merge"
-    uint64_t work_done;
-    // miliseconds since epoch, for ETA calculation
-    uint64_t epoch_ms;
-    // changes done by this task. Will be resolved after task is finished
-    std::vector<DBChange> changes;
+    // Immutable specification of this task.
+    TaskSpec *spec_;
+    std::vector<DBChange> changes_;
 
-    Task(uint64_t id, uint64_t epoch_ms, const std::string &request,
-         const std::string &conn_id)
-        : id(id),
-          conn_id(conn_id),
-          request_str(request),
-          work_estimated(0),
-          work_done(0),
-          epoch_ms(epoch_ms),
-          changes{} {}
+    Task(TaskSpec *spec) : spec_(spec), changes_{} {}
+
+    void change(DBChange change) { changes_.emplace_back(std::move(change)); }
+
+    const std::vector<DBChange> changes() const { return changes_; }
+
+    TaskSpec &spec() { return *spec_; }
 };

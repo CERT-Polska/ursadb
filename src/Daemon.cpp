@@ -1,3 +1,5 @@
+#include "Daemon.h"
+
 #include <sys/types.h>
 
 #include <array>
@@ -40,8 +42,8 @@ Response execute_command(const SelectCommand &cmd, Task *task,
             snap->derive_name(data_filename, "itermeta");
         OnDiskIterator::construct(meta_filename, data_filename,
                                   writer.get_file_count());
-        task->changes.emplace_back(DbChangeType::NewIterator,
-                                   meta_filename.get_filename());
+        task->change(
+            DBChange(DbChangeType::NewIterator, meta_filename.get_filename()));
         return Response::select_iterator(meta_filename.get_id(),
                                          writer.get_file_count());
     } else {
@@ -56,16 +58,10 @@ Response execute_command(const IteratorPopCommand &cmd, Task *task,
     std::vector<std::string> out;
     uint64_t iterator_position;
     uint64_t total_files;
-    bool success =
-        snap->read_iterator(task, cmd.get_iterator_id(), cmd.elements_to_pop(),
-                            &out, &iterator_position, &total_files);
+    snap->read_iterator(task, cmd.get_iterator_id(), cmd.elements_to_pop(),
+                        &out, &iterator_position, &total_files);
 
-    if (success) {
-        return Response::select_from_iterator(out, iterator_position,
-                                              total_files);
-    } else {
-        return Response::error("iterator locked, try again later", true);
-    }
+    return Response::select_from_iterator(out, iterator_position, total_files);
 }
 
 Response execute_command(const IndexFromCommand &cmd, Task *task,
@@ -126,50 +122,28 @@ Response execute_command(const ConfigGetCommand &cmd, Task *task,
 
 Response execute_command(const ConfigSetCommand &cmd, Task *task,
                          const DatabaseSnapshot *snap) {
-    task->changes.emplace_back(DbChangeType::ConfigChange, cmd.key(),
-                               std::to_string(cmd.value()));
+    task->change(DBChange(DbChangeType::ConfigChange, cmd.key(),
+                          std::to_string(cmd.value())));
     return Response::ok();
 }
 
 Response execute_command(const ReindexCommand &cmd, Task *task,
                          const DatabaseSnapshot *snap) {
-    const std::string &dataset_name = cmd.get_dataset_name();
-    snap->reindex_dataset(task, cmd.get_index_types(), dataset_name);
+    const std::string &dataset_id = cmd.dataset_id();
+    snap->reindex_dataset(task, cmd.get_index_types(), dataset_id);
 
     return Response::ok();
 }
 
 Response execute_command(const CompactCommand &cmd, Task *task,
                          const DatabaseSnapshot *snap) {
-    if (cmd.get_type() == CompactType::All) {
-        snap->compact(task);
-    } else if (cmd.get_type() == CompactType::Smart) {
-        snap->smart_compact(task);
-    } else {
-        throw std::runtime_error("unhandled CompactType");
-    }
-
+    snap->compact_locked_datasets(task);
     return Response::ok();
 }
 
 Response execute_command(const StatusCommand &cmd, Task *task,
                          const DatabaseSnapshot *snap) {
-    std::stringstream ss;
-    const std::map<uint64_t, Task> &tasks = snap->get_tasks();
-
-    std::vector<TaskEntry> task_data;
-    for (const auto &pair : tasks) {
-        const Task &t = pair.second;
-        task_data.push_back(TaskEntry{
-            /*.id:*/ std::to_string(t.id),
-            /*.connection_id:*/ bin_str_to_hex(t.conn_id),
-            /*.request:*/ t.request_str,
-            /*.work_done:*/ t.work_done,
-            /*.work_estimated:*/ t.work_estimated,
-            /*.epoch_ms:*/ t.epoch_ms,
-        });
-    }
-    return Response::status(task_data);
+    return Response::status(snap->get_tasks());
 }
 
 Response execute_command(const TopologyCommand &cmd, Task *task,
@@ -199,7 +173,7 @@ Response execute_command(const TopologyCommand &cmd, Task *task,
 
 Response execute_command(const PingCommand &cmd, Task *task,
                          const DatabaseSnapshot *snap) {
-    return Response::ping(bin_str_to_hex(task->conn_id));
+    return Response::ping(task->spec().hex_conn_id());
 }
 
 Response execute_command(const TaintCommand &cmd, Task *task,
@@ -213,8 +187,8 @@ Response execute_command(const TaintCommand &cmd, Task *task,
     bool should_have_taint = cmd.get_mode() == TaintMode::Add;
 
     if (has_taint != should_have_taint) {
-        task->changes.emplace_back(DbChangeType::ToggleTaint, cmd.get_dataset(),
-                                   taint);
+        task->change(
+            DBChange(DbChangeType::ToggleTaint, cmd.get_dataset(), taint));
     }
 
     return Response::ok();
@@ -235,9 +209,54 @@ Response dispatch_command_safe(const std::string &cmd_str, Task *task,
         Command cmd = parse_command(cmd_str);
         return dispatch_command(cmd, task, snap);
     } catch (std::runtime_error &e) {
-        spdlog::error("Task {} failed: {}", task->id, e.what());
+        spdlog::error("Task {} failed: {}", task->spec().id(), e.what());
         return Response::error(e.what());
     }
+}
+
+std::vector<DatabaseLock> acquire_locks(const IteratorPopCommand &cmd,
+                                        const DatabaseSnapshot *snap) {
+    return {IteratorLock(cmd.get_iterator_id())};
+}
+
+std::vector<DatabaseLock> acquire_locks(const ReindexCommand &cmd,
+                                        const DatabaseSnapshot *snap) {
+    return {DatasetLock(cmd.dataset_id())};
+}
+
+std::vector<DatabaseLock> acquire_locks(const CompactCommand &cmd,
+                                        const DatabaseSnapshot *snap) {
+    std::vector<std::string> to_lock;
+    if (cmd.get_type() == CompactType::Smart) {
+        to_lock = snap->compact_smart_candidates();
+    } else {
+        to_lock = snap->compact_full_candidates();
+    }
+
+    std::vector<DatabaseLock> locks;
+    locks.reserve(to_lock.size());
+    for (const auto &dsid : to_lock) {
+        locks.emplace_back(DatasetLock(dsid));
+    }
+
+    return locks;
+}
+
+std::vector<DatabaseLock> acquire_locks(const TaintCommand &cmd,
+                                        const DatabaseSnapshot *snap) {
+    return {DatasetLock(cmd.get_dataset())};
+}
+
+template <typename T>
+std::vector<DatabaseLock> acquire_locks(const T &anything,
+                                        const DatabaseSnapshot *snap) {
+    return {};
+}
+
+std::vector<DatabaseLock> dispatch_locks(const Command &cmd,
+                                         const DatabaseSnapshot *snap) {
+    return std::move(std::visit(
+        [snap](const auto &cmd) { return acquire_locks(cmd, snap); }, cmd));
 }
 
 int main(int argc, char *argv[]) {

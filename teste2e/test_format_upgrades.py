@@ -24,7 +24,9 @@ class TemporaryStorage:
         self.tmpfiles.append(filepath)
         return Path(filepath)
 
-    def write_json(self, data: Dict[str, Any], name: Optional[str] = None) -> Path:
+    def write_json(
+        self, data: Dict[str, Any], name: Optional[str] = None
+    ) -> Path:
         p = self.tmpfile(name=name)
         p.write_text(json.dumps(data))
         return p

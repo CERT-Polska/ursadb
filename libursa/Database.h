@@ -21,26 +21,32 @@ class Database {
     DatabaseConfig config;
 
     uint64_t last_task_id;
-    std::unordered_map<uint64_t, std::unique_ptr<Task>> tasks;
+    std::unordered_map<uint64_t, std::unique_ptr<TaskSpec>> tasks;
 
     uint64_t allocate_task_id();
     void load_from_disk();
 
     explicit Database(const std::string &fname, bool initialize);
 
+    bool can_acquire(const DatabaseLock &lock) const;
+
    public:
     explicit Database(const std::string &fname);
 
     const fs::path &get_name() const { return db_name; };
     const fs::path &get_base() const { return db_base; };
-    const std::unordered_map<uint64_t, std::unique_ptr<Task>> &current_tasks() {
+    const std::unordered_map<uint64_t, std::unique_ptr<TaskSpec>>
+        &current_tasks() {
         return tasks;
     }
-    void commit_task(uint64_t task_id);
-    Task *get_task(uint64_t task_id);
+    void commit_task(const TaskSpec &task,
+                     const std::vector<DBChange> &changes);
+    const TaskSpec &get_task(uint64_t task_id);
     void erase_task(uint64_t task_id);
-    Task *allocate_task();
-    Task *allocate_task(const std::string &request, const std::string &conn_id);
+    TaskSpec *allocate_task();
+    TaskSpec *allocate_task(const std::string &request,
+                            const std::string &conn_id,
+                            const std::vector<DatabaseLock> &locks);
 
     const std::vector<OnDiskDataset *> &working_sets() {
         return working_datasets;

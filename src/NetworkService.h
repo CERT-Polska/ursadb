@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <list>
+#include <optional>
 #include <queue>
 #include <sstream>
 #include <stack>
@@ -15,19 +16,32 @@
 #include <vector>
 #include <zmq.hpp>
 
+#include "libursa/Command.h"
 #include "libursa/Database.h"
+#include "libursa/DatabaseSnapshot.h"
 
 constexpr int NUM_WORKERS = 4;
+
+enum class NetAction : uint32_t {
+    Ready = 0,
+    Response = 1,
+    DatasetLockReq = 2,
+    IteratorLockReq = 3
+};
 
 class WorkerContext {
    public:
     std::string identity;
     DatabaseSnapshot snap;
-    Task *task;
+    std::optional<Task> task;
 
     WorkerContext(const WorkerContext &) = delete;
-    WorkerContext(std::string identity, DatabaseSnapshot &&snap, Task *task)
-        : identity(identity), snap(std::move(snap)), task(task) {}
+    WorkerContext(std::string identity, DatabaseSnapshot &&snap, TaskSpec *task)
+        : identity(identity), snap(std::move(snap)) {
+        if (task != nullptr) {
+            this->task = std::make_optional<Task>(task);
+        }
+    }
     [[noreturn]] void operator()();
 };
 
