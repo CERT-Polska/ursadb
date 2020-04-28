@@ -287,7 +287,6 @@ unsigned long OnDiskIndex::real_size() const { return fs::file_size(fpath); }
 // runs is still smaller than max_bytes.
 uint64_t find_max_batch(const std::vector<IndexMergeHelper> &indexes,
                         uint32_t trigram, uint64_t max_bytes) {
-    1;
     for (int i = 2; trigram + i < NUM_TRIGRAMS; i++) {
         uint64_t batch_bytes = 0;
         for (const auto &ndx : indexes) {
