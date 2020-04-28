@@ -497,12 +497,13 @@ void add_payload(IndexBuilder *builder,
     }
 }
 
-void check_query_is_everything(const OnDiskIndex &ndx, std::string query) {
+void check_query_is_everything(const OnDiskIndex &ndx,
+                               const std::string &query) {
     REQUIRE(ndx.query_str(mqs(query)).is_everything());
 }
 
-void check_query(const OnDiskIndex &ndx, std::string query,
-                 std::vector<uint32_t> results) {
+void check_query(const OnDiskIndex &ndx, const std::string &query,
+                 const std::vector<uint32_t> &results) {
     REQUIRE(ndx.query_str(mqs(query)).vector() == results);
 }
 
