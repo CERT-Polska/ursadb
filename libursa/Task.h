@@ -2,7 +2,6 @@
 
 #include <atomic>
 #include <string>
-#include <string_view>
 #include <vector>
 
 #include "DatabaseLock.h"
@@ -51,6 +50,10 @@ class TaskSpec {
     // Immutable vector of locks acquired by this task.
     std::vector<DatabaseLock> locks_;
 
+    // Helpers for std::visit
+    bool has_typed_lock(const DatasetLock &lock) const;
+    bool has_typed_lock(const IteratorLock &lock) const;
+
    public:
     TaskSpec(uint64_t id, std::string conn_id, std::string request_str,
              uint64_t epoch_ms, std::vector<DatabaseLock> locks)
@@ -69,8 +72,7 @@ class TaskSpec {
     uint64_t work_done() const { return work_done_; }
     const std::vector<DatabaseLock> &locks() const { return locks_; };
 
-    bool locks_dataset(std::string_view ds_id) const;
-    bool locks_iterator(std::string_view id_id) const;
+    bool has_lock(const DatabaseLock &lock) const;
 
     std::string hex_conn_id() const { return bin_str_to_hex(conn_id_); }
 

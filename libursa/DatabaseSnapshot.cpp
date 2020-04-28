@@ -220,24 +220,24 @@ void DatabaseSnapshot::execute(const Query &query,
 constexpr int MAX_DATASETS_TO_MERGE = 100;
 
 std::vector<std::string> DatabaseSnapshot::compact_smart_candidates() const {
-    return find_compact_cancidate(/*smart=*/true);
+    return find_compact_candidate(/*smart=*/true);
 }
 
 std::vector<std::string> DatabaseSnapshot::compact_full_candidates() const {
-    return find_compact_cancidate(/*smart=*/false);
+    return find_compact_candidate(/*smart=*/false);
 }
 
 bool is_dataset_locked(const std::unordered_map<uint64_t, TaskSpec *> &tasks,
-                       std::string_view dsname) {
+                       std::string_view dataset_id) {
     for (const auto &[k, task] : tasks) {
-        if (task->locks_dataset(dsname)) {
+        if (task->has_lock(DatasetLock(dataset_id))) {
             return true;
         }
     }
     return false;
 }
 
-std::vector<std::string> DatabaseSnapshot::find_compact_cancidate(
+std::vector<std::string> DatabaseSnapshot::find_compact_candidate(
     bool smart) const {
     // Try to find a best compact candidate. As a rating function, we use
     // "number of datasets" - "average number of files", because we want to

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <variant>
 
@@ -8,7 +9,7 @@ class DatasetLock {
     std::string dataset_;
 
    public:
-    DatasetLock(const std::string &dataset) : dataset_(dataset) {}
+    DatasetLock(std::string_view dataset) : dataset_(dataset) {}
 
     const std::string &target() const { return dataset_; }
 };
@@ -17,7 +18,7 @@ class IteratorLock {
     std::string iterator_;
 
    public:
-    IteratorLock(const std::string &iterator) : iterator_(iterator) {}
+    IteratorLock(std::string_view iterator) : iterator_(iterator) {}
 
     const std::string &target() const { return iterator_; }
 };

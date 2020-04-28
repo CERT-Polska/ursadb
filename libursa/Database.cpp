@@ -69,18 +69,9 @@ void Database::create(const std::string &fname) {
     empty.save();
 }
 
-bool Database::can_acquire(const DatasetLock &newlock) const {
+bool Database::can_acquire(const DatabaseLock &newlock) const {
     for (const auto &[k, task] : tasks) {
-        if (task->locks_dataset(newlock.target())) {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool Database::can_acquire(const IteratorLock &newlock) const {
-    for (const auto &[k, task] : tasks) {
-        if (task->locks_iterator(newlock.target())) {
+        if (task->has_lock(newlock)) {
             return false;
         }
     }
@@ -100,12 +91,10 @@ TaskSpec *Database::allocate_task(const std::string &request,
         }
     }
     uint64_t task_id = allocate_task_id();
-    auto timestamp = std::chrono::steady_clock::now().time_since_epoch();
     uint64_t epoch_ms = get_milli_timestamp();
-    return tasks
-        .emplace(task_id, std::make_unique<TaskSpec>(task_id, conn_id, request,
-                                                     epoch_ms, locks))
-        .first->second.get();
+    auto new_task{
+        std::make_unique<TaskSpec>(task_id, conn_id, request, epoch_ms, locks)};
+    return tasks.emplace(task_id, std::move(new_task)).first->second.get();
 }
 
 TaskSpec *Database::allocate_task() { return allocate_task("N/A", "N/A", {}); }

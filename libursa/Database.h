@@ -28,8 +28,7 @@ class Database {
 
     explicit Database(const std::string &fname, bool initialize);
 
-    bool can_acquire(const DatasetLock &lock) const;
-    bool can_acquire(const IteratorLock &lock) const;
+    bool can_acquire(const DatabaseLock &lock) const;
 
    public:
     explicit Database(const std::string &fname);

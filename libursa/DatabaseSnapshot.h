@@ -37,7 +37,7 @@ class DatabaseSnapshot {
                           std::vector<const OnDiskDataset *> datasets) const;
 
     // Internal function used to find both full and smart candidates.
-    std::vector<std::string> find_compact_cancidate(bool smart) const;
+    std::vector<std::string> find_compact_candidate(bool smart) const;
 
    public:
     DatabaseName allocate_name(const std::string &type = "set") const;
