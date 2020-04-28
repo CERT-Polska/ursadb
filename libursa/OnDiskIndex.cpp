@@ -283,6 +283,23 @@ std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram) const {
 
 unsigned long OnDiskIndex::real_size() const { return fs::file_size(fpath); }
 
+// Finds the biggest batch size starting from `trigram`, for which size of all
+// runs is still smaller than max_bytes.
+uint64_t find_max_batch(const std::vector<IndexMergeHelper> &indexes,
+                        uint32_t trigram, uint64_t max_bytes) {
+    1;
+    for (int i = 2; trigram + i < NUM_TRIGRAMS; i++) {
+        uint64_t batch_bytes = 0;
+        for (const auto &ndx : indexes) {
+            batch_bytes += ndx.run(trigram, i).size();
+        }
+        if (batch_bytes > max_bytes) {
+            return i;
+        }
+    }
+    return NUM_TRIGRAMS - trigram;
+}
+
 // Merge the indexes, and stream the results to the `out` stream immediately.
 // This function tries to batch reads, which makes it much more efficient on
 // HDDs (on SSDs the difference is not noticeable).
@@ -293,7 +310,7 @@ void OnDiskIndex::on_disk_merge_core(
     // Offsets to every run in the file (including the header).
     std::vector<uint64_t> offsets(NUM_TRIGRAMS + 1);
 
-    // Current offset in the file (equal to out.ftell()).
+    // Current offset in the file (equal to size of the header intially).
     uint64_t out_offset = 16;
 
     // Arbitrary number describing how much RAM we want to spend on the run
@@ -309,19 +326,7 @@ void OnDiskIndex::on_disk_merge_core(
     // Main merge loop.
     TriGram trigram = 0;
     while (trigram < NUM_TRIGRAMS) {
-        // Find the biggest batch size for which size of all runs is still
-        // smaller than MAX_BATCH_BYTES.
-        uint64_t batch_size = 1;
-        for (int i = 2; trigram + i < NUM_TRIGRAMS; i++) {
-            uint64_t batch_bytes = 0;
-            for (const auto &ndx : indexes) {
-                batch_bytes += ndx.run(trigram, i).size();
-            }
-            if (batch_bytes > MAX_BATCH_BYTES) {
-                break;
-            }
-            batch_size = i;
-        }
+        uint64_t batch_size = find_max_batch(indexes, trigram, MAX_BATCH_BYTES);
 
         // Read batch_size runs at once.
         uint8_t *batch_ptr = batch_data;
@@ -358,7 +363,7 @@ void OnDiskIndex::on_disk_merge_core(
 
     // Write the footer - 128MB header with run offsets.
     offsets[NUM_TRIGRAMS] = out_offset;
-    out->write((char *)offsets.data(), (NUM_TRIGRAMS + 1) * sizeof(uint64_t));
+    out->write<uint64_t>(offsets.data(), offsets.size());
 }
 
 // Creates necessary headers, and forwards the real work to merge_core

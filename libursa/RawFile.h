@@ -13,7 +13,9 @@ class RawFile {
 
     uint64_t size() const;
     void pread(void *buf, size_t to_read, off_t offset) const;
-    void write(void *buf, size_t to_write) const;
+
+    template <typename T>
+    void write(const T *buf, size_t count);
 
     int get() { return fd; }
 };

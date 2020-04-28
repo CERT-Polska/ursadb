@@ -44,8 +44,10 @@ void RawFile::pread(void *buf, size_t to_read, off_t offset) const {
     }
 }
 
-void RawFile::write(void *buf, size_t to_write) const {
-    char *buf_raw = static_cast<char *>(buf);
+template <typename T>
+void RawFile::write(const T *buf, size_t count) {
+    const char *buf_raw = reinterpret_cast<const char *>(buf);
+    uint64_t to_write = count * sizeof(T);
     while (to_write > 0) {
         ssize_t result = ::write(fd, buf_raw, to_write);
         if (result < 0) {
@@ -55,3 +57,6 @@ void RawFile::write(void *buf, size_t to_write) const {
         to_write -= result;
     }
 }
+
+template void RawFile::write(const uint8_t *, size_t);
+template void RawFile::write(const uint64_t *, size_t);
