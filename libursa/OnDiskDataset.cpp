@@ -7,6 +7,7 @@
 #include "DatabaseName.h"
 #include "Json.h"
 #include "Query.h"
+#include "spdlog/spdlog.h"
 
 void OnDiskDataset::save() {
     std::set<std::string> index_names;
@@ -245,21 +246,25 @@ void OnDiskDataset::merge(const fs::path &db_base, const std::string &outname,
         task->work_estimated = NUM_TRIGRAMS * index_types.size();
     }
 
+    spdlog::info("Pre-checks succeeded, merge can begin.");
+
     std::set<std::string> index_names;
-    for (IndexType index_type : index_types) {
-        std::string index_name =
-            get_index_type_name(index_type) + "." + outname;
+    for (const auto &ndxtype : index_types) {
+        spdlog::info("Load run offsets: {}.", get_index_type_name(ndxtype));
+        std::string index_name = get_index_type_name(ndxtype) + "." + outname;
         index_names.insert(index_name);
         std::vector<IndexMergeHelper> indexes;
         for (const OnDiskDataset *dataset : datasets) {
-            const OnDiskIndex &index = dataset->get_index_with_type(index_type);
+            const OnDiskIndex &index = dataset->get_index_with_type(ndxtype);
             indexes.emplace_back(
                 IndexMergeHelper(&index, dataset->files_index->get_file_count(),
                                  index.read_run_offsets()));
         }
-        OnDiskIndex::on_disk_merge(db_base, index_name, index_type, indexes,
-                                   task);
+        spdlog::info("On disk merge: {}.", get_index_type_name(ndxtype));
+        OnDiskIndex::on_disk_merge(db_base, index_name, ndxtype, indexes, task);
     }
+
+    spdlog::info("Merge filename lists.");
 
     std::string fname_list = "files." + outname;
     std::ofstream of;
@@ -274,6 +279,8 @@ void OnDiskDataset::merge(const fs::path &db_base, const std::string &outname,
 
     store_dataset(db_base, outname, index_names, fname_list,
                   datasets[0]->get_taints());
+
+    spdlog::info("Merge finished successfully.");
 }
 
 const OnDiskIndex &OnDiskDataset::get_index_with_type(
@@ -314,11 +321,18 @@ void OnDiskDataset::drop() {
 fs::path OnDiskDataset::get_base() const { return db_base; }
 
 std::vector<std::vector<const OnDiskDataset *>>
-OnDiskDataset::get_taint_compatible_datasets(
+OnDiskDataset::get_compatible_datasets(
     const std::vector<const OnDiskDataset *> &datasets) {
     std::map<std::set<std::string>, std::vector<const OnDiskDataset *>> partial;
     for (auto ds : datasets) {
-        partial[ds->get_taints()].push_back(ds);
+        std::set<std::string> ds_class;
+        for (const auto &taint : ds->get_taints()) {
+            ds_class.insert("taint:" + taint);
+        }
+        for (const auto &index : ds->get_indexes()) {
+            ds_class.insert("type:" + get_index_type_name(index.index_type()));
+        }
+        partial[ds_class].push_back(ds);
     }
 
     std::vector<std::vector<const OnDiskDataset *>> result;

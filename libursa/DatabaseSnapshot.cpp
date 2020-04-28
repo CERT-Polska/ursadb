@@ -226,25 +226,89 @@ void DatabaseSnapshot::execute(const Query &query,
     }
 }
 
-void DatabaseSnapshot::smart_compact(Task *task) const {
-    for (auto set : OnDiskDataset::get_taint_compatible_datasets(datasets)) {
-        std::vector<const OnDiskDataset *> candidates =
-            OnDiskDataset::get_compact_candidates(set);
+// For every dataset that we want to merge, we need to keep 8*(2**24) bytes
+// in memory (about 128MB). On the one hand, merging more datasets at once
+// is faster so we want to make this number big, OTOH on most computers RAM
+// is not unlimited so we need to make sure we won't crash the DB.
+// This should be parametrised by the DB - right now just hardcode it to 100.
+constexpr int MAX_DATASETS_TO_MERGE = 100;
 
-        if (!candidates.empty()) {
-            internal_compact(task, candidates);
-        }
-    }
+void DatabaseSnapshot::smart_compact(Task *task) const {
+    spdlog::info("Smart compact operation initiated");
+    try_compact(task, /*smart=*/true);
 }
 
 void DatabaseSnapshot::compact(Task *task) const {
-    for (auto set : OnDiskDataset::get_taint_compatible_datasets(datasets)) {
-        if (set.size() >= 2) {
-            internal_compact(task, set);
+    spdlog::info("Full compact operation initiated");
+    try_compact(task, /*smart=*/false);
+}
+
+void DatabaseSnapshot::try_compact(Task *task, bool smart) const {
+    // Try to find a best compact candidate. As a rating function, we use
+    // "number of datasets" - "average number of files", because we want to
+    // maximise number of datasets being compacted and minimise number of
+    // files being compacted (we want to compact small datasets first).
+    std::vector<const OnDiskDataset *> best_compact;
+    int64_t best_compact_value = std::numeric_limits<int64_t>::min();
+    for (auto &set : OnDiskDataset::get_compatible_datasets(datasets)) {
+        // Check every set of compatible datasets.
+        std::vector<const OnDiskDataset *> candidates;
+        if (smart) {
+            // When we're trying to be smart, ignore too small sets.
+            candidates = std::move(
+                OnDiskDataset::get_compact_candidates(std::move(set)));
+        } else {
+            candidates = std::move(set);
         }
+
+        // Ignore datasets that are locked.
+        std::vector<const OnDiskDataset *> ready_candidates;
+        for (const auto &candidate : candidates) {
+            if (!is_dataset_locked(candidate->get_name())) {
+                ready_candidates.push_back(candidate);
+            }
+        }
+
+        // It doesn't make sense to merge less than 2 datasets.
+        if (ready_candidates.size() < 2) {
+            continue;
+        }
+
+        // Try to merge small datasets first. Cull too big collections.
+        if (ready_candidates.size() > MAX_DATASETS_TO_MERGE) {
+            std::sort(ready_candidates.begin(), ready_candidates.end(),
+                      [](const auto &lhs, const auto &rhs) {
+                          return lhs->get_file_count() < rhs->get_file_count();
+                      });
+            ready_candidates.resize(MAX_DATASETS_TO_MERGE);
+        }
+
+        // Compute compact_value for this set, and maybe update best candidate.
+        uint64_t number_of_files = 0;
+        for (const auto &candidate : ready_candidates) {
+            number_of_files += candidate->get_file_count();
+        }
+        uint64_t avg_files = number_of_files / ready_candidates.size();
+        int64_t compact_value = ready_candidates.size() - avg_files;
+        if (compact_value > best_compact_value) {
+            best_compact_value = compact_value;
+            best_compact = std::move(ready_candidates);
+        }
+    }
+
+    // If we found a valid compact candidate, compact it.
+    if (best_compact.empty()) {
+        spdlog::info("No suitable compact candidate found.");
+    } else {
+        spdlog::info("Good candidate (cost: {}, datasets: {}).",
+                     best_compact_value, best_compact.size());
+        internal_compact(task, std::move(best_compact));
     }
 }
 
+// Do some plumbing necessary to pass the data to OnDiskDataset::merge.
+// After the merging, do more plumbing to add results to the task->changes
+// collection.
 void DatabaseSnapshot::internal_compact(
     Task *task, std::vector<const OnDiskDataset *> datasets) const {
     std::vector<std::string> ds_names;
