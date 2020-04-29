@@ -11,17 +11,22 @@ static inline std::vector<IndexType> default_index_types() {
 }
 
 class SelectCommand {
-    Query query;
-    std::set<std::string> taints;
-    bool use_iterator;
+    Query query_;
+    std::set<std::string> taints_;
+    std::set<std::string> datasets_;
+    bool use_iterator_;
 
    public:
     SelectCommand(Query &&query, std::set<std::string> taints,
-                  bool use_iterator)
-        : query(std::move(query)), taints(taints), use_iterator(use_iterator) {}
-    const Query &get_query() const { return query; }
-    const std::set<std::string> &get_taints() const { return taints; }
-    const bool iterator_requested() const { return use_iterator; }
+                  std::set<std::string> datasets, bool use_iterator)
+        : query_(std::move(query)),
+          taints_(std::move(taints)),
+          datasets_(std::move(datasets)),
+          use_iterator_(use_iterator) {}
+    const Query &get_query() const { return query_; }
+    const std::set<std::string> &taints() const { return taints_; }
+    const std::set<std::string> &datasets() const { return datasets_; }
+    const bool iterator_requested() const { return use_iterator_; }
 };
 
 class IndexCommand {

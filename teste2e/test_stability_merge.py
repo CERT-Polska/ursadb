@@ -66,7 +66,7 @@ def test_merge_ratchet(ursadb: UrsadbTestContext) -> None:
         socks.append(ursadb.start_request("compact all;"))
     for sock in socks:
         sock.recv_string()
-    
+
     files = ursadb.check_request("select {};")["result"]["files"]
     assert len(files) == 10
     ds = ursadb.check_request("topology;")["result"]["datasets"]
