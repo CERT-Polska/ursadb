@@ -287,13 +287,13 @@ unsigned long OnDiskIndex::real_size() const { return fs::file_size(fpath); }
 // runs is still smaller than max_bytes.
 uint64_t find_max_batch(const std::vector<IndexMergeHelper> &indexes,
                         uint32_t trigram, uint64_t max_bytes) {
-    for (int i = 2; trigram + i < NUM_TRIGRAMS; i++) {
+    for (int i = 1; trigram + i < NUM_TRIGRAMS; i++) {
         uint64_t batch_bytes = 0;
         for (const auto &ndx : indexes) {
             batch_bytes += ndx.run(trigram, i).size();
         }
         if (batch_bytes > max_bytes) {
-            return i;
+            return i - 1;
         }
     }
     return NUM_TRIGRAMS - trigram;
@@ -327,6 +327,12 @@ void OnDiskIndex::on_disk_merge_core(
     TriGram trigram = 0;
     while (trigram < NUM_TRIGRAMS) {
         uint64_t batch_size = find_max_batch(indexes, trigram, MAX_BATCH_BYTES);
+
+        if (batch_size == 0) {
+            // TODO fallback to old unbatched merge method.
+            spdlog::error("Merge too big, can't fit into MAX_BATCH_BYTES");
+            throw std::runtime_error("Can't merge, batch size too big");
+        }
 
         // Read batch_size runs at once.
         uint8_t *batch_ptr = batch_data;
