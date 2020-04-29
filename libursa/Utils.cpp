@@ -292,6 +292,7 @@ std::vector<FileId> read_compressed_run(const uint8_t *start,
 void store_dataset(const fs::path &db_base, const std::string &fname,
                    const std::set<std::string> &index_names,
                    const std::string &fname_list,
+                   std::optional<std::string_view> fname_cache,
                    const std::set<std::string> &taints) {
     json dataset;
     json j_indices(index_names);
@@ -299,6 +300,10 @@ void store_dataset(const fs::path &db_base, const std::string &fname,
     dataset["indices"] = j_indices;
     dataset["files"] = fname_list;
     dataset["taints"] = taints;
+
+    if (fname_cache) {
+        dataset["filename_cache"] = std::string(*fname_cache);
+    }
 
     std::ofstream o;
     o.exceptions(std::ofstream::badbit);
