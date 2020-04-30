@@ -64,25 +64,7 @@ const QString &Query::as_value() const {
     return value;
 }
 
-std::string Query::as_string_repr() const {
-    std::string out;
-
-    for (const auto &token : as_value()) {
-        if (token.type() == QTokenType::WILDCARD) {
-            out += "\\x??";
-        } else if (token.type() == QTokenType::LWILDCARD) {
-            out += "\\x?" + std::to_string(token.val());
-        } else if (token.type() == QTokenType::HWILDCARD) {
-            out += "\\x" + std::to_string(token.val() >> 4) + "?";
-        } else if (token.type() == QTokenType::CHAR) {
-            out += token.val();
-        } else {
-            throw std::runtime_error("Unknown token type");
-        }
-    }
-
-    return out;
-}
+std::string Query::as_string_repr() const { return "[primitive]"; }
 
 Query q(QString &&qstr) { return Query(std::move(qstr)); }
 

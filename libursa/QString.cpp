@@ -2,9 +2,7 @@
 
 #include <stdexcept>
 
-QToken QToken::single(uint8_t val) {
-    return QToken({val}, val, QTokenType::CHAR);
-}
+QToken QToken::single(uint8_t val) { return QToken({val}); }
 
 QToken QToken::low_wildcard(uint8_t val) {
     std::vector<uint8_t> options;
@@ -14,7 +12,7 @@ QToken QToken::low_wildcard(uint8_t val) {
     for (int i = 0; i < 16; i++) {
         options.push_back(static_cast<uint8_t>(val | i));
     }
-    return QToken(std::move(options), val, QTokenType::LWILDCARD);
+    return QToken(std::move(options));
 }
 
 QToken QToken::high_wildcard(uint8_t val) {
@@ -25,7 +23,7 @@ QToken QToken::high_wildcard(uint8_t val) {
     for (int i = 0; i < 16; i++) {
         options.push_back((static_cast<uint8_t>(i << 4) | val));
     }
-    return QToken(std::move(options), val, QTokenType::HWILDCARD);
+    return QToken(std::move(options));
 }
 
 QToken QToken::wildcard() {
@@ -33,11 +31,11 @@ QToken QToken::wildcard() {
     for (int i = 0; i < 256; i++) {
         options.push_back(static_cast<uint8_t>(i));
     }
-    return QToken(std::move(options), 0, QTokenType::WILDCARD);
+    return QToken(std::move(options));
 }
 
 QToken QToken::with_values(std::vector<uint8_t> &&values) {
-    return QToken(std::move(values), 0, QTokenType::EXPLICIT);
+    return QToken(std::move(values));
 }
 
 const std::vector<uint8_t> &QToken::possible_values() const { return opts_; }

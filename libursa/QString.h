@@ -3,30 +3,14 @@
 #include <cstdint>
 #include <vector>
 
-// Keep this only as long as EXPERIMENTAL_QUERY_GRAPHS feature is optional
-enum class QTokenType {
-    CHAR = 1,       // normal byte e.g. \xAA
-    WILDCARD = 2,   // full wildcard \x??
-    HWILDCARD = 3,  // high wildcard e.g. \x?A
-    LWILDCARD = 4,  // low wildcard e.g. \xA?
-    EXPLICIT = 5    // explicit option list. Not understood by legacy methods.
-};
-
 // Represents a single token in a query. For example AA, A?, ?? or (AA | BB).
 class QToken {
-    // Keep this only as long as EXPERIMENTAL_QUERY_GRAPHS feature is optional.
-    QTokenType legacy_type_;
-
-    // Keep this only as long as EXPERIMENTAL_QUERY_GRAPHS feature is optional.
-    uint8_t legacy_val_;
-
     // List of possible options for this token. Between 1 and 256 byte values.
     // Should be sorted in the ascending order, otherwise == won't work.
     std::vector<uint8_t> opts_;
 
     QToken(const QToken &other) = default;
-    QToken(std::vector<uint8_t> &&opts, uint8_t val, QTokenType type)
-        : legacy_type_(type), legacy_val_(val), opts_(std::move(opts)) {}
+    QToken(std::vector<uint8_t> &&opts) : opts_(std::move(opts)) {}
 
    public:
     QToken(QToken &&other) = default;
@@ -58,14 +42,6 @@ class QToken {
 
     // Compares two QTokens. Assumes that `opts_` is in the ascending order.
     bool operator==(const QToken &a) const;
-
-    // Keep this only as long as EXPERIMENTAL_QUERY_GRAPHS feature is optional.
-    // Returns a masked token value, exact meaning depends on the token type.
-    [[deprecated]] uint8_t val() const { return legacy_val_; }
-
-    // Keep this only as long as EXPERIMENTAL_QUERY_GRAPHS feature is optional.
-    // Returns a token type.
-    [[deprecated]] QTokenType type() const { return legacy_type_; }
 
     // For when you really positively need to use a copy constructor.
     QToken clone() const { return QToken(*this); }

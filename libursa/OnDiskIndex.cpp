@@ -57,85 +57,6 @@ OnDiskIndex::OnDiskIndex(const std::string &fname)
     ntype = static_cast<IndexType>(header.raw_type);
 }
 
-bool OnDiskIndex::internal_expand(QString::const_iterator qit, uint8_t *out,
-                                  size_t pos, size_t comb_len,
-                                  const TrigramGenerator &gen,
-                                  QueryResult &res) const {
-    if (pos >= comb_len) {
-        bool was_generated = false;
-
-        gen(out, comb_len, [&](TriGram val) {
-            was_generated = true;
-            res.do_or(QueryResult(query_primitive(val)));
-        });
-
-        return was_generated;
-    }
-
-    auto j = (uint8_t)qit->val();
-
-    do {
-        out[pos] = j;
-        bool was_generated =
-            internal_expand(qit + 1, out, pos + 1, comb_len, gen, res);
-
-        if (!was_generated) {
-            // sequence was not recognized by given index
-            // this may happen for indexes like text4 or wide8
-            return false;
-        }
-
-        switch (qit->type()) {
-            case QTokenType::CHAR:
-                return true;
-            case QTokenType::WILDCARD:
-                if (j == 0xFF) {
-                    return true;
-                } else {
-                    ++j;
-                }
-                break;
-            case QTokenType::LWILDCARD:
-                if (j == (qit->val() | 0xFU)) {
-                    return true;
-                } else {
-                    ++j;
-                }
-                break;
-            case QTokenType::HWILDCARD:
-                if (j == (qit->val() | 0xF0U)) {
-                    return true;
-                } else {
-                    j += 0x10;
-                }
-                break;
-            default:
-                throw std::runtime_error("unknown token type");
-        }
-    } while (true);
-}
-
-QueryResult OnDiskIndex::expand_wildcards(const QString &qstr, size_t len,
-                                          const TrigramGenerator &gen) const {
-    uint8_t out[len];
-    QueryResult total = QueryResult::everything();
-
-    if (qstr.size() < len) {
-        return total;
-    }
-
-    for (unsigned int i = 0; i <= qstr.size() - len; i++) {
-        QueryResult res = QueryResult::empty();
-        bool success =
-            internal_expand(qstr.cbegin() + i, out, 0, len, gen, res);
-        if (success) {
-            total.do_and(std::move(res));
-        }
-    }
-
-    return total;
-}
-
 // Returns a subset of a given QToken, with values accepted by TokenValidator.
 QToken filter_qtoken(const QToken &token, uint32_t off, TokenValidator is_ok) {
     std::vector<uint8_t> possible_values;
@@ -257,21 +178,17 @@ QueryResult OnDiskIndex::query_str(const QString &str) const {
     TokenValidator validator = get_validator_for(ntype);
     size_t input_len = get_ngram_size_for(ntype);
 
-    if (::feature::query_graphs) {
-        spdlog::debug("Experimental graph query for {}",
-                      get_index_type_name(index_type()));
+    spdlog::debug("Graph query for {}", get_index_type_name(index_type()));
 
-        QueryFunc oracle = [this](uint64_t raw_gram) {
-            auto gram = convert_gram(index_type(), raw_gram);
-            if (gram) {
-                return QueryResult(std::move(query_primitive(*gram)));
-            }
-            return QueryResult::everything();
-        };
-        QueryGraph graph{to_query_graph(str, input_len, validator)};
-        return graph.run(oracle);
-    }
-    return expand_wildcards(str, input_len, generator);
+    QueryFunc oracle = [this](uint64_t raw_gram) {
+        auto gram = convert_gram(index_type(), raw_gram);
+        if (gram) {
+            return QueryResult(std::move(query_primitive(*gram)));
+        }
+        return QueryResult::everything();
+    };
+    QueryGraph graph{to_query_graph(str, input_len, validator)};
+    return graph.run(oracle);
 }
 
 std::pair<uint64_t, uint64_t> OnDiskIndex::get_run_offsets(
