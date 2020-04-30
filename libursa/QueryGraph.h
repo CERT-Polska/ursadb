@@ -30,7 +30,7 @@ class NodeId {
 using Edge = std::pair<NodeId, NodeId>;
 
 // Signature of the function used to query index by ngram.
-using QueryFunc = std::function<QueryResult(uint32_t)>;
+using QueryFunc = std::function<QueryResult(uint64_t)>;
 
 class QueryGraphNode {
     // Adjacency list for this node. Elements are indices in the parent
@@ -38,8 +38,8 @@ class QueryGraphNode {
     std::vector<NodeId> edges_;
 
     // N-gram with implicit n. For example, 0x112233 represents {11 22 33}.
-    // For obvious reasons, can't handle n-grams with n bigger than 4.
-    uint32_t gram_;
+    // For obvious reasons, can't handle n-grams with n bigger than 8.
+    uint64_t gram_;
 
     // Is this a special epsilon node. Epsilon nodes are no-ops that accept
     // every file. They are sometimes added during graph operations.
@@ -50,7 +50,7 @@ class QueryGraphNode {
 
    public:
     // Constructs a new graph node with assigned ngram value.
-    explicit QueryGraphNode(uint32_t gram) : gram_(gram), is_epsilon_(false) {}
+    explicit QueryGraphNode(uint64_t gram) : gram_(gram), is_epsilon_(false) {}
 
     // Adds edge from this node to another one.
     void add_edge(NodeId to) { edges_.push_back(to); }
@@ -59,7 +59,7 @@ class QueryGraphNode {
     bool is_epsilon() const { return is_epsilon_; }
 
     // Returns ngram assigned to this node, undefined if the node is epsilon.
-    uint32_t gram() const {
+    uint64_t gram() const {
         assert(!is_epsilon_);
         return gram_;
     }
@@ -109,10 +109,10 @@ class QueryGraph {
 
     // Merges ngrams of two given nodes assuming they're adjacent in query.
     // For example, will merge ABC and BCD into ABCD.
-    uint32_t combine(NodeId source, NodeId target) const;
+    uint64_t combine(NodeId source, NodeId target) const;
 
     // Adds a new node to the query graph, and returns its id.
-    NodeId make_node(uint32_t gram) {
+    NodeId make_node(uint64_t gram) {
         nodes_.emplace_back(QueryGraphNode(gram));
         return NodeId(nodes_.size() - 1);
     }

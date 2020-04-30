@@ -53,6 +53,9 @@ class QToken {
     // Equivalent to `possible_values.size()`.
     uint64_t num_possible_values() const;
 
+    // Returns true, if the QToken is empty (doesn't accept any character).
+    bool empty() const { return opts_.empty(); }
+
     // Compares two QTokens. Assumes that `opts_` is in the ascending order.
     bool operator==(const QToken &a) const;
 

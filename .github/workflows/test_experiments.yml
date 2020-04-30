@@ -38,4 +38,4 @@ jobs:
     - name: build
       run: cd build && make ursadb ursadb_new
     - name: test
-      run: python3 -m pytest
+      run: env EXPERIMENTAL_QUERY_GRAPHS=On python3 -m pytest
