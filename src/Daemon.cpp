@@ -300,11 +300,6 @@ int main(int argc, char *argv[]) {
     try {
         Database db(argv[1]);
         spdlog::info("UrsaDB v{}", get_version_string());
-
-        if (::feature::query_graphs) {
-            spdlog::info("Unstable build: query graphs are enabled");
-        }
-
         std::string bind_address = "tcp://127.0.0.1:9281";
 
         if (argc > 3) {

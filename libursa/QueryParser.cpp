@@ -330,18 +330,6 @@ QString transform_qstring(const parse_tree::node &n) {
     QString result;
     for (auto &atom : root->children) {
         if (atom->is<hexbyte>()) {
-            // We're getting close to getting rid of this code.
-            if (!::feature::query_graphs) {
-                const std::string &c = atom->content();
-
-                if (c[0] == '?' && c[1] == '?') {  // \x??
-                    if (wildcard_ticks > 0) {
-                        throw std::runtime_error(
-                            "too many wildcards, use AND operator instead");
-                    }
-                    wildcard_ticks = 3;
-                }
-            }
             result.emplace_back(transform_hexbyte(*atom));
         } else if (atom->is<hexoptions>()) {
             std::set<uint8_t> opts;
