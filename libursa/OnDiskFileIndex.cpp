@@ -30,7 +30,9 @@ OnDiskFileIndex::OnDiskFileIndex(const fs::path &db_base,
       files_fname(files_fname),
       cache_fname(cache_fname),
       files_file(db_base / files_fname) {  // <- cool race condition here
-    if (!fs::exists(db_base / cache_fname)) {
+    if (fs::exists(db_base / cache_fname)) {
+        file_count = fs::file_size(db_base / cache_fname) / 8 - 1;
+    } else {
         generate_namecache_file();
     }
     cache_file.emplace(db_base / cache_fname);
