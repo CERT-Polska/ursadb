@@ -76,6 +76,7 @@ def test_text4_index_works_as_expected(ursadb: UrsadbTestContext):
 
 def test_wide8_index_works_as_expected(ursadb: UrsadbTestContext):
     import os
+
     if "EXPERIMENTAL_QUERY_GRAPHS" not in os.environ:
         # This query is only supported with query graphs
         return

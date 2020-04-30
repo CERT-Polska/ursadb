@@ -24,7 +24,7 @@ class DatabaseSnapshot {
     std::vector<const OnDiskDataset *> datasets;
     std::set<std::string> locked_datasets;
     std::set<std::string> locked_iterators;
-    std::unordered_map<uint64_t, TaskSpec *> tasks;
+    std::unordered_map<uint64_t, TaskSpec> tasks;
 
     void find_all_indexed_files(std::set<std::string> *indexed) const;
     void build_target_list(const std::string &filepath,
@@ -45,7 +45,7 @@ class DatabaseSnapshot {
     DatabaseSnapshot(fs::path db_name, fs::path db_base, DatabaseConfig config,
                      std::map<std::string, OnDiskIterator> iterators,
                      std::vector<const OnDiskDataset *> datasets,
-                     const std::unordered_map<uint64_t, TaskSpec *> &tasks);
+                     const std::unordered_map<uint64_t, TaskSpec> &tasks);
 
     DatabaseName derive_name(const DatabaseName &original,
                              const std::string &type) const {
@@ -100,7 +100,7 @@ class DatabaseSnapshot {
     const std::vector<const OnDiskDataset *> &get_datasets() const {
         return datasets;
     };
-    const std::unordered_map<uint64_t, TaskSpec *> &get_tasks() const {
+    const std::unordered_map<uint64_t, TaskSpec> &get_tasks() const {
         return tasks;
     };
 

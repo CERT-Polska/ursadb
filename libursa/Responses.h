@@ -39,7 +39,6 @@ class Response {
     static Response ping(const std::string &connection_id);
     static Response error(const std::string &message, bool retry = false);
     static Response topology(const std::vector<DatasetEntry> &datasets);
-    static Response status(
-        const std::unordered_map<uint64_t, TaskSpec *> &tasks);
+    static Response status(const std::unordered_map<uint64_t, TaskSpec> &tasks);
     std::string to_string() const;
 };
