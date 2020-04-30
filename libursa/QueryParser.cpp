@@ -40,6 +40,7 @@ struct smart_token : TAO_PEGTL_STRING("smart") {};
 struct ping_token : TAO_PEGTL_STRING("ping") {};
 struct dataset_token : TAO_PEGTL_STRING("dataset") {};
 struct taints_token : TAO_PEGTL_STRING("taints") {};
+struct datasets_token : TAO_PEGTL_STRING("datasets") {};
 struct taint_token : TAO_PEGTL_STRING("taint") {};
 struct untaint_token : TAO_PEGTL_STRING("untaint") {};
 struct from_token : TAO_PEGTL_STRING("from") {};
@@ -148,11 +149,13 @@ struct argument_tuple : seq<open_bracket, seq<expression, star<seq<comma, expres
 struct min_of_expr : seq<min_token, plus<space>, number, plus<space>, of_token, star<space>, argument_tuple> {};
 struct expression : seq<sor<value, min_of_expr>, star<sor<op_and, op_or>, expression>> {};
 struct comma : seq<star<space>, comma_token, star<space>> {};
-struct taint_name_list : seq<open_square, opt<list<plaintext, comma>>, close_square> {};
+struct plaintext_list : seq<open_square, opt<list<plaintext, comma>>, close_square> {};
 
 // select command
 struct with_taints_token : seq<with_token, plus<space>, taints_token> {};
-struct with_taints_construct : seq<plus<space>, with_taints_token, plus<space>, taint_name_list> {};
+struct with_taints_construct : seq<plus<space>, with_taints_token, plus<space>, plaintext_list> {};
+struct with_datasets_token : seq<with_token, plus<space>, datasets_token> {};
+struct with_datasets_construct : seq<plus<space>, with_datasets_token, plus<space>, plaintext_list> {};
 struct iterator_magic : seq<iterator_token> {};
 struct into_iterator_construct : seq<plus<space>, into_token, plus<space>, iterator_magic> {};
 struct select_body : seq<star<space>, expression> {};
@@ -178,7 +181,7 @@ struct get_construct : seq<get_token, star<space>, opt<list<plaintext, space>>> 
 struct set_construct : seq<set_token, star<space>, plaintext, star<space>, number> {};
 
 // commands
-struct select : seq<select_token, opt<with_taints_construct>, opt<into_iterator_construct>, select_body> {};
+struct select : seq<select_token, opt<with_taints_construct>, opt<with_datasets_construct>, opt<into_iterator_construct>, select_body> {};
 struct dataset : seq<dataset_token, star<space>, plaintext, star<space>, dataset_operation> {};
 struct iterator : seq<iterator_token, star<space>, plaintext, star<space>, iterator_pop> {};
 struct index : seq<index_token, star<space>, sor<paths_construct, from_list_construct>, opt<index_with_construct>, opt<nocheck_construct>> {};
@@ -197,6 +200,7 @@ struct grammar : seq<command, star<space>, eof> {};
 template <typename> struct store : std::false_type {};
 template <> struct store<plaintext> : std::true_type {};
 template <> struct store<with_taints_token> : std::true_type {};
+template <> struct store<with_datasets_token> : std::true_type {};
 template <> struct store<into_token> : std::true_type {};
 template <> struct store<nocheck_construct> : std::true_type {};
 template <> struct store<wide_plaintext> : std::true_type {};
@@ -222,7 +226,7 @@ template <> struct store<topology> : std::true_type {};
 template <> struct store<status> : std::true_type {};
 template <> struct store<ping> : std::true_type {};
 template <> struct store<index_type_list> : std::true_type {};
-template <> struct store<taint_name_list> : std::true_type {};
+template <> struct store<plaintext_list> : std::true_type {};
 template <> struct store<taint_token> : std::true_type {};
 template <> struct store<untaint_token> : std::true_type {};
 template <> struct store<gram3_token> : std::true_type {};
@@ -422,11 +426,20 @@ Command transform_command(const parse_tree::node &n) {
         int iter = 0;
         bool use_iterator = false;
         std::set<std::string> taints;
+        std::set<std::string> datasets;
         while (true) {
             if (n.children[iter]->is<with_taints_token>()) {
                 // handle `with taints ["xxx", "yyy"]` construct
                 for (const auto &taint : n.children[iter + 1]->children) {
                     taints.insert(transform_string(*taint));
+                }
+                iter += 2;
+                continue;
+            }
+            if (n.children[iter]->is<with_datasets_token>()) {
+                // handle `with datasets ["xxx", "yyy"]` construct
+                for (const auto &dataset : n.children[iter + 1]->children) {
+                    datasets.insert(transform_string(*dataset));
                 }
                 iter += 2;
                 continue;
@@ -447,7 +460,8 @@ Command transform_command(const parse_tree::node &n) {
             throw std::runtime_error("unexpected node in select");
         }
         const auto &expr = n.children[iter]->children[0];
-        return Command(SelectCommand(transform(*expr), taints, use_iterator));
+        return Command(
+            SelectCommand(transform(*expr), taints, datasets, use_iterator));
     } else if (n.is<iterator>()) {
         if (!n.children[1]->is<pop_token>()) {
             throw std::runtime_error("Unknown iterator mode");

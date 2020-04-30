@@ -202,7 +202,21 @@ TEST_CASE("select literal into iterator", "[queryparser]") {
 TEST_CASE("select literal with taints", "[queryparser]") {
     auto cmd = parse<SelectCommand>("select with taints [\"hmm\"] \"MSM\";");
     REQUIRE(cmd.get_query() == q(std::move(mqs("MSM"))));
-    REQUIRE(cmd.get_taints() == std::set<std::string>{"hmm"});
+    REQUIRE(cmd.taints() == std::set<std::string>{"hmm"});
+}
+
+TEST_CASE("select literal with datasets", "[queryparser]") {
+    auto cmd = parse<SelectCommand>("select with datasets [\"hmm\"] \"MSM\";");
+    REQUIRE(cmd.get_query() == q(std::move(mqs("MSM"))));
+    REQUIRE(cmd.datasets() == std::set<std::string>{"hmm"});
+}
+
+TEST_CASE("select literal with datasets and taints", "[queryparser]") {
+    auto cmd = parse<SelectCommand>(
+        "select with taints [\"kot\"] with datasets [\"hmm\"] \"MSM\";");
+    REQUIRE(cmd.get_query() == q(std::move(mqs("MSM"))));
+    REQUIRE(cmd.datasets() == std::set<std::string>{"hmm"});
+    REQUIRE(cmd.taints() == std::set<std::string>{"kot"});
 }
 
 TEST_CASE("compact all command", "[queryparser]") {
