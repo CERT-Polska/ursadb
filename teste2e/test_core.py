@@ -1,6 +1,5 @@
 from util import UrsadbTestContext, store_files, check_query
 from util import ursadb  # noqa
-from typing import List
 import os
 import hashlib
 
@@ -76,6 +75,10 @@ def test_text4_index_works_as_expected(ursadb: UrsadbTestContext):
 
 
 def test_wide8_index_works_as_expected(ursadb: UrsadbTestContext):
+    import os
+    if "EXPERIMENTAL_QUERY_GRAPHS" not in os.environ:
+        # This query is only supported with query graphs
+        return
     store_files(
         ursadb,
         "wide8",
@@ -84,12 +87,18 @@ def test_wide8_index_works_as_expected(ursadb: UrsadbTestContext):
             "zzz": b"aaaaabbccccc",
             "yyy": b"\xff\xff\xff",
             "vvv": b"a\x00b\x00c\x00d\x00efgh",
+            "qqq": b"a\x00c\x00b\x00d\x00efgh",
         },
     )
-    check_query(ursadb, '"abbc"', ["kot", "zzz", "yyy", "vvv"])
-    check_query(ursadb, "{ff ff ff}", ["kot", "zzz", "yyy", "vvv"])
+    check_query(ursadb, '"abbc"', ["kot", "zzz", "yyy", "vvv", "qqq"])
+    check_query(ursadb, "{ff ff ff}", ["kot", "zzz", "yyy", "vvv", "qqq"])
     check_query(ursadb, '"a\\x00b\\x00c\\x00d\\x00"', ["vvv"])
-    assert get_index_hash(ursadb, "wide8")[:16] == "16f473f632b106a6"
+    check_query(
+        ursadb,
+        "{61 (00|01) (62|63) (00|01) (63|62) (00|01) 64 00}",
+        ["vvv", "qqq"],
+    )
+    assert get_index_hash(ursadb, "wide8")[:16] == "c73b55c36445ca6b"
 
 
 def num_pattern(i: int) -> str:

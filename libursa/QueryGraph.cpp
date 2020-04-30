@@ -11,7 +11,7 @@ QueryGraph QueryGraph::dual() const {
     for (size_t ndx = 0; ndx < nodes_.size(); ndx++) {
         NodeId source(ndx);
         for (NodeId target : get(source).edges()) {
-            uint32_t gram = combine(source, target);
+            uint64_t gram = combine(source, target);
             newnodes.emplace(Edge{source, target}, result.make_node(gram));
         }
     }
@@ -148,7 +148,7 @@ QueryResult masked_or(std::vector<const QueryResult *> &&to_or,
     return result;
 }
 
-uint32_t QueryGraph::combine(NodeId source, NodeId target) const {
+uint64_t QueryGraph::combine(NodeId source, NodeId target) const {
     if (get(source).is_epsilon() || get(target).is_epsilon()) {
         // It's not that it's hard or slow to combine epsilons. We just
         // don't expect this, so this may warrant investigation.
@@ -169,9 +169,12 @@ QueryResult QueryGraph::run(const QueryFunc &oracle) const {
     while (!visitor.empty()) {
         // New state is: (union of all possible predecessors) & oracle(id)
         NodeId id{visitor.next()};
-        visitor.set(id, std::move(masked_or(
-                            std::move(visitor.predecessor_states(id)),
-                            std::move(QueryResult(oracle(get(id).gram()))))));
+        QueryResult next = {get(id).is_epsilon()
+                                ? QueryResult::everything()
+                                : QueryResult(oracle(get(id).gram()))};
+        visitor.set(
+            id, std::move(masked_or(std::move(visitor.predecessor_states(id)),
+                                    std::move(next))));
         if (get(id).edges().size() == 0) {
             result.do_or(visitor.state(id));
         }
@@ -233,7 +236,7 @@ void QueryGraph::join(QueryGraph &&other) {
     // 3. Append it to all sinks of this graph (C and D above).
     std::vector<NodeId> sinks;
     for (auto &node : nodes_) {
-        if (node.is_sink()) {
+        if (&node != &nodes_.back() && node.is_sink()) {
             node.add_edge(epsilon);
         }
     }

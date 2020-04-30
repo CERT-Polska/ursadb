@@ -136,13 +136,22 @@ QueryResult OnDiskIndex::expand_wildcards(const QString &qstr, size_t len,
     return total;
 }
 
+// Returns a subset of a given QToken, with values accepted by TokenValidator.
+QToken filter_qtoken(const QToken &token, uint32_t off, TokenValidator is_ok) {
+    std::vector<uint8_t> possible_values;
+    for (uint8_t val : token.possible_values()) {
+        if (is_ok(off, val)) {
+            possible_values.push_back(val);
+        }
+    }
+    return QToken::with_values(std::move(possible_values));
+}
+
 // Expands the query to a query graph, but at the same time is careful not to
 // generate a query graph that is too big.
-// This is a pretty limiting heuristics and it can't account for more complex
-// tokens (for example, `(11 | 22 33)`). The proper solution is much harder and
-// will need a efficient graph pruning algorithm. Nevertheless, this solution
-// works and can support everything that the current parser can.
-QueryGraph to_query_graph(const QString &str, int ngram_size) {
+// Token validator checks if the specified character can occur at the specified
+// position in the stream (otherwise ngram won't be generated).
+QueryGraph to_query_graph(const QString &str, int size, TokenValidator is_ok) {
     // Graph representing the final query equivalent to qstring.
     QueryGraph result;
 
@@ -156,11 +165,17 @@ QueryGraph to_query_graph(const QString &str, int ngram_size) {
     // graph and the graph will be split into one or more subgraphs.
     constexpr uint32_t MAX_NGRAM = 256 * 256;
 
-    spdlog::info("Expand+prune for a query graph size={}", ngram_size);
+    spdlog::debug("Expand+prune for a query graph size={}", size);
 
+    // Offset from the beginning of the string.
     int offset = 0;
+
+    // Offset from the beginning of the next connected string component.
+    int frag_offset = 0;
     while (offset < str.size()) {
-        spdlog::info("Looking for a new start edge");
+        spdlog::debug("Looking for a new start edge {}", offset);
+        frag_offset = 0;
+
         // Check if this node can become an edge.
         if (str[offset].num_possible_values() > MAX_EDGE) {
             offset++;
@@ -169,84 +184,91 @@ QueryGraph to_query_graph(const QString &str, int ngram_size) {
 
         // Insert first ngram_size - 1 tokens.
         std::vector<QToken> tokens;
-        for (int i = 0; i < ngram_size - 1 && offset < str.size(); i++) {
-            tokens.emplace_back(str[offset].clone());
-            offset++;
+        for (int i = 0; i < size - 1 && offset < str.size(); i++) {
+            auto token = filter_qtoken(str[offset], frag_offset, is_ok);
+            if (token.empty()) {
+                break;
+            }
+            tokens.emplace_back(std::move(token));
+            offset += 1;
+            frag_offset += 1;
+        }
+
+        // If there are no good tokens this time, go forward.
+        if (tokens.size() < size - 1) {
+            if (frag_offset == 0) {
+                offset++;
+            }
+            continue;
         }
 
         // Now insert tokens ending ngram, as long as it is small enough.
-        while (offset < str.size()) {
+        while (!tokens.back().empty() && offset < str.size()) {
             uint64_t num_possible = 1;
-            for (int i = 0; i < ngram_size; i++) {
+            for (int i = 0; i < size; i++) {
                 num_possible *= str[offset - i].num_possible_values();
             }
             if (num_possible > MAX_NGRAM) {
                 break;
             }
-            tokens.emplace_back(str[offset].clone());
-            offset++;
+            auto token = filter_qtoken(str[offset], frag_offset, is_ok);
+            if (token.empty()) {
+                break;
+            }
+            tokens.emplace_back(std::move(token));
+            offset += 1;
+            frag_offset += 1;
         }
 
         // Finally, prune the subquery from the right (using MAX_EDGE).
-        while (tokens.back().num_possible_values() > MAX_EDGE) {
-            // This is safe, because first element is < MAX_EDGE.
+        while (tokens.back().empty() ||
+               tokens.back().num_possible_values() > MAX_EDGE) {
+            // This is safe, because there must be at least one element.
             tokens.pop_back();
+            if (tokens.empty()) {
+                break;
+            }
         }
 
-        if (tokens.size() < ngram_size) {
+        // If there are not enough good tokens, go forward.
+        if (tokens.size() < size) {
             continue;
         }
 
-        spdlog::info("Got a subgraph candidate, size={}", tokens.size());
+        spdlog::debug("Got a subgraph candidate, size={}", tokens.size());
         QueryGraph subgraph{QueryGraph::from_qstring(tokens)};
 
-        for (int i = 0; i < ngram_size - 1; i++) {
-            spdlog::info("Computing dual graph ({} nodes)", subgraph.size());
+        for (int i = 0; i < size - 1; i++) {
+            spdlog::debug("Computing dual graph ({} nodes)", subgraph.size());
             subgraph = std::move(subgraph.dual());
         }
 
-        spdlog::info("Merging subgraph into the result");
+        spdlog::debug("Merging subgraph into the result");
         result.join(std::move(subgraph));
     }
 
-    spdlog::info("Query graph expansion succeeded ({} nodes)", result.size());
+    spdlog::debug("Query graph expansion succeeded ({} nodes)", result.size());
     return result;
 }
 
+// Returns all files that can be matched to given string.
 QueryResult OnDiskIndex::query_str(const QString &str) const {
     TrigramGenerator generator = get_generator_for(ntype);
+    TokenValidator validator = get_validator_for(ntype);
+    size_t input_len = get_ngram_size_for(ntype);
 
-    size_t input_len = 0;
+    if (::feature::query_graphs) {
+        spdlog::debug("Experimental graph query for {}",
+                      get_index_type_name(index_type()));
 
-    switch (index_type()) {
-        case IndexType::GRAM3:
-            input_len = 3;
-            break;
-        case IndexType::HASH4:
-            input_len = 4;
-            break;
-        case IndexType::TEXT4:
-            input_len = 4;
-            break;
-        case IndexType::WIDE8:
-            input_len = 8;
-            break;
-        default:
-            throw std::runtime_error("unhandled index type");
-    }
-
-    if (::feature::query_graphs && input_len <= 4) {
-        spdlog::info("Experimental graph query for {}",
-                     get_index_type_name(index_type()));
-
-        QueryFunc oracle = [this](uint32_t raw_gram) {
+        QueryFunc oracle = [this](uint64_t raw_gram) {
             auto gram = convert_gram(index_type(), raw_gram);
             if (gram) {
                 return QueryResult(std::move(query_primitive(*gram)));
             }
             return QueryResult::everything();
         };
-        QueryGraph graph{to_query_graph(str, input_len)};
+        QueryGraph graph{to_query_graph(str, input_len, validator)};
         return graph.run(oracle);
     }
     return expand_wildcards(str, input_len, generator);

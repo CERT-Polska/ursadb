@@ -1,6 +1,7 @@
 #define CATCH_CONFIG_MAIN
 
 #include <cstdlib>
+#include <string>
 #include <variant>
 
 #include "catch/Catch.h"
@@ -16,6 +17,9 @@
 #include "libursa/QueryParser.h"
 #include "libursa/ResultWriter.h"
 #include "libursa/Utils.h"
+
+// For string literal ( "xxx"s ).
+using namespace std::string_literals;
 
 TriGram gram3_pack(const char (&s)[4]) {
     TriGram v0 = (uint8_t)s[0];
@@ -705,7 +709,7 @@ TEST_CASE("Simple graph join", "[query_graphs]") {
 }
 
 QueryFunc make_oracle(std::string accepting) {
-    return [accepting](uint32_t gram1) {
+    return [accepting](uint64_t gram1) {
         if (accepting.find(static_cast<char>(gram1)) != std::string::npos) {
             return QueryResult::everything();
         }
@@ -726,4 +730,179 @@ TEST_CASE("Test wildcard query", "[query_graphs]") {
     REQUIRE(graph.run(make_oracle("cat")).is_everything());
     REQUIRE(graph.run(make_oracle("cet")).is_everything());
     REQUIRE(!graph.run(make_oracle("abc")).is_everything());
+}
+
+// Special value, ensure that all expected queries were asked.
+const uint64_t ORACLE_CHECK_MAGIC = std::numeric_limits<uint64_t>::max();
+
+QueryFunc make_expect_oracle(IndexType type, std::vector<std::string> strings) {
+    std::vector<uint32_t> accepted;
+    for (const auto &str : strings) {
+        const uint8_t *dataptr = reinterpret_cast<const uint8_t *>(str.data());
+        get_generator_for(type)(dataptr, str.size(), [&accepted](auto gram) {
+            accepted.push_back(gram);
+        });
+    }
+    return [type, accepted{std::move(accepted)},
+            strings{std::move(strings)}](uint64_t raw_gram) mutable {
+        if (raw_gram == ORACLE_CHECK_MAGIC) {
+            if (!accepted.empty()) {
+                throw std::runtime_error("Not all expected queries performed");
+            }
+            return QueryResult::everything();
+        }
+        std::optional<uint32_t> maybe_gram = convert_gram(type, raw_gram);
+        if (!maybe_gram) {
+            return QueryResult::everything();
+        }
+        uint32_t gram = *maybe_gram;
+        auto it = std::find(accepted.begin(), accepted.end(), gram);
+        if (it == accepted.end()) {
+            throw std::runtime_error("Unexpected query");
+        } else {
+            accepted.erase(it);
+        }
+        return QueryResult::everything();
+    };
+}
+
+// Internal function, used for tests.
+QueryGraph to_query_graph(const QString &str, int size, TokenValidator is_ok);
+
+// Ensure that the queries that were executed match exectly to expected ones.
+// This makes sure that query was parsed correctly and contains expected ngrams.
+// For example: ensure_queries(mqs("cats"), IndexType::GRAM3, {"cats"});
+// or: ensure_queries(mqs("cats"), IndexType::GRAM3, {"cat", "ats"});
+//
+// Make sure that there the graph will execute two queries, "cat" and "ats".
+void ensure_queries(const QString &query, IndexType type,
+                    std::vector<std::string> strings) {
+    auto validator = get_validator_for(type);
+    size_t size = get_ngram_size_for(type);
+    QueryGraph graph{to_query_graph(query, size, validator)};
+    auto oracle = make_expect_oracle(type, strings);
+    graph.run(oracle);
+    oracle(ORACLE_CHECK_MAGIC);
+}
+
+TEST_CASE("Test gram3 graph generator: gram3 x 0", "[query_graphs]") {
+    ensure_queries(mqs("ca"), IndexType::GRAM3, {});
+}
+
+TEST_CASE("Test gram3 graph generator: gram3 x 1", "[query_graphs]") {
+    ensure_queries(mqs("cat"), IndexType::GRAM3, {"cat"});
+}
+
+TEST_CASE("Test gram3 graph generator: gram3 x 2", "[query_graphs]") {
+    ensure_queries(mqs("cats"), IndexType::GRAM3, {"cats"});
+}
+
+TEST_CASE("Test text4 graph generator: text4 x 0", "[query_graphs]") {
+    ensure_queries(mqs("cat"), IndexType::TEXT4, {});
+}
+
+TEST_CASE("Test text4 graph generator: text4 x 1", "[query_graphs]") {
+    ensure_queries(mqs("cats"), IndexType::TEXT4, {"cats"});
+}
+
+TEST_CASE("Test text4 graph generator: text4 x 6", "[query_graphs]") {
+    ensure_queries(mqs("catsNdogs"), IndexType::TEXT4, {"catsNdogs"});
+}
+
+TEST_CASE("Test text4 graph generator: text4 x (2+2)", "[query_graphs]") {
+    ensure_queries(mqs("cats!dogs"), IndexType::TEXT4, {"cats", "dogs"});
+}
+
+TEST_CASE("Test hash4 graph generator: hash4 x 0", "[query_graphs]") {
+    ensure_queries(mqs("cat"), IndexType::HASH4, {});
+}
+
+TEST_CASE("Test hash4 graph generator: hash4 x (6)", "[query_graphs]") {
+    ensure_queries(mqs("cats!dogs"), IndexType::HASH4, {"cats!dogs"});
+}
+
+TEST_CASE("Test wide8 graph generator: wide8 x (0)", "[query_graphs]") {
+    ensure_queries(mqs("a\0b\0c\0d"s), IndexType::WIDE8, {});
+}
+
+TEST_CASE("Test wide8 graph generator: wide8 x (1)", "[query_graphs]") {
+    ensure_queries(mqs("a\0b\0c\0d\0"s), IndexType::WIDE8, {"a\0b\0c\0d\0"s});
+}
+
+TEST_CASE("Test wide8 graph generator: wide8 x (1)'", "[query_graphs]") {
+    ensure_queries(mqs("\0a\0b\0c\0d\0"s), IndexType::WIDE8, {"a\0b\0c\0d\0"s});
+}
+
+TEST_CASE("Test wide8 graph generator: wide8 x (2)''", "[query_graphs]") {
+    ensure_queries(mqs("cats\0a\0b\0c\0d\0hmm"s), IndexType::WIDE8,
+                   {"s\0a\0b\0c\0d\0"s});
+}
+
+TEST_CASE("Test wide8 graph generator: wide8 x (1+1)''", "[query_graphs]") {
+    ensure_queries(mqs("ssda\0b\0c\0d\0hmmq\0w\0e\0r\0xtq"s), IndexType::WIDE8,
+                   {"a\0b\0c\0d\0"s, "q\0w\0e\0r\0"s});
+}
+
+QString mqs_alphabet() {
+    QString expect;
+    expect.emplace_back(std::move(QToken::single('a')));
+    expect.emplace_back(std::move(QToken::single('b')));
+    expect.emplace_back(std::move(QToken::single('c')));
+    expect.emplace_back(std::move(QToken::with_values({'d', 'e', '!'})));
+    expect.emplace_back(std::move(QToken::single('f')));
+    expect.emplace_back(std::move(QToken::single('g')));
+    expect.emplace_back(std::move(QToken::single('h')));
+    return expect;
+}
+
+TEST_CASE("Test gram3 wildcards generator", "[query_graphs]") {
+    ensure_queries(mqs_alphabet(), IndexType::GRAM3,
+                   {"abc", "bcd", "cdf", "dfg", "bc!", "c!f", "!fg", "bce",
+                    "cef", "efg", "fgh"});
+}
+
+TEST_CASE("Test text4 wildcards generator", "[query_graphs]") {
+    ensure_queries(mqs_alphabet(), IndexType::TEXT4, {"abcdfgh", "abcefgh"});
+}
+
+TEST_CASE("Test hash4 wildcards generator", "[query_graphs]") {
+    ensure_queries(mqs_alphabet(), IndexType::HASH4,
+                   {"abcdfgh", "abcefgh", "abc!fgh"});
+}
+
+QString mqs_null_alphabet() {
+    QString expect;
+    expect.emplace_back(std::move(QToken::single('a')));
+    expect.emplace_back(std::move(QToken::single('\0')));
+    expect.emplace_back(std::move(QToken::single('b')));
+    expect.emplace_back(std::move(QToken::single('\0')));
+    expect.emplace_back(std::move(QToken::with_values({'c', 'd'})));
+    expect.emplace_back(std::move(QToken::with_values({'\0', 'e'})));
+    expect.emplace_back(std::move(QToken::single('d')));
+    expect.emplace_back(std::move(QToken::single('\0')));
+    return expect;
+}
+
+TEST_CASE("Test wide8 wildcards generator (alphabet)", "[query_graphs]") {
+    ensure_queries(mqs_alphabet(), IndexType::WIDE8,
+                   {"a\0b\0c\0d\0", "a\0b\0d\0d\0"});
+}
+
+QString mqs_spaghetti() {
+    QString expect;
+    expect.emplace_back(std::move(QToken::with_values({'a', '\0'})));
+    expect.emplace_back(std::move(QToken::with_values({'b', '\0'})));
+    expect.emplace_back(std::move(QToken::with_values({'c', '\0'})));
+    expect.emplace_back(std::move(QToken::with_values({'d', '\0'})));
+    expect.emplace_back(std::move(QToken::with_values({'e', '\0'})));
+    expect.emplace_back(std::move(QToken::with_values({'f', '\0'})));
+    expect.emplace_back(std::move(QToken::with_values({'g', '\0'})));
+    expect.emplace_back(std::move(QToken::with_values({'h', '\0'})));
+    expect.emplace_back(std::move(QToken::with_values({'i', '\0'})));
+    return expect;
+}
+
+TEST_CASE("Test wide8 wildcards generator (spaghetti)", "[query_graphs]") {
+    ensure_queries(mqs_alphabet(), IndexType::WIDE8,
+                   {"a\0c\0e\0g\0", "b\0d\0f\0i\0"});
 }

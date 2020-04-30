@@ -38,6 +38,43 @@ uint64_t get_milli_timestamp() {
     return c::duration_cast<c::milliseconds>(timestamp).count();
 }
 
+size_t get_ngram_size_for(IndexType type) {
+    size_t input_len = 0;
+
+    switch (type) {
+        case IndexType::GRAM3:
+            return 3;
+        case IndexType::HASH4:
+            return 4;
+        case IndexType::TEXT4:
+            return 4;
+        case IndexType::WIDE8:
+            return 8;
+    }
+    throw std::runtime_error("unhandled index type (ngram)");
+}
+
+TokenValidator get_validator_for(IndexType type) {
+    switch (type) {
+        case IndexType::GRAM3:
+            return [](uint32_t, uint8_t) { return true; };
+        case IndexType::TEXT4:
+            return
+                [](uint32_t, uint8_t chr) { return get_b64_value(chr) >= 0; };
+        case IndexType::HASH4:
+            return [](uint32_t, uint8_t) { return true; };
+        case IndexType::WIDE8:
+            return [](uint32_t ndx, uint8_t chr) {
+                if ((ndx % 2) == 0) {
+                    return get_b64_value(chr) >= 0;
+                } else {
+                    return chr == 0;
+                }
+            };
+    }
+    throw std::runtime_error("unhandled index type (validator)");
+}
+
 TrigramGenerator get_generator_for(IndexType type) {
     switch (type) {
         case IndexType::GRAM3:
@@ -53,23 +90,8 @@ TrigramGenerator get_generator_for(IndexType type) {
     throw std::runtime_error("unhandled index type");
 }
 
-std::optional<TriGram> convert_gram(IndexType type, uint32_t source) {
-    int size;
-    switch (type) {
-        case IndexType::GRAM3:
-            size = 3;
-            break;
-        case IndexType::TEXT4:
-            size = 4;
-            break;
-        case IndexType::HASH4:
-            size = 4;
-            break;
-        case IndexType::WIDE8:
-            throw std::runtime_error("couldn't have possibly packed wide8");
-        default:
-            throw std::runtime_error("invalid index type");
-    }
+std::optional<TriGram> convert_gram(IndexType type, uint64_t source) {
+    int size = get_ngram_size_for(type);
     std::vector<TriGram> result;
     std::vector<uint8_t> mem;
     for (int i = 0; i < size; i++) {

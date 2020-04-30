@@ -1,12 +1,11 @@
 """Test stability of compacting in a highly multithreaded environment.
 
 Especially, ensure that merge don't lose files, and there can't be two merge
-operations at once. 
+operations at once.
 """
 
 from util import UrsadbTestContext, store_files
 from util import ursadb  # noqa
-import json
 from multiprocessing import Pool
 import zmq
 import time
@@ -56,9 +55,9 @@ def test_concurrent_merge(ursadb: UrsadbTestContext) -> None:
 
 
 def test_merge_ratchet(ursadb: UrsadbTestContext) -> None:
-    """ Test that no files are lost when we index and merge at the same time """
+    """Test that no files are lost when we index and merge at the same time"""
     socks = []
-    for i in range(10):
+    for i in range(6):
         store_files(
             ursadb, "gram3", {f"file{i}name": b"filedata" + str(i).encode()},
         )
@@ -68,6 +67,6 @@ def test_merge_ratchet(ursadb: UrsadbTestContext) -> None:
         sock.recv_string()
 
     files = ursadb.check_request("select {};")["result"]["files"]
-    assert len(files) == 10
+    assert len(files) == 6
     ds = ursadb.check_request("topology;")["result"]["datasets"]
-    assert len(ds) < 9  # ideally 5, but that would require too much timing
+    assert len(ds) < 5  # ideally 3, but that would require too much timing

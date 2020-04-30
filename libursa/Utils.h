@@ -12,8 +12,13 @@
 #include "QString.h"
 
 using TrigramCallback = std::function<void(TriGram)>;
+
+// Trigram generator - will call callback for every availbale trigram.
 using TrigramGenerator = void (*)(const uint8_t *mem, size_t size,
                                   TrigramCallback callback);
+
+// Validator for the token value. First parameter is offset, second token char.
+using TokenValidator = std::function<bool(uint32_t, uint8_t)>;
 
 // TODO get rid of this define
 namespace fs = std::experimental::filesystem;
@@ -21,7 +26,15 @@ namespace fs = std::experimental::filesystem;
 std::string_view get_version_string();
 std::string random_hex_string(unsigned long length);
 
+// Returns a function that can be used to generate ngrams of the specified type.
 TrigramGenerator get_generator_for(IndexType type);
+
+// Returns a TokenValidator for ngrams of the specified type.
+TokenValidator get_validator_for(IndexType type);
+
+// Returns a number of bytes needed for ngram of the specified type.
+size_t get_ngram_size_for(IndexType type);
+
 void gen_trigrams(const uint8_t *mem, size_t size, TrigramCallback callback);
 void gen_b64grams(const uint8_t *mem, size_t size, TrigramCallback callback);
 void gen_wide_b64grams(const uint8_t *mem, size_t size,
@@ -31,7 +44,8 @@ void gen_h4grams(const uint8_t *mem, size_t size, TrigramCallback callback);
 void combinations(const QString &qstr, size_t len, const TrigramGenerator &gen,
                   const TrigramCallback &cb);
 
-std::optional<TriGram> convert_gram(IndexType type, uint32_t source);
+// Converts ngram from raw representation to compressed 3byte id.
+std::optional<TriGram> convert_gram(IndexType type, uint64_t source);
 
 template <TrigramGenerator gen>
 std::vector<TriGram> get_trigrams_eager(const uint8_t *mem, size_t size) {

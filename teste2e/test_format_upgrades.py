@@ -2,7 +2,6 @@ from util import UrsadbTestContext
 from util import ursadb  # noqa
 import json
 import subprocess
-import time
 from pathlib import Path
 import tempfile
 import os
