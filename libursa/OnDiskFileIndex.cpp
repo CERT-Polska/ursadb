@@ -2,7 +2,11 @@
 
 #include <fstream>
 
+#include "spdlog/spdlog.h"
+
 void OnDiskFileIndex::generate_namecache_file() {
+    spdlog::info("Namecache {} not found, generating", cache_fname);
+
     std::ofstream of;
     of.exceptions(std::ofstream::badbit);
     of.open(db_base / cache_fname, std::ofstream::binary);
@@ -20,13 +24,17 @@ void OnDiskFileIndex::generate_namecache_file() {
 }
 
 OnDiskFileIndex::OnDiskFileIndex(const fs::path &db_base,
-                                 const std::string &files_fname)
+                                 const std::string &files_fname,
+                                 const std::string &cache_fname)
     : db_base(db_base),
       files_fname(files_fname),
-      cache_fname("namecache." + files_fname),
+      cache_fname(cache_fname),
       files_file(db_base / files_fname) {  // <- cool race condition here
-
-    generate_namecache_file();
+    if (fs::exists(db_base / cache_fname)) {
+        file_count = fs::file_size(db_base / cache_fname) / 8 - 1;
+    } else {
+        generate_namecache_file();
+    }
     cache_file.emplace(db_base / cache_fname);
 }
 
@@ -42,8 +50,6 @@ std::string OnDiskFileIndex::get_file_name(FileId fid) const {
     files_file.pread(filename.data(), filename_length, filename_start);
     return filename;
 }
-
-OnDiskFileIndex::~OnDiskFileIndex() { fs::remove(db_base / cache_fname); }
 
 void OnDiskFileIndex::for_each_filename(
     std::function<void(const std::string &)> cb) const {

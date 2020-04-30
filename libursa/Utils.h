@@ -5,6 +5,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "Core.h"
@@ -131,6 +132,7 @@ constexpr int get_b64_value(uint8_t character) {
 void store_dataset(const fs::path &db_base, const std::string &fname,
                    const std::set<std::string> &index_names,
                    const std::string &fname_list,
+                   std::optional<std::string_view> fname_cache,
                    const std::set<std::string> &taints);
 
 std::string bin_str_to_hex(const std::string &str);

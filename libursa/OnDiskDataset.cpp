@@ -16,7 +16,7 @@ void OnDiskDataset::save() {
     }
 
     store_dataset(db_base, name, index_names, files_index->get_files_fname(),
-                  taints);
+                  files_index->get_cache_fname(), taints);
 }
 
 void OnDiskDataset::toggle_taint(const std::string &taint) {
@@ -42,7 +42,20 @@ OnDiskDataset::OnDiskDataset(const fs::path &db_base, const std::string &fname)
     }
 
     std::string files_fname = j["files"];
-    files_index.emplace(db_base, files_fname);
+    bool needs_save = false;
+    std::string cache_fname;
+    if (j.count("filename_cache") > 0) {
+        cache_fname = j["filename_cache"];
+    } else {
+        cache_fname = "namecache." + files_fname;
+        needs_save = true;
+    }
+
+    files_index.emplace(db_base, files_fname, cache_fname);
+
+    if (needs_save) {
+        save();
+    }
 }
 
 std::string OnDiskDataset::get_file_name(FileId fid) const {
@@ -277,7 +290,7 @@ void OnDiskDataset::merge(const fs::path &db_base, const std::string &outname,
     }
     of.flush();
 
-    store_dataset(db_base, outname, index_names, fname_list,
+    store_dataset(db_base, outname, index_names, fname_list, std::nullopt,
                   datasets[0]->get_taints());
 
     spdlog::debug("Merge finished successfully.");
@@ -294,9 +307,6 @@ const OnDiskIndex &OnDiskDataset::get_index_with_type(
 }
 
 void OnDiskDataset::drop_file(const std::string &fname) const {
-    // it may happen that dataset was reloaded and then is scheduled for removal
-    // multiple times so we have to account for that and only delete yet
-    // existing files
     fs::remove(db_base / fname);
 }
 
@@ -315,6 +325,7 @@ void OnDiskDataset::drop() {
     }
 
     drop_file(files_index->get_files_fname());
+    drop_file(files_index->get_cache_fname());
     drop_file(get_name());
 }
 
