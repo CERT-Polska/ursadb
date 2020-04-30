@@ -65,6 +65,15 @@ class TaskSpec {
           work_done_(0),
           locks_(locks) {}
 
+    TaskSpec(const TaskSpec &oth)
+        : id_(oth.id_),
+          conn_id_(oth.conn_id_),
+          request_str_(oth.request_str_),
+          epoch_ms_(oth.epoch_ms_),
+          work_estimated_(oth.work_estimated_.load()),
+          work_done_(oth.work_done_.load()),
+          locks_(oth.locks_) {}
+
     uint64_t id() const { return id_; }
     const std::string &request_str() const { return request_str_; }
     uint64_t epoch_ms() const { return epoch_ms_; }

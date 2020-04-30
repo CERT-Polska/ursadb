@@ -12,7 +12,7 @@ DatabaseSnapshot::DatabaseSnapshot(
     fs::path db_name, fs::path db_base, DatabaseConfig config,
     std::map<std::string, OnDiskIterator> iterators,
     std::vector<const OnDiskDataset *> datasets,
-    const std::unordered_map<uint64_t, TaskSpec *> &tasks)
+    const std::unordered_map<uint64_t, TaskSpec> &tasks)
     : db_name(db_name),
       db_base(db_base),
       config(config),
@@ -227,10 +227,10 @@ std::vector<std::string> DatabaseSnapshot::compact_full_candidates() const {
     return find_compact_candidate(/*smart=*/false);
 }
 
-bool is_dataset_locked(const std::unordered_map<uint64_t, TaskSpec *> &tasks,
+bool is_dataset_locked(const std::unordered_map<uint64_t, TaskSpec> &tasks,
                        std::string_view dataset_id) {
     for (const auto &[k, task] : tasks) {
-        if (task->has_lock(DatasetLock(dataset_id))) {
+        if (task.has_lock(DatasetLock(dataset_id))) {
             return true;
         }
     }

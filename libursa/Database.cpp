@@ -270,9 +270,9 @@ DatabaseSnapshot Database::snapshot() {
         cds.push_back(d);
     }
 
-    std::unordered_map<uint64_t, TaskSpec *> taskspecs;
+    std::unordered_map<uint64_t, TaskSpec> taskspecs;
     for (const auto &[k, v] : tasks) {
-        taskspecs.emplace(k, v.get());
+        taskspecs.emplace(k, *v.get());
     }
 
     return DatabaseSnapshot(db_name, db_base, config, iterators, cds,
