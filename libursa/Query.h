@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "QString.h"
+#include "QueryGraph.h"
 
 enum QueryType { PRIMITIVE = 1, AND = 2, OR = 3, MIN_OF = 4 };
 
@@ -23,6 +24,9 @@ class Query {
     const QueryType &get_type() const;
     bool operator==(const Query &other) const;
 
+    // Converts this instance of Query to equivalent QueryGraph.
+    QueryGraph to_graph(IndexType type) const;
+
    private:
     QueryType type;
     unsigned int count;          // used for QueryType::MIN_OF
@@ -30,8 +34,18 @@ class Query {
     std::vector<Query> queries;  // used for QueryType::AND/OR
 };
 
+// Creates a literal query. Literals can contain wildcards and alternatives.
 Query q(QString &&qstr);
+
+// Creates a query of type "and".
 Query q_and(std::vector<Query> &&queries);
+
+// Creates a query of type "or".
 Query q_or(std::vector<Query> &&queries);
+
+// Creates a query of type "min of" (query that accepts files that occur in
+// at least N subqueries).
 Query q_min_of(unsigned int count, std::vector<Query> &&queries);
+
+// Pretty-print the current query instance.
 std::ostream &operator<<(std::ostream &os, const Query &query);

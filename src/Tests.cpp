@@ -51,6 +51,14 @@ QString mqs(const std::string &str) {
     return out;
 }
 
+QueryGraph mqg(const std::string &str, IndexType type) {
+    QString out;
+    for (const auto &c : str) {
+        out.emplace_back(QToken::single(c));
+    }
+    return q(std::move(out)).to_graph(type);
+}
+
 TEST_CASE("packing 3grams", "[internal]") {
     // pay attention to the input, this covers unexpected sign extension
     REQUIRE(gram3_pack("\xCC\xBB\xAA") == (TriGram)0xCCBBAAU);
@@ -515,41 +523,43 @@ void add_payload(IndexBuilder *builder,
     }
 }
 
-void check_query_is_everything(const OnDiskIndex &ndx,
-                               const std::string &query) {
-    REQUIRE(ndx.query_str(mqs(query)).is_everything());
+void check_query_is_everything(const OnDiskIndex &ndx, const std::string &query,
+                               IndexType type) {
+    REQUIRE(ndx.query(mqg(query, type)).is_everything());
 }
 
 void check_query(const OnDiskIndex &ndx, const std::string &query,
-                 const std::vector<uint32_t> &results) {
-    REQUIRE(ndx.query_str(mqs(query)).vector() == results);
+                 const std::vector<uint32_t> &results, IndexType type) {
+    REQUIRE(ndx.query(mqg(query, type)).vector() == results);
 }
 
 void check_test_payload_gram3(const OnDiskIndex &ndx) {
-    check_query_is_everything(ndx, "");
-    check_query_is_everything(ndx, "a");
-    check_query_is_everything(ndx, "ab");
-    check_query(ndx, "kjhg", {1});
-    check_query(ndx, "\xA1\xA2\xA3", {2});
-    check_query(ndx, "m32\xA5X", {4, 5});
-    check_query(ndx, "Xm32\xA5X", {4, 5});
-    check_query(ndx, "Xm32\xA5s", {});
-    check_query(ndx, "Xbcdef", {4});
-    check_query(ndx, "\xA4\xA5\xA6\xA7", {2, 4});
+    auto type = IndexType::GRAM3;
+    check_query_is_everything(ndx, "", type);
+    check_query_is_everything(ndx, "a", type);
+    check_query_is_everything(ndx, "ab", type);
+    check_query(ndx, "kjhg", {1}, type);
+    check_query(ndx, "\xA1\xA2\xA3", {2}, type);
+    check_query(ndx, "m32\xA5X", {4, 5}, type);
+    check_query(ndx, "Xm32\xA5X", {4, 5}, type);
+    check_query(ndx, "Xm32\xA5s", {}, type);
+    check_query(ndx, "Xbcdef", {4}, type);
+    check_query(ndx, "\xA4\xA5\xA6\xA7", {2, 4}, type);
 }
 
 void check_test_payload_text4(const OnDiskIndex &ndx) {
-    check_query_is_everything(ndx, "");
-    check_query_is_everything(ndx, "a");
-    check_query_is_everything(ndx, "ab");
-    check_query_is_everything(ndx, "abc");
-    check_query(ndx, "Xbcd", {4});
-    check_query(ndx, "Xbcdef", {4});
-    check_query(ndx, "m32\xA5X", {});
-    check_query(ndx, "Xm32\xA5X", {4, 5});
-    check_query_is_everything(ndx, "\xA1\xA2\xA3");
-    check_query_is_everything(ndx, "d\xA6\xA7");
-    check_query_is_everything(ndx, "\xA4\xA5\xA6\xA7");
+    auto type = IndexType::TEXT4;
+    check_query_is_everything(ndx, "", type);
+    check_query_is_everything(ndx, "a", type);
+    check_query_is_everything(ndx, "ab", type);
+    check_query_is_everything(ndx, "abc", type);
+    check_query(ndx, "Xbcd", {4}, type);
+    check_query(ndx, "Xbcdef", {4}, type);
+    check_query(ndx, "m32\xA5X", {}, type);
+    check_query(ndx, "Xm32\xA5X", {4, 5}, type);
+    check_query_is_everything(ndx, "\xA1\xA2\xA3", type);
+    check_query_is_everything(ndx, "d\xA6\xA7", type);
+    check_query_is_everything(ndx, "\xA4\xA5\xA6\xA7", type);
 }
 
 // RAII helper for OnDiskIndex.
@@ -694,16 +704,16 @@ TEST_CASE("Graph parse with wildcard", "[query_graphs]") {
     REQUIRE(graph.size() == 4);
 }
 
-TEST_CASE("Simple graph join", "[query_graphs]") {
+TEST_CASE("Simple graph and", "[query_graphs]") {
     auto graph{make_kot()};
 
     SECTION("With kot") {
-        graph.join(std::move(make_kot()));
+        graph.and_(std::move(make_kot()));
         REQUIRE(graph.size() == 7);
     }
 
     SECTION("With caet") {
-        graph.join(std::move(make_caet()));
+        graph.and_(std::move(make_caet()));
         REQUIRE(graph.size() == 8);
     }
 }

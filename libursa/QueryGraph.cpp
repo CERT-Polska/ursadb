@@ -138,10 +138,6 @@ QueryResult masked_or(std::vector<const QueryResult *> &&to_or,
         // Empty or list means everything(). The only case when it happens
         // is for sources, when it makes sense to just return mask.
         return std::move(mask);
-    } else if (to_or.size() == 1) {
-        // In a very common case of a single predecessor, just do explicit and.
-        mask.do_and(*to_or[0], toupdate);
-        return std::move(mask);
     }
     QueryResult result{QueryResult::empty()};
     for (const auto *query : to_or) {
@@ -152,13 +148,45 @@ QueryResult masked_or(std::vector<const QueryResult *> &&to_or,
     return result;
 }
 
-uint64_t QueryGraph::combine(NodeId source, NodeId target) const {
-    if (get(source).is_epsilon() || get(target).is_epsilon()) {
+// Executes a masked minof operation: `min n of (A, B, C, ...) & mask`.
+QueryResult masked_min_of(uint32_t min_want,
+                          std::vector<const QueryResult *> &&sources,
+                          QueryResult &&mask, QueryStatistics *toupdate) {
+    if (sources.empty()) {
+        // Empty or list means everything(). The only case when it happens
+        // is for sources, when it makes sense to just return mask.
+        return std::move(mask);
+    }
+    // The query is equivalent to AND, just run ANDs in a loop.
+    if (min_want == sources.size()) {
+        for (const auto *source : sources) {
+            mask.do_and(*source, toupdate);
+        }
+        return std::move(mask);
+    }
+    // Don't pay the price of generic solution in the common case`.
+    if (min_want == 1) {
+        return masked_or(std::move(sources), std::move(mask), toupdate);
+    }
+    // Do a real `min ... of` operation.
+    QueryResult result{QueryResult::do_min_of(min_want, sources)};
+    result.do_and(std::move(mask), toupdate);
+    return result;
+}
+
+uint64_t QueryGraph::combine(NodeId sourceid, NodeId targetid) const {
+    const auto &source = get(sourceid);
+    const auto &target = get(targetid);
+    if (source.is_epsilon() || target.is_epsilon()) {
         // It's not that it's hard or slow to combine epsilons. We just
         // don't expect this, so this may warrant investigation.
-        throw new std::runtime_error("Unexpected epsilon combine op");
+        throw std::runtime_error("Unexpected epsilon combine op.");
     }
-    return (get(source).gram() << 8) + (get(target).gram() & 0xFF);
+    if (source.min_want() != 1 || target.min_want() != 1) {
+        // Dual() algorithm won't work correctly for min_of nodes.
+        throw std::runtime_error("Can't combine min_of nodes.");
+    }
+    return (source.gram() << 8) + (target.gram() & 0xFF);
 }
 
 QueryResult QueryGraph::run(const QueryFunc &oracle) const {
@@ -190,8 +218,9 @@ QueryResult QueryGraph::run(const QueryFunc &oracle) const {
             QueryResult next = {get(id).is_epsilon()
                                     ? QueryResult::everything()
                                     : QueryResult(oracle(get(id).gram()))};
-            visitor.set(id, std::move(masked_or(std::move(predecessors),
-                                                std::move(next), &stats)));
+            visitor.set(id, std::move(masked_min_of(get(id).min_want(),
+                                                    std::move(predecessors),
+                                                    std::move(next), &stats)));
         }
         if (get(id).edges().size() == 0) {
             result.do_or(visitor.state(id), &stats);
@@ -228,20 +257,20 @@ QueryGraph QueryGraph::from_qstring(const QString &qstr) {
 // This method will join two graphs, effectively ANDing them. The way it works
 // is best understood by picture, for example:
 //
-// Graph A:              Graph B:
-//               C           F  --  H
+// Graph A:                  Graph B:
+//               C           F  ->  H
 // A  ->  B  -<                         >-  J
-//               D           G  --  I
+//               D           G  ->  I
 //
 // To join these graphs, we introduce imaginary epsilon node, that will glue
 // them together. Epsilon nodes accept every file, so the behaviour will not
 // change:
 //
-//               C           F  --  H
+//               C           F  ->  H
 // A  ->  B  -<     >-(E)-<            >-  J
-//               D           G  --  I
+//               D           G  ->  I
 //
-void QueryGraph::join(QueryGraph &&other) {
+void QueryGraph::and_(QueryGraph &&other) {
     // 1. Special case - if the current graph is empty, just replace it with
     // the other one.
     if (nodes_.empty()) {
@@ -271,4 +300,101 @@ void QueryGraph::join(QueryGraph &&other) {
     for (auto &source : other.sources_) {
         get(epsilon).add_edge(source.shifted(shift));
     }
+}
+
+// This method will combine two graphs with the OR operation. It's very easy
+// to implement because of the way we store graphs - we just merge nodes.
+// For example, to merge:
+//
+// Graph A:              Graph B:
+//
+// A  ->  B  ->  C        D  ->  E  ->  F
+//
+// We just need to merge them (no shared nodes are necessary):
+//
+//            A  ->  B  ->  C
+//            D  ->  E  ->  F
+//
+void QueryGraph::or_(QueryGraph &&other) {
+    // 1. Special case for empty graph.
+    if (nodes_.empty() || other.nodes_.empty()) {
+        nodes_.clear();
+        NodeId everything = make_epsilon();
+        sources_.emplace_back(everything);
+    }
+
+    // 2. Paste the second graph into this one, updating IDs along the way.
+    size_t shift = nodes_.size();
+    for (auto &node : other.nodes_) {
+        node.shift(shift);
+        nodes_.emplace_back(std::move(node));
+    }
+
+    // 3. Append sources of the second graph (F and G above).
+    for (auto &source : other.sources_) {
+        sources_.emplace_back(source.shifted(shift));
+    }
+}
+
+// This method will combine multiple graphs with the min ... of operation.
+// It's pretty tricky to implement, because we need to add epsilon nodes
+// to every subquery (for proper counting) and then add one more node (min of).
+// For example, to do min 2 of (A, B, C):
+//
+// Graph A:                  Graph B:                Graph C:
+//
+//               C           F  ->  H
+// A  ->  B  -<                         >-  J        K  ->  L  ->  M
+//               D           G  ->  I
+//
+// We need to add epsilon node, and then merge them all with a special node:
+//
+//               C
+// A  ->  B  -<     >- (E)
+//               D        \ 
+// F  ->  H                v
+//           >-  J  -----> N(2)
+// G  ->  I                ^
+//                        /
+// K  ->  L  ->  M  -----/
+//
+QueryGraph QueryGraph::min_of(uint32_t min_want,
+                              std::vector<QueryGraph> &&others) {
+    // 1. Create the epsilon node that will serve as a bridge.
+    QueryGraph result;
+    NodeId bridge{result.make_min_of(min_want)};
+
+    // 2. Merge all graphs into one large one:
+    for (auto &graph : others) {
+        // 2.1 Paste all nodes from this graph
+        size_t shift = result.nodes_.size();
+        std::vector<NodeId> sinks;
+        for (auto &node : graph.nodes_) {
+            node.shift(shift);
+            NodeId id = result.make(std::move(node));
+
+            if (node.is_sink()) {
+                sinks.emplace_back(id);
+            }
+        }
+        // 2.2 If there are 0 sinks, or more than one sink, add epsilon.
+        if (sinks.size() != 1) {
+            NodeId epsilon = result.make_epsilon();
+            for (const auto &subsink : sinks) {
+                result.get(subsink).add_edge(epsilon);
+            }
+            result.get(epsilon).add_edge(bridge);
+            if (sinks.empty()) {
+                result.sources_.emplace_back(epsilon);
+            }
+        } else {
+            result.get(sinks.front()).add_edge(bridge);
+        }
+        // 2.3 Update sources of the resulting graph
+        for (auto &source : graph.sources_) {
+            result.sources_.emplace_back(source.shifted(shift));
+        }
+    }
+
+    return result;
 }

@@ -3,6 +3,8 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "Core.h"
@@ -12,6 +14,16 @@
 #include "QueryResult.h"
 #include "ResultWriter.h"
 #include "Task.h"
+
+class QueryGraphCollection {
+    std::unordered_map<IndexType, QueryGraph> graphs_;
+
+   public:
+    QueryGraphCollection(const Query &query,
+                         const std::unordered_set<IndexType> &types);
+
+    const QueryGraph &get(IndexType type) const;
+};
 
 class OnDiskDataset {
     std::string name;
@@ -24,12 +36,9 @@ class OnDiskDataset {
         return taints == other.taints;
     }
     std::string get_file_name(FileId fid) const;
-    QueryResult query_str(const QString &str) const;
-    QueryResult internal_execute(const Query &query) const;
+    QueryResult query(const QueryGraphCollection &graphs) const;
     const OnDiskIndex &get_index_with_type(IndexType index_type) const;
     void drop_file(const std::string &fname) const;
-    QueryResult pick_common(int cutoff,
-                            const std::vector<Query> &queries) const;
 
    public:
     explicit OnDiskDataset(const fs::path &db_base, const std::string &fname);
@@ -40,7 +49,8 @@ class OnDiskDataset {
     }
     void toggle_taint(const std::string &taint_name);
     bool has_all_taints(const std::set<std::string> &taints) const;
-    QueryStatistics execute(const Query &query, ResultWriter *out) const;
+    QueryStatistics execute(const QueryGraphCollection &graphs,
+                            ResultWriter *out) const;
     uint64_t get_file_count() const { return files_index->get_file_count(); }
     void for_each_filename(std::function<void(const std::string &)> cb) const {
         files_index->for_each_filename(cb);
@@ -62,6 +72,3 @@ class OnDiskDataset {
     static std::vector<std::vector<const OnDiskDataset *>>
     get_compatible_datasets(const std::vector<const OnDiskDataset *> &datasets);
 };
-
-std::vector<FileId> internal_pick_common(
-    int cutoff, const std::vector<const std::vector<FileId> *> &sources);
