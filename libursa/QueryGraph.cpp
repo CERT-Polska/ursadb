@@ -173,12 +173,25 @@ QueryResult QueryGraph::run(const QueryFunc &oracle) const {
     while (!visitor.empty()) {
         // New state is: (union of all possible predecessors) & oracle(id)
         NodeId id{visitor.next()};
+        auto predecessors = visitor.predecessor_states(id);
+        // Optimisation: when all predecessors are empty, there's no point in
+        // reading current ngram to `and` with them.
+        bool sources_empty = true;
+        for (const auto &pred : predecessors) {
+            if (!pred->is_empty()) {
+                sources_empty = false;
+            }
+        }
+        if (sources_empty && !predecessors.empty()) {
+            visitor.set(id, QueryResult::empty());
+            continue;
+        }
+        // Do a query, or take everything for epsilon.
         QueryResult next = {get(id).is_epsilon()
                                 ? QueryResult::everything()
                                 : QueryResult(oracle(get(id).gram()))};
         visitor.set(
-            id, std::move(masked_or(std::move(visitor.predecessor_states(id)),
-                                    std::move(next))));
+            id, std::move(masked_or(std::move(predecessors), std::move(next))));
         if (get(id).edges().size() == 0) {
             result.do_or(visitor.state(id));
         }
