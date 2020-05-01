@@ -115,6 +115,9 @@ class QueryResult {
     // circuiting in some optimisations.
     bool is_empty() const { return !has_everything && results.empty(); }
 
+    // Updates this instance with results from other query.
+    void update_stats(const QueryResult &other) { stats_.add(other.stats_); }
+
     const std::vector<FileId> &vector() const { return results; }
 
     const QueryStatistics stats() const { return stats_; }
