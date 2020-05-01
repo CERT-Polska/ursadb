@@ -217,6 +217,15 @@ QueryStatistics DatabaseSnapshot::execute(const Query &query,
         }
     }
 
+    std::unordered_set<IndexType> types_to_query;
+    for (const auto *ds : datasets_to_query) {
+        for (const auto &ndx : ds->get_indexes()) {
+            types_to_query.emplace(ndx.index_type());
+        }
+    }
+
+    const QueryGraphCollection graphs{query, types_to_query};
+
     task->spec().estimate_work(datasets_to_query.size());
 
     QueryStatistics stats;
@@ -225,7 +234,7 @@ QueryStatistics DatabaseSnapshot::execute(const Query &query,
         if (!ds->has_all_taints(taints)) {
             continue;
         }
-        auto ds_stats = ds->execute(query, out);
+        auto ds_stats = ds->execute(graphs, out);
         stats.add(ds_stats);
     }
     return stats;

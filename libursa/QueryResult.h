@@ -109,6 +109,9 @@ class QueryResult {
     void do_and(const QueryResult &other);
     void do_and(const QueryResult &other, QueryStatistics *toupdate);
 
+    static QueryResult do_min_of(
+        int min, const std::vector<const QueryResult *> &others);
+
     // If true, means that QueryResults represents special "uninitialized"
     // value, "set of all FileIds in DataSet".
     bool is_everything() const { return has_everything; }
@@ -127,3 +130,6 @@ class QueryResult {
     // For when you really need to clone the query result
     QueryResult clone() const { return *this; }
 };
+
+std::vector<FileId> internal_pick_common(
+    int cutoff, const std::vector<const std::vector<FileId> *> &sources);

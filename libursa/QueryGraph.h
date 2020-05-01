@@ -41,16 +41,23 @@ class QueryGraphNode {
     // For obvious reasons, can't handle n-grams with n bigger than 8.
     uint64_t gram_;
 
+    // How many predecessors are expected by this node. In almost all cases
+    // this will be 1. Different values may show up for `min n of ...` queries.
+    // This value is ignored for source vertexes (with no parents). Dual
+    // operation is not supported for nodes with min_want_ != 1.
+    uint32_t min_want_;
+
     // Is this a special epsilon node. Epsilon nodes are no-ops that accept
     // every file. They are sometimes added during graph operations.
     bool is_epsilon_;
 
     // Constructs an epsilon graph node - private to avoid accidental misuse.
-    QueryGraphNode() : edges_(), gram_(0), is_epsilon_(true) {}
+    QueryGraphNode() : edges_(), gram_(0), min_want_(1), is_epsilon_(true) {}
 
    public:
     // Constructs a new graph node with assigned ngram value.
-    explicit QueryGraphNode(uint64_t gram) : gram_(gram), is_epsilon_(false) {}
+    explicit QueryGraphNode(uint64_t gram)
+        : gram_(gram), min_want_(1), is_epsilon_(false) {}
 
     // Adds edge from this node to another one.
     void add_edge(NodeId to) { edges_.push_back(to); }
@@ -69,6 +76,16 @@ class QueryGraphNode {
 
     // Constructs an epsilon graph node.
     static QueryGraphNode epsilon() { return QueryGraphNode(); }
+
+    // Constructs a node that accepts every file that appears in at least `n`
+    // predecessor results.
+    static QueryGraphNode min_of(uint32_t n) {
+        auto result = epsilon();
+        result.min_want_ = n;
+        return result;
+    }
+
+    uint32_t min_want() const { return min_want_; }
 
     // Sink node is defined as a node with no outgoing edges.
     bool is_sink() const { return edges_.empty(); }
@@ -111,6 +128,12 @@ class QueryGraph {
     // For example, will merge ABC and BCD into ABCD.
     uint64_t combine(NodeId source, NodeId target) const;
 
+    // Adds an existing node to the query graph, and returns its id.
+    NodeId make(QueryGraphNode node) {
+        nodes_.emplace_back(std::move(node));
+        return NodeId(nodes_.size() - 1);
+    }
+
     // Adds a new node to the query graph, and returns its id.
     NodeId make_node(uint64_t gram) {
         nodes_.emplace_back(QueryGraphNode(gram));
@@ -120,6 +143,12 @@ class QueryGraph {
     // Adds a new epsilon node to the query graph, and returns its id.
     NodeId make_epsilon() {
         nodes_.emplace_back(QueryGraphNode::epsilon());
+        return NodeId(nodes_.size() - 1);
+    }
+
+    // Adds a new epsilon node to the query graph, and returns its id.
+    NodeId make_min_of(uint32_t n) {
+        nodes_.emplace_back(QueryGraphNode::min_of(n));
         return NodeId(nodes_.size() - 1);
     }
 
@@ -159,7 +188,14 @@ class QueryGraph {
     uint32_t size() const { return nodes_.size(); }
 
     // Joins the second querygrah to this one. This is equivalent to AND.
-    void join(QueryGraph &&other);
+    void and_(QueryGraph &&other);
+
+    // Combines two graphs with the "OR" operation.
+    void or_(QueryGraph &&other);
+
+    // Combines multiple graphs with the "min of" operation.
+    static QueryGraph min_of(uint32_t min_want,
+                             std::vector<QueryGraph> &&others);
 
     // Converts the query to a naive graph of 1-grams.
     // For example, "ABCD" will be changed to `A -> B -> C -> D`.

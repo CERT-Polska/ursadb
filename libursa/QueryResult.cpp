@@ -64,3 +64,92 @@ std::unordered_map<std::string, QueryCounter> QueryStatistics::counters()
     result["read"] = reads_;
     return result;
 }
+
+std::vector<FileId> internal_pick_common(
+    int cutoff, const std::vector<const std::vector<FileId> *> &sources) {
+    // returns all FileIds which appear at least `cutoff` times among provided
+    // `sources`
+    using FileIdRange = std::pair<std::vector<FileId>::const_iterator,
+                                  std::vector<FileId>::const_iterator>;
+    std::vector<FileId> result;
+    std::vector<FileIdRange> heads;
+    heads.reserve(sources.size());
+
+    for (auto source : sources) {
+        if (!source->empty()) {
+            heads.emplace_back(
+                std::make_pair(source->cbegin(), source->cend()));
+        }
+    }
+
+    while (static_cast<int>(heads.size()) >= cutoff) {
+        // pick lowest possible FileId value among all current heads
+        int min_index = 0;
+        FileId min_id = *heads[0].first;
+        for (int i = 1; i < static_cast<int>(heads.size()); i++) {
+            if (*heads[i].first < min_id) {
+                min_index = i;  // TODO benchmark and consider removing.
+                min_id = *heads[i].first;
+            }
+        }
+
+        // fix on that particular value selected in previous step and count
+        // number of repetitions among heads.
+        // Note that it's implementation-defined that std::vector<FileId>
+        // is always sorted and we use this fact here.
+        int repeat_count = 0;
+        for (int i = min_index; i < static_cast<int>(heads.size()); i++) {
+            if (*heads[i].first == min_id) {
+                repeat_count += 1;
+                heads[i].first++;
+                // head ended, we may get rid of it
+                if (heads[i].first == heads[i].second) {
+                    heads.erase(heads.begin() + i);
+                    i--;  // Be careful not to skip elements!
+                }
+            }
+        }
+
+        // this value has enough repetitions among different heads to add it to
+        // the result set
+        if (repeat_count >= cutoff) {
+            result.push_back(min_id);
+        }
+    }
+
+    return result;
+}
+
+QueryResult QueryResult::do_min_of(
+    int cutoff, const std::vector<const QueryResult *> &sources) {
+    if (cutoff > static_cast<int>(sources.size())) {
+        // Short circuit when cutoff is too big.
+        // This should never happen for well-formed queries, but this check is
+        // very cheap.
+        return QueryResult::empty();
+    }
+    if (cutoff <= 0) {
+        // '0 of (...)' should match everything.
+        return QueryResult::everything();
+    }
+
+    std::vector<const std::vector<FileId> *> nontrivial_sources;
+    for (const auto *source : sources) {
+        if (source->is_everything()) {
+            cutoff -= 1;
+            if (cutoff <= 0) {
+                // Short circuit when result is trivially everything().
+                return QueryResult::everything();
+            }
+        } else if (!source->is_empty()) {
+            nontrivial_sources.push_back(&source->vector());
+        }
+    }
+
+    // Special case optimization for cutoff==1 and a single source.
+    if (cutoff == 1 && nontrivial_sources.size() == 1) {
+        return QueryResult(std::vector<FileId>(*nontrivial_sources[0]));
+    }
+
+    return QueryResult(internal_pick_common(cutoff, nontrivial_sources));
+}

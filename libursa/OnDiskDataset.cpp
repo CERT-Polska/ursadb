@@ -62,145 +62,17 @@ std::string OnDiskDataset::get_file_name(FileId fid) const {
     return files_index->get_file_name(fid);
 }
 
-QueryResult OnDiskDataset::query_str(const QString &str) const {
+QueryResult OnDiskDataset::query(const QueryGraphCollection &graphs) const {
     QueryResult result = QueryResult::everything();
-
     for (auto &ndx : indices) {
-        result.do_and(ndx.query_str(str));
+        result.do_and(ndx.query(graphs.get(ndx.index_type())));
     }
-
     return result;
 }
 
-std::vector<FileId> internal_pick_common(
-    int cutoff, const std::vector<const std::vector<FileId> *> &sources) {
-    // returns all FileIds which appear at least `cutoff` times among provided
-    // `sources`
-    using FileIdRange = std::pair<std::vector<FileId>::const_iterator,
-                                  std::vector<FileId>::const_iterator>;
-    std::vector<FileId> result;
-    std::vector<FileIdRange> heads;
-    heads.reserve(sources.size());
-
-    for (auto source : sources) {
-        if (!source->empty()) {
-            heads.emplace_back(
-                std::make_pair(source->cbegin(), source->cend()));
-        }
-    }
-
-    while (static_cast<int>(heads.size()) >= cutoff) {
-        // pick lowest possible FileId value among all current heads
-        int min_index = 0;
-        FileId min_id = *heads[0].first;
-        for (int i = 1; i < static_cast<int>(heads.size()); i++) {
-            if (*heads[i].first < min_id) {
-                min_index = i;  // TODO benchmark and consider removing.
-                min_id = *heads[i].first;
-            }
-        }
-
-        // fix on that particular value selected in previous step and count
-        // number of repetitions among heads.
-        // Note that it's implementation-defined that std::vector<FileId>
-        // is always sorted and we use this fact here.
-        int repeat_count = 0;
-        for (int i = min_index; i < static_cast<int>(heads.size()); i++) {
-            if (*heads[i].first == min_id) {
-                repeat_count += 1;
-                heads[i].first++;
-                // head ended, we may get rid of it
-                if (heads[i].first == heads[i].second) {
-                    heads.erase(heads.begin() + i);
-                    i--;  // Be careful not to skip elements!
-                }
-            }
-        }
-
-        // this value has enough repetitions among different heads to add it to
-        // the result set
-        if (repeat_count >= cutoff) {
-            result.push_back(min_id);
-        }
-    }
-
-    return result;
-}
-
-QueryResult OnDiskDataset::pick_common(
-    int cutoff, const std::vector<Query> &queries) const {
-    if (cutoff > static_cast<int>(queries.size())) {
-        // Short circuit when cutoff is too big.
-        // This should never happen for well-formed queries, but this check is
-        // very cheap.
-        return QueryResult::empty();
-    }
-    if (cutoff <= 0) {
-        // '0 of (...)' is considered as matching-everything.
-        return QueryResult::everything();
-    }
-
-    std::vector<QueryResult> sources_storage;
-    for (auto &query : queries) {
-        QueryResult result = internal_execute(query);
-        if (result.is_everything()) {
-            cutoff -= 1;
-            if (cutoff <= 0) {
-                // Short circuit when result is trivially everything().
-                // Do it in the loop, to potentially save expensive
-                // `internal_execute` invocations.
-                return QueryResult::everything();
-            }
-        } else {
-            sources_storage.push_back(std::move(result));
-        }
-    }
-
-    // Special case optimization for cutoff==1 and a single source.
-    if (cutoff == 1 && sources_storage.size() == 1) {
-        return std::move(sources_storage[0]);
-    }
-
-    std::vector<const std::vector<FileId> *> sources;
-    for (auto &s : sources_storage) {
-        sources.push_back(&s.vector());
-    }
-
-    return QueryResult(internal_pick_common(cutoff, sources));
-}
-
-QueryResult OnDiskDataset::internal_execute(const Query &query) const {
-    switch (query.get_type()) {
-        case QueryType::PRIMITIVE:
-            return query_str(query.as_value());
-        case QueryType::OR: {
-            QueryResult result{QueryResult::empty()};
-            for (const auto &other : query.as_queries()) {
-                result.do_or(internal_execute(other));
-                if (result.is_everything()) {
-                    break;
-                }
-            }
-            return result;
-        }
-        case QueryType::AND: {
-            QueryResult result{QueryResult::everything()};
-            for (const auto &other : query.as_queries()) {
-                result.do_and(internal_execute(other));
-            }
-            return result;
-        }
-        case QueryType::MIN_OF: {
-            return pick_common(query.as_count(), query.as_queries());
-        }
-    }
-
-    throw std::runtime_error("unhandled query type");
-}
-
-QueryStatistics OnDiskDataset::execute(const Query &query,
+QueryStatistics OnDiskDataset::execute(const QueryGraphCollection &graphs,
                                        ResultWriter *out) const {
-    QueryResult result = internal_execute(query);
+    QueryResult result = query(graphs);
     if (result.is_everything()) {
         files_index->for_each_filename(
             [&out](const std::string &fname) { out->push_back(fname); });
@@ -419,4 +291,22 @@ std::vector<const OnDiskDataset *> OnDiskDataset::get_compact_candidates(
     }
 
     return out;
+}
+
+QueryGraphCollection::QueryGraphCollection(
+    const Query &query, const std::unordered_set<IndexType> &types) {
+    graphs_.reserve(types.size());
+    for (const auto type : types) {
+        graphs_.emplace(type, std::move(query.to_graph(type)));
+    }
+}
+
+const QueryGraph &QueryGraphCollection::get(IndexType type) const {
+    const auto it = graphs_.find(type);
+    if (it == graphs_.end()) {
+        throw std::runtime_error(
+            "QueryGraphCollection doesn't contain a graph of the requested "
+            "type");
+    }
+    return it->second;
 }
