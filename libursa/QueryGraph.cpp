@@ -138,6 +138,10 @@ QueryResult masked_or(std::vector<const QueryResult *> &&to_or,
         // Empty or list means everything(). The only case when it happens
         // is for sources, when it makes sense to just return mask.
         return std::move(mask);
+    } else if (to_or.size() == 1) {
+        // In a very common case of a single predecessor, just do explicit and.
+        mask.do_and(*to_or[0]);
+        return std::move(mask);
     }
     QueryResult result{QueryResult::empty()};
     for (const auto *query : to_or) {
