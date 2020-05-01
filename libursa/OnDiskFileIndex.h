@@ -29,7 +29,7 @@ class OnDiskFileIndex {
 
     std::string get_file_name(FileId fid) const;
 
-    const uint64_t get_file_count() const { return file_count; }
+    uint64_t get_file_count() const { return file_count; }
     const std::string &get_files_fname() const { return files_fname; }
     const std::string &get_cache_fname() const { return cache_fname; }
 

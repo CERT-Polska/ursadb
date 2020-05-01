@@ -22,7 +22,7 @@ void FlatIndexBuilder::add_trigram(FileId fid, TriGram val) {
 void countsort(std::vector<uint64_t> *data_v, std::vector<uint64_t> *swap_v,
                int shift) {
     size_t count[256] = {};
-    size_t n = data_v->size();
+    int64_t n = data_v->size();
     uint64_t *data = data_v->data();
     uint64_t *swap = swap_v->data();
 
@@ -146,7 +146,8 @@ void FlatIndexBuilder::add_file(FileId fid, const uint8_t *data, size_t size) {
     generator(data, size, [&](TriGram val) { add_trigram(fid, val); });
 }
 
-bool FlatIndexBuilder::can_still_add(uint64_t bytes, int file_count) const {
+bool FlatIndexBuilder::can_still_add(uint64_t bytes,
+                                     [[maybe_unused]] int file_count) const {
     uint64_t max_trigrams_produced = bytes < 3 ? 0 : bytes - 2;
     uint64_t max_trigrams_after_add = raw_data.size() + max_trigrams_produced;
     return max_trigrams_after_add < MAX_TRIGRAMS;

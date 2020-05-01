@@ -15,8 +15,8 @@ DatabaseSnapshot::DatabaseSnapshot(
     const std::unordered_map<uint64_t, TaskSpec> &tasks)
     : db_name(db_name),
       db_base(db_base),
-      config(config),
       iterators(iterators),
+      config(config),
       datasets(datasets),
       tasks(std::move(tasks)) {}
 

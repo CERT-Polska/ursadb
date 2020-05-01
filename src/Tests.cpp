@@ -493,7 +493,7 @@ TEST_CASE("Compress run symmetry", "[compress_run]") {
 
     REQUIRE(fids.size() == read_fids.size());
 
-    for (unsigned int i = 0; i < fids.size(); i++) {
+    for (size_t i = 0; i < fids.size(); i++) {
         REQUIRE(fids[i] == read_fids[i]);
     }
 }
@@ -516,7 +516,7 @@ void add_payload(IndexBuilder *builder,
                  const std::vector<std::string> &payload) {
     std::string contents;
 
-    for (int i = 0; i < payload.size(); i++) {
+    for (size_t i = 0; i < payload.size(); i++) {
         builder->add_file(i + 1,
                           reinterpret_cast<const uint8_t *>(payload[i].data()),
                           payload[i].size());

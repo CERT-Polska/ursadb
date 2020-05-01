@@ -501,7 +501,7 @@ Command transform_command(const parse_tree::node &n) {
     } else if (n.is<config>()) {
         if (n.children[0]->is<get_token>()) {
             std::vector<std::string> elms;
-            for (int i = 1; i < n.children.size(); i++) {
+            for (size_t i = 1; i < n.children.size(); i++) {
                 elms.push_back(transform_string(*n.children[i]));
             }
             return Command(ConfigGetCommand(elms));

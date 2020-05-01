@@ -26,7 +26,7 @@ class SelectCommand {
     const Query &get_query() const { return query_; }
     const std::set<std::string> &taints() const { return taints_; }
     const std::set<std::string> &datasets() const { return datasets_; }
-    const bool iterator_requested() const { return use_iterator_; }
+    bool iterator_requested() const { return use_iterator_; }
 };
 
 class IndexCommand {
@@ -40,7 +40,7 @@ class IndexCommand {
         : paths_(paths), types_(types), ensure_unique_(ensure_unique) {}
     const std::vector<std::string> &get_paths() const { return paths_; }
     const std::vector<IndexType> &get_index_types() const { return types_; }
-    const bool ensure_unique() const { return ensure_unique_; }
+    bool ensure_unique() const { return ensure_unique_; }
 };
 
 class IteratorPopCommand {
@@ -67,7 +67,7 @@ class IndexFromCommand {
           ensure_unique_(ensure_unique) {}
     const std::string &get_path_list_fname() const { return path_list_fname_; }
     const std::vector<IndexType> &get_index_types() const { return types_; }
-    const bool ensure_unique() const { return ensure_unique_; }
+    bool ensure_unique() const { return ensure_unique_; }
 };
 
 class ReindexCommand {
@@ -89,7 +89,7 @@ class CompactCommand {
 
    public:
     CompactCommand(CompactType type) : type(type) {}
-    const CompactType get_type() const { return type; }
+    CompactType get_type() const { return type; }
 };
 
 class ConfigGetCommand {
@@ -137,10 +137,8 @@ class TaintCommand {
     TaintCommand(std::string dataset, TaintMode mode, std::string taint)
         : dataset(dataset), mode(mode), taint(taint) {}
 
-    const TaintMode get_mode() const { return mode; }
-
+    TaintMode get_mode() const { return mode; }
     const std::string &get_dataset() const { return dataset; }
-
     const std::string &get_taint() const { return taint; }
 };
 

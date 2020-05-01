@@ -25,8 +25,6 @@ constexpr int NUM_WORKERS = 4;
 enum class NetAction : uint32_t {
     Ready = 0,
     Response = 1,
-    DatasetLockReq = 2,
-    IteratorLockReq = 3
 };
 
 class WorkerContext {
