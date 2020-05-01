@@ -107,9 +107,13 @@ class QueryResult {
 
     void do_and(const QueryResult &other);
 
-    // If true, means that QueryResults represents special
-    // "uninitialized" value, "set of all FileIds in DataSet".
+    // If true, means that QueryResults represents special "uninitialized"
+    // value, "set of all FileIds in DataSet".
     bool is_everything() const { return has_everything; }
+
+    // If true, means that QueryResults is empty. This is useful for short
+    // circuiting in some optimisations.
+    bool is_empty() const { return !has_everything && results.empty(); }
 
     const std::vector<FileId> &vector() const { return results; }
 
