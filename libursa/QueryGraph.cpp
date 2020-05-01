@@ -152,6 +152,14 @@ QueryResult masked_or(std::vector<const QueryResult *> &&to_or,
     return result;
 }
 
+QueryResult make_empty(const std::vector<const QueryResult *> &predecessors) {
+    auto result = QueryResult::empty();
+    for (const auto &pred : predecessors) {
+        result.update_stats(*pred);
+    }
+    return result;
+}
+
 uint64_t QueryGraph::combine(NodeId source, NodeId target) const {
     if (get(source).is_epsilon() || get(target).is_epsilon()) {
         // It's not that it's hard or slow to combine epsilons. We just
@@ -183,15 +191,15 @@ QueryResult QueryGraph::run(const QueryFunc &oracle) const {
             }
         }
         if (sources_empty && !predecessors.empty()) {
-            visitor.set(id, QueryResult::empty());
-            continue;
+            visitor.set(id, make_empty(predecessors));
+        } else {
+            // Do a query, or take everything for epsilon.
+            QueryResult next = {get(id).is_epsilon()
+                                    ? QueryResult::everything()
+                                    : QueryResult(oracle(get(id).gram()))};
+            visitor.set(id, std::move(masked_or(std::move(predecessors),
+                                                std::move(next))));
         }
-        // Do a query, or take everything for epsilon.
-        QueryResult next = {get(id).is_epsilon()
-                                ? QueryResult::everything()
-                                : QueryResult(oracle(get(id).gram()))};
-        visitor.set(
-            id, std::move(masked_or(std::move(predecessors), std::move(next))));
         if (get(id).edges().size() == 0) {
             result.do_or(visitor.state(id));
         }
