@@ -28,43 +28,14 @@
 #include "libursa/Utils.h"
 #include "spdlog/spdlog.h"
 
-void execute_select_internal(const SelectCommand &cmd, Task *task,
-                             const DatabaseSnapshot *snap, ResultWriter *out) {
-    // Query all datasets by default, unless user requested otherwise.
-    std::vector<const OnDiskDataset *> datasets_to_query;
-    datasets_to_query.reserve(cmd.datasets().size());
-    if (cmd.datasets().empty()) {
-        // No datasets selected explicitly == query everything.
-        datasets_to_query = std::move(snap->get_datasets());
-    } else {
-        for (const auto &dsname : cmd.datasets()) {
-            const auto *dsptr = snap->find_dataset(dsname);
-            if (dsptr == nullptr) {
-                throw std::runtime_error("Invalid specified in query");
-            }
-            datasets_to_query.push_back(dsptr);
-        }
-    }
-
-    const Query &query = cmd.get_query();
-    task->spec().estimate_work(datasets_to_query.size());
-
-    for (const auto *ds : datasets_to_query) {
-        task->spec().add_progress(1);
-        if (!ds->has_all_taints(cmd.taints())) {
-            continue;
-        }
-        ds->execute(query, out);
-    }
-}
-
 Response execute_command(const SelectCommand &cmd, Task *task,
                          const DatabaseSnapshot *snap) {
     if (cmd.iterator_requested()) {
         DatabaseName data_filename = snap->allocate_name("iterator");
         FileResultWriter writer(data_filename.get_full_path());
 
-        execute_select_internal(cmd, task, snap, &writer);
+        auto stats = snap->execute(cmd.get_query(), cmd.taints(),
+                                   cmd.datasets(), task, &writer);
 
         // TODO DbChange should use DatabaseName type instead.
         DatabaseName meta_filename =
@@ -73,12 +44,13 @@ Response execute_command(const SelectCommand &cmd, Task *task,
                                   writer.get_file_count());
         task->change(
             DBChange(DbChangeType::NewIterator, meta_filename.get_filename()));
-        return Response::select_iterator(meta_filename.get_id(),
-                                         writer.get_file_count());
+        return Response::select_iterator(
+            meta_filename.get_id(), writer.get_file_count(), stats.counters());
     } else {
         InMemoryResultWriter writer;
-        execute_select_internal(cmd, task, snap, &writer);
-        return Response::select(writer.get());
+        auto stats = snap->execute(cmd.get_query(), cmd.taints(),
+                                   cmd.datasets(), task, &writer);
+        return Response::select(writer.get(), stats.counters());
     }
 }
 

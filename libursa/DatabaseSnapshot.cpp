@@ -198,18 +198,37 @@ DatabaseName DatabaseSnapshot::allocate_name(const std::string &type) const {
     }
 }
 
-void DatabaseSnapshot::execute(const Query &query,
-                               const std::set<std::string> &taints, Task *task,
-                               ResultWriter *out) const {
-    task->spec().estimate_work(datasets.size());
+QueryStatistics DatabaseSnapshot::execute(const Query &query,
+                                          const std::set<std::string> &taints,
+                                          const std::set<std::string> &datasets,
+                                          Task *task, ResultWriter *out) const {
+    std::vector<const OnDiskDataset *> datasets_to_query;
+    if (datasets.empty()) {
+        // No datasets selected explicitly == query everything.
+        datasets_to_query = std::move(get_datasets());
+    } else {
+        datasets_to_query.reserve(datasets.size());
+        for (const auto &dsname : datasets) {
+            const auto *dsptr = find_dataset(dsname);
+            if (dsptr == nullptr) {
+                throw std::runtime_error("Invalid dataset specified in query");
+            }
+            datasets_to_query.emplace_back(dsptr);
+        }
+    }
 
-    for (const auto &ds : datasets) {
+    task->spec().estimate_work(datasets_to_query.size());
+
+    QueryStatistics stats;
+    for (const auto *ds : datasets_to_query) {
         task->spec().add_progress(1);
         if (!ds->has_all_taints(taints)) {
             continue;
         }
-        ds->execute(query, out);
+        auto ds_stats = ds->execute(query, out);
+        stats.add(ds_stats);
     }
+    return stats;
 }
 
 // For every dataset that we want to merge, we need to keep 8*(2**24) bytes

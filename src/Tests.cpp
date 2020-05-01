@@ -600,7 +600,7 @@ void make_query(Database &db, std::string query_str,
     Task task(task_spec);
     auto cmd = parse<SelectCommand>(query_str);
     InMemoryResultWriter out;
-    db.snapshot().execute(cmd.get_query(), {}, &task, &out);
+    db.snapshot().execute(cmd.get_query(), {}, {}, &task, &out);
     db.commit_task(*task_spec, task.changes());
 
     std::vector<std::string> out_fixed;

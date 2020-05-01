@@ -40,7 +40,7 @@ class OnDiskDataset {
     }
     void toggle_taint(const std::string &taint_name);
     bool has_all_taints(const std::set<std::string> &taints) const;
-    void execute(const Query &query, ResultWriter *out) const;
+    QueryStatistics execute(const Query &query, ResultWriter *out) const;
     uint64_t get_file_count() const { return files_index->get_file_count(); }
     void for_each_filename(std::function<void(const std::string &)> cb) const {
         files_index->for_each_filename(cb);
