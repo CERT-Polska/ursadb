@@ -2,10 +2,25 @@
 
 #include "Version.h"
 
-Response Response::select(const std::vector<std::string> &files) {
+void Response::write_counters(
+    const std::unordered_map<std::string, QueryCounter> &counters) {
+    for (const auto &[name, counter] : counters) {
+        content["counters"][name]["count"] = counter.count();
+        content["counters"][name]["in_files"] = counter.in_files();
+        content["counters"][name]["out_files"] = counter.out_files();
+        content["counters"][name]["milliseconds"] = counter.duration_ms();
+    }
+}
+
+Response Response::select(
+    const std::vector<std::string> &files,
+    const std::unordered_map<std::string, QueryCounter> &counters) {
     Response r("select");
     r.content["result"]["mode"] = "raw";
     r.content["result"]["files"] = files;
+
+    r.write_counters(counters);
+
     return r;
 }
 
@@ -20,12 +35,16 @@ Response Response::select_from_iterator(const std::vector<std::string> &files,
     return r;
 }
 
-Response Response::select_iterator(const std::string &iterator,
-                                   uint64_t file_count) {
+Response Response::select_iterator(
+    const std::string &iterator, uint64_t file_count,
+    const std::unordered_map<std::string, QueryCounter> &counters) {
     Response r("select");
     r.content["result"]["mode"] = "iterator";
     r.content["result"]["file_count"] = file_count;
     r.content["result"]["iterator"] = iterator;
+
+    r.write_counters(counters);
+
     return r;
 }
 

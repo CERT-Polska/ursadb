@@ -7,6 +7,7 @@
 
 #include "Core.h"
 #include "Json.h"
+#include "QueryResult.h"
 #include "Task.h"
 
 struct IndexEntry {
@@ -27,10 +28,16 @@ class Response {
 
     Response(const std::string &type) { content["type"] = type; }
 
+    void write_counters(
+        const std::unordered_map<std::string, QueryCounter> &counters);
+
    public:
-    static Response select(const std::vector<std::string> &files);
-    static Response select_iterator(const std::string &filename,
-                                    uint64_t file_count);
+    static Response select(
+        const std::vector<std::string> &files,
+        const std::unordered_map<std::string, QueryCounter> &counters);
+    static Response select_iterator(
+        const std::string &filename, uint64_t file_count,
+        const std::unordered_map<std::string, QueryCounter> &counters);
     static Response select_from_iterator(const std::vector<std::string> &files,
                                          uint64_t iterator_position,
                                          uint64_t total_files);

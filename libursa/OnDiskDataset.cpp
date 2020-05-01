@@ -174,10 +174,21 @@ QueryResult OnDiskDataset::internal_execute(const Query &query) const {
         case QueryType::PRIMITIVE:
             return query_str(query.as_value());
         case QueryType::OR: {
-            return pick_common(1, query.as_queries());
+            QueryResult result{QueryResult::empty()};
+            for (const auto &other : query.as_queries()) {
+                result.do_or(internal_execute(other));
+                if (result.is_everything()) {
+                    break;
+                }
+            }
+            return result;
         }
         case QueryType::AND: {
-            return pick_common(query.as_queries().size(), query.as_queries());
+            QueryResult result{QueryResult::everything()};
+            for (const auto &other : query.as_queries()) {
+                result.do_and(internal_execute(other));
+            }
+            return result;
         }
         case QueryType::MIN_OF: {
             return pick_common(query.as_count(), query.as_queries());
@@ -187,7 +198,8 @@ QueryResult OnDiskDataset::internal_execute(const Query &query) const {
     throw std::runtime_error("unhandled query type");
 }
 
-void OnDiskDataset::execute(const Query &query, ResultWriter *out) const {
+QueryStatistics OnDiskDataset::execute(const Query &query,
+                                       ResultWriter *out) const {
     QueryResult result = internal_execute(query);
     if (result.is_everything()) {
         files_index->for_each_filename(
@@ -197,6 +209,7 @@ void OnDiskDataset::execute(const Query &query, ResultWriter *out) const {
             out->push_back(get_file_name(fid));
         }
     }
+    return result.stats();
 }
 
 bool OnDiskDataset::has_all_taints(const std::set<std::string> &taints) const {
