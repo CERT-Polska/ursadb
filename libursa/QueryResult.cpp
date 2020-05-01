@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-void QueryResult::do_or(const QueryResult &other) {
+void QueryResult::do_or(const QueryResult &other, QueryStatistics *toupdate) {
     QueryOperation op(file_count() + other.file_count());
     if (this->is_everything() || other.is_everything()) {
         has_everything = true;
@@ -14,11 +14,13 @@ void QueryResult::do_or(const QueryResult &other) {
                        std::back_inserter(new_results));
         std::swap(new_results, results);
     }
-    stats_.add_or(op.end(file_count()));
     stats_.add(other.stats_);
+    toupdate->add_or(op.end(file_count()));
 }
 
-void QueryResult::do_and(const QueryResult &other) {
+void QueryResult::do_or(const QueryResult &other) { do_or(other, &stats_); }
+
+void QueryResult::do_and(const QueryResult &other, QueryStatistics *toupdate) {
     QueryOperation op(file_count() + other.file_count());
     if (other.is_everything()) {
     } else if (this->is_everything()) {
@@ -30,9 +32,11 @@ void QueryResult::do_and(const QueryResult &other) {
             results.end(), results.begin());
         results.erase(new_end, results.end());
     }
-    stats_.add_and(op.end(file_count()));
     stats_.add(other.stats_);
+    toupdate->add_and(op.end(file_count()));
 }
+
+void QueryResult::do_and(const QueryResult &other) { do_and(other, &stats_); }
 
 QueryCounter QueryOperation::end(uint32_t out_files) const {
     auto duration = std::chrono::steady_clock::now() - start_;

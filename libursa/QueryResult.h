@@ -104,8 +104,10 @@ class QueryResult {
     static QueryResult everything() { return QueryResult(); }
 
     void do_or(const QueryResult &other);
+    void do_or(const QueryResult &other, QueryStatistics *toupdate);
 
     void do_and(const QueryResult &other);
+    void do_and(const QueryResult &other, QueryStatistics *toupdate);
 
     // If true, means that QueryResults represents special "uninitialized"
     // value, "set of all FileIds in DataSet".
@@ -116,7 +118,7 @@ class QueryResult {
     bool is_empty() const { return !has_everything && results.empty(); }
 
     // Updates this instance with results from other query.
-    void update_stats(const QueryResult &other) { stats_.add(other.stats_); }
+    void set_stats(const QueryStatistics &stats) { stats_ = stats; }
 
     const std::vector<FileId> &vector() const { return results; }
 
