@@ -133,29 +133,21 @@ class InorderGraphVisitor {
 
 // Executes a masked_or operation: `(A | B | C | ...) & mask`.
 QueryResult masked_or(std::vector<const QueryResult *> &&to_or,
-                      QueryResult &&mask) {
+                      QueryResult &&mask, QueryStatistics *toupdate) {
     if (to_or.empty()) {
         // Empty or list means everything(). The only case when it happens
         // is for sources, when it makes sense to just return mask.
         return std::move(mask);
     } else if (to_or.size() == 1) {
         // In a very common case of a single predecessor, just do explicit and.
-        mask.do_and(*to_or[0]);
+        mask.do_and(*to_or[0], toupdate);
         return std::move(mask);
     }
     QueryResult result{QueryResult::empty()};
     for (const auto *query : to_or) {
         QueryResult alternative(query->clone());
-        alternative.do_and(mask);
-        result.do_or(std::move(alternative));
-    }
-    return result;
-}
-
-QueryResult make_empty(const std::vector<const QueryResult *> &predecessors) {
-    auto result = QueryResult::empty();
-    for (const auto &pred : predecessors) {
-        result.update_stats(*pred);
+        alternative.do_and(mask, toupdate);
+        result.do_or(std::move(alternative), toupdate);
     }
     return result;
 }
@@ -178,6 +170,7 @@ QueryResult QueryGraph::run(const QueryFunc &oracle) const {
     QueryResult result{QueryResult::empty()};
     InorderGraphVisitor<QueryResult, QueryResult::everything> visitor(sources_,
                                                                       &nodes_);
+    QueryStatistics stats;
     while (!visitor.empty()) {
         // New state is: (union of all possible predecessors) & oracle(id)
         NodeId id{visitor.next()};
@@ -191,19 +184,20 @@ QueryResult QueryGraph::run(const QueryFunc &oracle) const {
             }
         }
         if (sources_empty && !predecessors.empty()) {
-            visitor.set(id, make_empty(predecessors));
+            visitor.set(id, QueryResult::empty());
         } else {
             // Do a query, or take everything for epsilon.
             QueryResult next = {get(id).is_epsilon()
                                     ? QueryResult::everything()
                                     : QueryResult(oracle(get(id).gram()))};
             visitor.set(id, std::move(masked_or(std::move(predecessors),
-                                                std::move(next))));
+                                                std::move(next), &stats)));
         }
         if (get(id).edges().size() == 0) {
-            result.do_or(visitor.state(id));
+            result.do_or(visitor.state(id), &stats);
         }
     }
+    result.set_stats(stats);
     return result;
 }
 
