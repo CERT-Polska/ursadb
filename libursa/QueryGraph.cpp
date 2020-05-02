@@ -169,7 +169,7 @@ QueryResult masked_min_of(uint32_t min_want,
         return masked_or(std::move(sources), std::move(mask), toupdate);
     }
     // Do a real `min ... of` operation.
-    QueryResult result{QueryResult::do_min_of(min_want, sources)};
+    QueryResult result{QueryResult::do_min_of(min_want, sources, toupdate)};
     result.do_and(std::move(mask), toupdate);
     return result;
 }
