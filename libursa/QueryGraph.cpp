@@ -319,8 +319,8 @@ void QueryGraph::or_(QueryGraph &&other) {
     // 1. Special case for empty graph.
     if (nodes_.empty() || other.nodes_.empty()) {
         nodes_.clear();
-        NodeId everything = make_epsilon();
-        sources_.emplace_back(everything);
+        sources_.clear();
+        return;
     }
 
     // 2. Paste the second graph into this one, updating IDs along the way.
