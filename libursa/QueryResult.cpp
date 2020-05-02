@@ -2,23 +2,33 @@
 
 #include <algorithm>
 
+void QueryResult::do_or_real(const std::vector<FileId> &other) {
+    std::vector<FileId> new_results;
+    std::set_union(other.begin(), other.end(), results.begin(), results.end(),
+                   std::back_inserter(new_results));
+    std::swap(new_results, results);
+}
+
 void QueryResult::do_or(const QueryResult &other, QueryStatistics *toupdate) {
     QueryOperation op(file_count() + other.file_count());
     if (this->is_everything() || other.is_everything()) {
         has_everything = true;
         results.clear();
     } else {
-        std::vector<FileId> new_results;
-        std::set_union(other.results.begin(), other.results.end(),
-                       results.begin(), results.end(),
-                       std::back_inserter(new_results));
-        std::swap(new_results, results);
+        do_or_real(other.results);
     }
     stats_.add(other.stats_);
     toupdate->add_or(op.end(file_count()));
 }
 
 void QueryResult::do_or(const QueryResult &other) { do_or(other, &stats_); }
+
+void QueryResult::do_and_real(const std::vector<FileId> &other) {
+    auto new_end =
+        std::set_intersection(other.begin(), other.end(), results.begin(),
+                              results.end(), results.begin());
+    results.erase(new_end, results.end());
+}
 
 void QueryResult::do_and(const QueryResult &other, QueryStatistics *toupdate) {
     QueryOperation op(file_count() + other.file_count());
@@ -27,10 +37,7 @@ void QueryResult::do_and(const QueryResult &other, QueryStatistics *toupdate) {
         results = other.results;
         has_everything = other.has_everything;
     } else {
-        auto new_end = std::set_intersection(
-            other.results.begin(), other.results.end(), results.begin(),
-            results.end(), results.begin());
-        results.erase(new_end, results.end());
+        do_and_real(other.results);
     }
     stats_.add(other.stats_);
     toupdate->add_and(op.end(file_count()));
@@ -54,6 +61,7 @@ void QueryStatistics::add(const QueryStatistics &other) {
     ors_.add(other.ors_);
     ands_.add(other.ands_);
     reads_.add(other.reads_);
+    minofs_.add(other.minofs_);
 }
 
 std::unordered_map<std::string, QueryCounter> QueryStatistics::counters()
@@ -62,6 +70,7 @@ std::unordered_map<std::string, QueryCounter> QueryStatistics::counters()
     result["or"] = ors_;
     result["and"] = ands_;
     result["read"] = reads_;
+    result["minof"] = minofs_;
     return result;
 }
 
@@ -120,36 +129,63 @@ std::vector<FileId> internal_pick_common(
     return result;
 }
 
-QueryResult QueryResult::do_min_of(
+QueryResult QueryResult::do_min_of_real(
     int cutoff, const std::vector<const QueryResult *> &sources) {
-    if (cutoff > static_cast<int>(sources.size())) {
-        // Short circuit when cutoff is too big.
-        // This should never happen for well-formed queries, but this check is
-        // very cheap.
-        return QueryResult::empty();
-    }
-    if (cutoff <= 0) {
-        // '0 of (...)' should match everything.
-        return QueryResult::everything();
-    }
-
     std::vector<const std::vector<FileId> *> nontrivial_sources;
     for (const auto *source : sources) {
         if (source->is_everything()) {
             cutoff -= 1;
-            if (cutoff <= 0) {
-                // Short circuit when result is trivially everything().
-                return QueryResult::everything();
-            }
         } else if (!source->is_empty()) {
             nontrivial_sources.push_back(&source->vector());
         }
     }
 
-    // Special case optimization for cutoff==1 and a single source.
+    // '0 of (...)' should match everything.
+    if (cutoff <= 0) {
+        return QueryResult::everything();
+    }
+
+    // Short circuit when cutoff is too big.
+    // This may happen when there are `everything` results in sources.
+    if (cutoff > static_cast<int>(nontrivial_sources.size())) {
+        return QueryResult::empty();
+    }
+
+    // Special case optimisation for cutoff==1 and a single source.
     if (cutoff == 1 && nontrivial_sources.size() == 1) {
         return QueryResult(std::vector<FileId>(*nontrivial_sources[0]));
     }
 
+    // Special case optimisation - reduction to AND.
+    if (cutoff == static_cast<int>(nontrivial_sources.size())) {
+        QueryResult out{QueryResult::everything()};
+        for (const auto &src : nontrivial_sources) {
+            out.do_and_real(*src);
+        }
+        return out;
+    }
+
+    // Special case optimisation - reduction to OR.
+    if (cutoff == 1) {
+        QueryResult out{QueryResult::empty()};
+        for (const auto &src : nontrivial_sources) {
+            out.do_or_real(*src);
+        }
+        return out;
+    }
+
     return QueryResult(internal_pick_common(cutoff, nontrivial_sources));
+}
+
+QueryResult QueryResult::do_min_of(
+    int cutoff, const std::vector<const QueryResult *> &sources,
+    QueryStatistics *toupdate) {
+    uint64_t total_files = 0;
+    for (const auto *src : sources) {
+        total_files += src->file_count();
+    }
+    QueryOperation op(total_files);
+    QueryResult out{do_min_of_real(cutoff, sources)};
+    toupdate->add_minof(op.end(out.file_count()));
+    return out;
 }

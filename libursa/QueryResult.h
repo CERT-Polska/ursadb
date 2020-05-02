@@ -63,6 +63,9 @@ class QueryStatistics {
     // Counter for file reads.
     QueryCounter reads_;
 
+    // Counter for min ... of operations.
+    QueryCounter minofs_;
+
    public:
     QueryStatistics() : ands_{}, ors_{}, reads_{} {}
     QueryStatistics(uint64_t file_count)
@@ -73,6 +76,8 @@ class QueryStatistics {
     void add_or(QueryCounter counter) { ors_.add(counter); }
 
     void add_read(QueryCounter counter) { reads_.add(counter); }
+
+    void add_minof(QueryCounter counter) { minofs_.add(counter); }
 
     void add(const QueryStatistics &other);
 
@@ -93,6 +98,12 @@ class QueryResult {
     // QueryResult::everything.
     size_t file_count() const { return results.size(); }
 
+    void do_or_real(const std::vector<FileId> &other);
+    void do_and_real(const std::vector<FileId> &other);
+
+    static QueryResult do_min_of_real(
+        int min, const std::vector<const QueryResult *> &others);
+
    public:
     QueryResult(QueryResult &&other) = default;
     explicit QueryResult(std::vector<FileId> &&results)
@@ -109,8 +120,9 @@ class QueryResult {
     void do_and(const QueryResult &other);
     void do_and(const QueryResult &other, QueryStatistics *toupdate);
 
-    static QueryResult do_min_of(
-        int min, const std::vector<const QueryResult *> &others);
+    static QueryResult do_min_of(int min,
+                                 const std::vector<const QueryResult *> &others,
+                                 QueryStatistics *toupdate);
 
     // If true, means that QueryResults represents special "uninitialized"
     // value, "set of all FileIds in DataSet".
