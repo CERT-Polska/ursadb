@@ -3,11 +3,11 @@
 #include <string>
 #include <vector>
 
-#include "libursa/Command.h"
-#include "libursa/DatabaseLock.h"
-#include "libursa/DatabaseSnapshot.h"
-#include "libursa/Responses.h"
-#include "libursa/Task.h"
+#include "Command.h"
+#include "DatabaseLock.h"
+#include "DatabaseSnapshot.h"
+#include "Responses.h"
+#include "Task.h"
 
 Response dispatch_command_safe(const std::string &cmd_str, Task *task,
                                const DatabaseSnapshot *snap);

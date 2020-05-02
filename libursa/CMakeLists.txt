@@ -6,6 +6,8 @@ add_library(
     Command.h
     Core.cpp
     Core.h
+    Daemon.cpp
+    Daemon.h
     Database.cpp
     Database.h
     DatabaseConfig.cpp

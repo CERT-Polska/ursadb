@@ -18,8 +18,6 @@ add_subdirectory(libursa)
 
 add_executable(
     ursadb
-    src/Daemon.cpp
-    src/Daemon.h
     src/NetworkService.cpp
     src/NetworkService.h
 )

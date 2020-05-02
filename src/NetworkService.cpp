@@ -1,8 +1,11 @@
 #include "NetworkService.h"
 
+#include <sys/resource.h>
+
 #include <thread>
 
-#include "Daemon.h"
+#include "libursa/Daemon.h"
+#include "libursa/DatabaseUpgrader.h"
 #include "libursa/QueryParser.h"
 #include "libursa/Responses.h"
 #include "libursa/ZHelpers.h"
@@ -182,4 +185,56 @@ void NetworkService::poll_frontend() {
     s_send(&backend, client_addr, ZMQ_SNDMORE);
     s_send_padding(&backend, ZMQ_SNDMORE);
     s_send(&backend, request);
+}
+
+// On some systems the default limit of open files for service is very low.
+// Increase it to something more reasonable.
+void fix_rlimit() {
+    struct rlimit limit;
+
+    limit.rlim_cur = 65535;
+    limit.rlim_max = 65535;
+    if (setrlimit(RLIMIT_NOFILE, &limit) != 0) {
+        spdlog::warn("setrlimit() failed");
+    }
+}
+
+// Main entry point of the system!
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Usage:\n");
+        printf("    %s database-file [bind-address]\n", argv[0]);
+        return 1;
+    }
+
+    spdlog::info("UrsaDB v{}", get_version_string());
+
+    fix_rlimit();
+    migrate_version(argv[1]);
+
+    try {
+        Database db(argv[1]);
+        std::string bind_address = "tcp://127.0.0.1:9281";
+
+        if (argc > 3) {
+            spdlog::error("Too many command line arguments.");
+        } else if (argc == 3) {
+            bind_address = std::string(argv[2]);
+        }
+
+        spdlog::info("BIND: {}", bind_address);
+        NetworkService service(db, bind_address);
+        service.run();
+    } catch (const std::runtime_error &ex) {
+        spdlog::error("Runtime error: {}", ex.what());
+        return 1;
+    } catch (const json::exception &ex) {
+        spdlog::error("JSON error: {}", ex.what());
+        return 1;
+    } catch (const zmq::error_t &ex) {
+        spdlog::error("ZeroMQ error: {}", ex.what());
+        return 1;
+    }
+
+    return 0;
 }
