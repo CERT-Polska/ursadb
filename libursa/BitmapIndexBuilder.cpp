@@ -69,6 +69,7 @@ void BitmapIndexBuilder::add_file(FileId fid, const uint8_t *data,
     generator(data, size, [&](TriGram val) { add_trigram(fid, val); });
 }
 
-bool BitmapIndexBuilder::can_still_add(uint64_t bytes, int file_count) const {
+bool BitmapIndexBuilder::can_still_add([[maybe_unused]] uint64_t bytes,
+                                       int file_count) const {
     return file_count >= max_files;
 }

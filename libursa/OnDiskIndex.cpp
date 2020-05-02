@@ -162,7 +162,7 @@ void OnDiskIndex::on_disk_merge_core(
         }
 
         // Write the runs to the output file in a proper order.
-        for (int i = 0; i < batch_size; i++) {
+        for (int i = 0; i < static_cast<int>(batch_size); i++) {
             offsets[trigram + i] = out_offset;
             uint64_t base_bytes = 0;
             FileId base_files = 0;

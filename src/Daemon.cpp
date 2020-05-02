@@ -109,7 +109,8 @@ Response execute_command(const IndexCommand &cmd, Task *task,
     return Response::ok();
 }
 
-Response execute_command(const ConfigGetCommand &cmd, Task *task,
+Response execute_command(const ConfigGetCommand &cmd,
+                         [[maybe_unused]] Task *task,
                          const DatabaseSnapshot *snap) {
     if (cmd.keys().empty()) {
         return Response::config(snap->get_config().get_all());
@@ -122,7 +123,7 @@ Response execute_command(const ConfigGetCommand &cmd, Task *task,
 }
 
 Response execute_command(const ConfigSetCommand &cmd, Task *task,
-                         const DatabaseSnapshot *snap) {
+                         [[maybe_unused]] const DatabaseSnapshot *snap) {
     task->change(DBChange(DbChangeType::ConfigChange, cmd.key(),
                           std::to_string(cmd.value())));
     return Response::ok();
@@ -136,18 +137,20 @@ Response execute_command(const ReindexCommand &cmd, Task *task,
     return Response::ok();
 }
 
-Response execute_command(const CompactCommand &cmd, Task *task,
+Response execute_command([[maybe_unused]] const CompactCommand &cmd, Task *task,
                          const DatabaseSnapshot *snap) {
     snap->compact_locked_datasets(task);
     return Response::ok();
 }
 
-Response execute_command(const StatusCommand &cmd, Task *task,
+Response execute_command([[maybe_unused]] const StatusCommand &cmd,
+                         [[maybe_unused]] Task *task,
                          const DatabaseSnapshot *snap) {
     return Response::status(snap->get_tasks());
 }
 
-Response execute_command(const TopologyCommand &cmd, Task *task,
+Response execute_command([[maybe_unused]] const TopologyCommand &cmd,
+                         [[maybe_unused]] Task *task,
                          const DatabaseSnapshot *snap) {
     std::stringstream ss;
     const std::vector<const OnDiskDataset *> &datasets = snap->get_datasets();
@@ -157,7 +160,8 @@ Response execute_command(const TopologyCommand &cmd, Task *task,
         DatasetEntry dataset_entry{/*.id:*/ dataset->get_id(),
                                    /*.size:*/ 0,
                                    /*.file_count:*/ dataset->get_file_count(),
-                                   /*.taints:*/ dataset->get_taints()};
+                                   /*.taints:*/ dataset->get_taints(),
+                                   /*.indexes:*/ {}};
 
         for (const auto &index : dataset->get_indexes()) {
             IndexEntry index_entry{/*.type:*/ index.index_type(),
@@ -172,8 +176,8 @@ Response execute_command(const TopologyCommand &cmd, Task *task,
     return Response::topology(result);
 }
 
-Response execute_command(const PingCommand &cmd, Task *task,
-                         const DatabaseSnapshot *snap) {
+Response execute_command([[maybe_unused]] const PingCommand &cmd, Task *task,
+                         [[maybe_unused]] const DatabaseSnapshot *snap) {
     return Response::ping(task->spec().hex_conn_id());
 }
 
@@ -215,13 +219,14 @@ Response dispatch_command_safe(const std::string &cmd_str, Task *task,
     }
 }
 
-std::vector<DatabaseLock> acquire_locks(const IteratorPopCommand &cmd,
-                                        const DatabaseSnapshot *snap) {
+std::vector<DatabaseLock> acquire_locks(
+    const IteratorPopCommand &cmd,
+    [[maybe_unused]] const DatabaseSnapshot *snap) {
     return {IteratorLock(cmd.get_iterator_id())};
 }
 
-std::vector<DatabaseLock> acquire_locks(const ReindexCommand &cmd,
-                                        const DatabaseSnapshot *snap) {
+std::vector<DatabaseLock> acquire_locks(
+    const ReindexCommand &cmd, [[maybe_unused]] const DatabaseSnapshot *snap) {
     return {DatasetLock(cmd.dataset_id())};
 }
 
@@ -243,14 +248,15 @@ std::vector<DatabaseLock> acquire_locks(const CompactCommand &cmd,
     return locks;
 }
 
-std::vector<DatabaseLock> acquire_locks(const TaintCommand &cmd,
-                                        const DatabaseSnapshot *snap) {
+std::vector<DatabaseLock> acquire_locks(
+    const TaintCommand &cmd, [[maybe_unused]] const DatabaseSnapshot *snap) {
     return {DatasetLock(cmd.get_dataset())};
 }
 
 template <typename T>
-std::vector<DatabaseLock> acquire_locks(const T &anything,
-                                        const DatabaseSnapshot *snap) {
+std::vector<DatabaseLock> acquire_locks(
+    [[maybe_unused]] const T &_anything,
+    [[maybe_unused]] const DatabaseSnapshot *snap) {
     return {};
 }
 

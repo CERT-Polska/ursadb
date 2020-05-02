@@ -115,10 +115,10 @@ QueryGraph to_query_graph(const QString &str, int size, TokenValidator is_ok) {
     spdlog::debug("Expand+prune for a query graph size={}", size);
 
     // Offset from the beginning of the string.
-    int offset = 0;
+    size_t offset = 0;
 
     // Offset from the beginning of the next connected string component.
-    int frag_offset = 0;
+    size_t frag_offset = 0;
     while (offset < str.size()) {
         spdlog::debug("Looking for a new start edge {}", offset);
         frag_offset = 0;
@@ -142,7 +142,7 @@ QueryGraph to_query_graph(const QString &str, int size, TokenValidator is_ok) {
         }
 
         // If there are no good tokens this time, go forward.
-        if (tokens.size() < size - 1) {
+        if (static_cast<int32_t>(tokens.size()) < size - 1) {
             if (frag_offset == 0) {
                 offset++;
             }
@@ -178,7 +178,7 @@ QueryGraph to_query_graph(const QString &str, int size, TokenValidator is_ok) {
         }
 
         // If there are not enough good tokens, go forward.
-        if (tokens.size() < size) {
+        if (static_cast<int>(tokens.size()) < size) {
             continue;
         }
 
@@ -218,7 +218,7 @@ QueryGraph Query::to_graph(IndexType ntype) const {
             return QueryGraph();
         }
         QueryGraph result = std::move(queries[0].to_graph(ntype));
-        for (int i = 1; i < queries.size(); i++) {
+        for (size_t i = 1; i < queries.size(); i++) {
             result.or_(queries[i].to_graph(ntype));
         }
         return result;

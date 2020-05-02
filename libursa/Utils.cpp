@@ -39,8 +39,6 @@ uint64_t get_milli_timestamp() {
 }
 
 size_t get_ngram_size_for(IndexType type) {
-    size_t input_len = 0;
-
     switch (type) {
         case IndexType::GRAM3:
             return 3;
@@ -271,7 +269,8 @@ void PosixRunWriter::write_raw(FileId base, uint8_t *start, uint8_t *end) {
 
 void PosixRunWriter::flush() {
     if (!buffer_.empty()) {
-        if (::write(fd_, buffer_.data(), buffer_.size()) != buffer_.size()) {
+        if (::write(fd_, buffer_.data(), buffer_.size()) !=
+            static_cast<int>(buffer_.size())) {
             throw std::runtime_error("Failed to flush PosixRunWriter");
         }
         buffer_.clear();

@@ -351,11 +351,11 @@ void QueryGraph::or_(QueryGraph &&other) {
 //
 //               C
 // A  ->  B  -<     >- (E)
-//               D        \ 
+//               D        v
 // F  ->  H                v
 //           >-  J  -----> N(2)
 // G  ->  I                ^
-//                        /
+//                        ^
 // K  ->  L  ->  M  -----/
 //
 QueryGraph QueryGraph::min_of(uint32_t min_want,
