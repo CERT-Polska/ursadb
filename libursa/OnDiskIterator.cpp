@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "Json.h"
+#include "spdlog/spdlog.h"
 
 void write_itermeta(const DatabaseName &target, uint64_t byte_offset,
                     uint64_t file_offset, uint64_t total_files,
@@ -27,6 +28,7 @@ void write_itermeta(const DatabaseName &target, uint64_t byte_offset,
 void OnDiskIterator::save() {
     write_itermeta(name, byte_offset, file_offset, total_files,
                    datafile_filename);
+    spdlog::info("SAVE: {}", name.get_filename());
 }
 
 void OnDiskIterator::drop() {

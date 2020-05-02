@@ -27,7 +27,7 @@
 
         //  Get request, send reply
         auto request{s_recv<std::string>(&worker)};
-        spdlog::info("Task {} - {}", task->spec().id(), request);
+        spdlog::info("TASK: start [{}]: {}", task->spec().id(), request);
 
         Response response = dispatch_command_safe(request, &*task, &snap);
         // Note: optionally add funny metadata to response here (like request
@@ -84,8 +84,7 @@ void NetworkService::run() {
 
 void NetworkService::commit_task(WorkerContext *wctx) {
     uint64_t task_ms = get_milli_timestamp() - wctx->task->spec().epoch_ms();
-    spdlog::info("Task {} finished by {} in {}", wctx->task->spec().id(),
-                 wctx->identity, task_ms);
+    spdlog::info("TASK: done [{}] (in {}ms)", wctx->task->spec().id(), task_ms);
 
     db.commit_task(wctx->task->spec(), wctx->task->changes());
     wctx->task = std::nullopt;

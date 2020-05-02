@@ -84,7 +84,7 @@ TaskSpec *Database::allocate_task(const std::string &request,
                                   const std::string &conn_id,
                                   const std::vector<DatabaseLock> &locks) {
     for (const auto &lock : locks) {
-        spdlog::info("Locking {}...", describe_lock(lock));
+        spdlog::info("LOCK: {}", describe_lock(lock));
         if (!std::visit([this](auto &l) { return can_acquire(l); }, lock)) {
             spdlog::warn("Can't lock {}!", describe_lock(lock));
             throw std::runtime_error("Can't acquire lock");
@@ -127,17 +127,18 @@ void Database::save() {
     db_file.close();
 
     fs::rename(db_base / tmp_db_name, db_base / db_name);
+    spdlog::info("SAVE: {}", std::string(db_name));
 }
 
 void Database::load_iterator(const DatabaseName &name) {
     iterators.emplace(name.get_id(), OnDiskIterator(name));
-    spdlog::info("Loaded new iterator {}", name.get_filename());
+    spdlog::info("LOAD: {}", name.get_filename());
 }
 
 void Database::load_dataset(const std::string &ds) {
     loaded_datasets.push_back(std::make_unique<OnDiskDataset>(db_base, ds));
     working_datasets.push_back(loaded_datasets.back().get());
-    spdlog::info("Loaded new dataset {}", ds);
+    spdlog::info("LOAD: {}", ds);
 }
 
 void Database::update_iterator(const DatabaseName &name, uint64_t byte_offset,
@@ -161,7 +162,7 @@ void Database::drop_dataset(const std::string &dsname) {
     for (auto it = working_datasets.begin(); it != working_datasets.end();) {
         if ((*it)->get_name() == dsname) {
             it = working_datasets.erase(it);
-            spdlog::info("Drop dataset {}", dsname);
+            spdlog::info("DROP: {}", dsname);
         } else {
             ++it;
         }
@@ -171,7 +172,7 @@ void Database::drop_dataset(const std::string &dsname) {
 void Database::destroy_dataset(const std::string &dsname) {
     for (auto it = loaded_datasets.begin(); it != loaded_datasets.end();) {
         if ((*it)->get_name() == dsname) {
-            spdlog::info("Destroying dataset {}", dsname);
+            spdlog::info("DESTROY: {}", dsname);
             (*it)->drop();
             it = loaded_datasets.erase(it);
         } else {
@@ -212,8 +213,13 @@ void Database::commit_task(const TaskSpec &spec,
     uint64_t task_id = spec.id();
 
     for (const auto &change : changes) {
-        spdlog::info("Change: {} {} ({})", db_change_to_string(change.type),
-                     change.obj_name, change.parameter);
+        if (change.parameter.empty()) {
+            spdlog::info("CHANGE: {} {}", db_change_to_string(change.type),
+                         change.obj_name);
+        } else {
+            spdlog::info("CHANGE: {} {} ({})", db_change_to_string(change.type),
+                         change.obj_name, change.parameter);
+        }
         if (change.type == DbChangeType::Insert) {
             load_dataset(change.obj_name);
         } else if (change.type == DbChangeType::Drop) {
@@ -224,7 +230,7 @@ void Database::commit_task(const TaskSpec &spec,
         } else if (change.type == DbChangeType::ToggleTaint) {
             OnDiskDataset *ds = find_working_dataset(change.obj_name);
             if (!ds) {
-                spdlog::info("ToggleTaint failed - nonexistent dataset");
+                spdlog::warn("ToggleTaint failed - nonexistent dataset");
                 continue;  // suspicious, but maybe task was delayed?
             }
             ds->toggle_taint(change.parameter);

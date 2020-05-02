@@ -24,11 +24,11 @@ class DatabaseName {
 
     DatabaseName derive_temporary() const;
 
-    std::string get_id() const { return id; }
+    const std::string &get_id() const { return id; }
 
     fs::path get_full_path() const { return db_base / filename; }
 
-    std::string get_filename() const { return filename; }
+    const std::string &get_filename() const { return filename; }
 
     // TODO: this method should not exist, convert all legacy name occurences
     // to DatbaseName.

@@ -320,10 +320,10 @@ std::vector<std::string> DatabaseSnapshot::find_compact_candidate(
     }
 
     if (best_compact.empty()) {
-        spdlog::info("No suitable compact candidate found.");
+        spdlog::debug("No suitable compact candidate found.");
     } else {
-        spdlog::info("Good candidate (cost: {}, datasets: {}).",
-                     best_compact_value, best_compact.size());
+        spdlog::debug("Good candidate (cost: {}, datasets: {}).",
+                      best_compact_value, best_compact.size());
     }
 
     std::vector<std::string> names;
