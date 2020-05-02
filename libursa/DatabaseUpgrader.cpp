@@ -66,7 +66,7 @@ void migrate_version(std::string_view path) {
             spdlog::error("Upgrade procedure failed. Trying to proceed...");
             break;
         } else if (version != prev_version && !prev_version.empty()) {
-            spdlog::info("Upgraded storage {} -> {}.", prev_version, version);
+            spdlog::info("UPGRADE: {} -> {}.", prev_version, version);
         }
         if (version == most_recent) {
             break;

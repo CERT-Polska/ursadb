@@ -12,7 +12,7 @@ DatabaseConfig::DatabaseConfig(json config) : config_(config) {
             spdlog::warn("Unexpected config: {}={}", elm.key(),
                          elm.value().dump(4));
         } else {
-            spdlog::info("Config: {}={}", elm.key(), elm.value().dump(4));
+            spdlog::info("CONFIG: {}={}", elm.key(), elm.value().dump(4));
         }
     }
 }

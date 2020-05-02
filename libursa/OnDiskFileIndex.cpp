@@ -5,7 +5,7 @@
 #include "spdlog/spdlog.h"
 
 void OnDiskFileIndex::generate_namecache_file() {
-    spdlog::info("Namecache {} not found, generating", cache_fname);
+    spdlog::debug("Namecache {} not found, generating", cache_fname);
 
     std::ofstream of;
     of.exceptions(std::ofstream::badbit);
@@ -21,6 +21,7 @@ void OnDiskFileIndex::generate_namecache_file() {
     file_count = count;
     of.write(reinterpret_cast<char *>(&offset), sizeof(offset));
     of.flush();
+    spdlog::info("SAVE: {}", cache_fname);
 }
 
 OnDiskFileIndex::OnDiskFileIndex(const fs::path &db_base,

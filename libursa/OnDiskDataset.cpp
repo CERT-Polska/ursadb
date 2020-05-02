@@ -17,6 +17,7 @@ void OnDiskDataset::save() {
 
     store_dataset(db_base, name, index_names, files_index->get_files_fname(),
                   files_index->get_cache_fname(), taints);
+    spdlog::info("SAVE: {}", name);
 }
 
 void OnDiskDataset::toggle_taint(const std::string &taint) {
