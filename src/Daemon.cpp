@@ -267,6 +267,18 @@ std::vector<DatabaseLock> dispatch_locks(const Command &cmd,
         [snap](const auto &cmd) { return acquire_locks(cmd, snap); }, cmd));
 }
 
+// On some systems the default limit of open files for service is very low.
+// Increase it to something more reasonable.
+void fix_rlimit() {
+    struct rlimit limit;
+
+    limit.rlim_cur = 65535;
+    limit.rlim_max = 65535;
+    if (setrlimit(RLIMIT_NOFILE, &limit) != 0) {
+        spdlog::warn("setrlimit() failed");
+    }
+}
+
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         printf("Usage:\n");
@@ -276,6 +288,7 @@ int main(int argc, char *argv[]) {
 
     spdlog::info("UrsaDB v{}", get_version_string());
 
+    fix_rlimit();
     migrate_version(argv[1]);
 
     try {
