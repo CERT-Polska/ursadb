@@ -373,7 +373,7 @@ QueryGraph QueryGraph::min_of(uint32_t min_want,
             node.shift(shift);
             NodeId id = result.make(std::move(node));
 
-            if (node.is_sink()) {
+            if (result.get(id).is_sink()) {
                 sinks.emplace_back(id);
             }
         }
@@ -395,6 +395,5 @@ QueryGraph QueryGraph::min_of(uint32_t min_want,
             result.sources_.emplace_back(source.shifted(shift));
         }
     }
-
     return result;
 }
