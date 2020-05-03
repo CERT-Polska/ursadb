@@ -9,6 +9,7 @@ QToken QToken::low_wildcard(uint8_t val) {
     if ((val & 0x0F) != 0) {
         throw std::runtime_error("format of low_wildcard is be 0xX0");
     }
+    options.reserve(16);
     for (int i = 0; i < 16; i++) {
         options.push_back(static_cast<uint8_t>(val | i));
     }
@@ -20,6 +21,7 @@ QToken QToken::high_wildcard(uint8_t val) {
     if ((val & 0xF0) != 0) {
         throw std::runtime_error("format of high_wildcard is 0x0X");
     }
+    options.reserve(16);
     for (int i = 0; i < 16; i++) {
         options.push_back((static_cast<uint8_t>(i << 4) | val));
     }
@@ -28,6 +30,7 @@ QToken QToken::high_wildcard(uint8_t val) {
 
 QToken QToken::wildcard() {
     std::vector<uint8_t> options;
+    options.reserve(256);
     for (int i = 0; i < 256; i++) {
         options.push_back(static_cast<uint8_t>(i));
     }

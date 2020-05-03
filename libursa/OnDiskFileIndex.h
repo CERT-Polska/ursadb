@@ -33,5 +33,6 @@ class OnDiskFileIndex {
     const std::string &get_files_fname() const { return files_fname; }
     const std::string &get_cache_fname() const { return cache_fname; }
 
-    void for_each_filename(std::function<void(const std::string &)> cb) const;
+    void for_each_filename(
+        const std::function<void(const std::string &)> &cb) const;
 };

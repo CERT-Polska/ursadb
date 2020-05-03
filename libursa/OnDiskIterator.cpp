@@ -5,8 +5,8 @@
 #include "Json.h"
 #include "spdlog/spdlog.h"
 
-OnDiskIterator::OnDiskIterator(const DatabaseName name,
-                               const DatabaseName datafile_name,
+OnDiskIterator::OnDiskIterator(const DatabaseName &name,
+                               const DatabaseName &datafile_name,
                                uint64_t total_files, uint64_t byte_offset,
                                uint64_t file_offset)
     : name(name),

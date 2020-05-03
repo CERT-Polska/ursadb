@@ -1,5 +1,7 @@
 #include "DatabaseName.h"
 
+#include <utility>
+
 #include "Utils.h"
 #include "spdlog/spdlog.h"
 
@@ -15,7 +17,7 @@ DatabaseName DatabaseName::derive_temporary() const {
 }
 
 // TODO: convert all legacy names to DatbaseName.
-DatabaseName DatabaseName::parse(fs::path db_base, std::string name) {
+DatabaseName DatabaseName::parse(fs::path db_base, const std::string &name) {
     auto first_dot = name.find('.');
     auto second_dot = name.find('.', first_dot + 1);
     if (second_dot == std::string::npos) {
@@ -23,5 +25,5 @@ DatabaseName DatabaseName::parse(fs::path db_base, std::string name) {
     }
     std::string type = name.substr(0, first_dot);
     std::string id = name.substr(first_dot + 1, second_dot - first_dot - 1);
-    return DatabaseName(db_base, type, id, name);
+    return DatabaseName(std::move(db_base), type, id, name);
 }

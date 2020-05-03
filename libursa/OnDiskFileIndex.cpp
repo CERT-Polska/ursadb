@@ -53,7 +53,7 @@ std::string OnDiskFileIndex::get_file_name(FileId fid) const {
 }
 
 void OnDiskFileIndex::for_each_filename(
-    std::function<void(const std::string &)> cb) const {
+    const std::function<void(const std::string &)> &cb) const {
     std::string filename;
     std::ifstream inf(db_base / files_fname, std::ifstream::binary);
 

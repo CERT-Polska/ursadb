@@ -32,5 +32,5 @@ class DatabaseName {
 
     // TODO: this method should not exist, convert all legacy name occurences
     // to DatbaseName.
-    static DatabaseName parse(fs::path db_base, std::string name);
+    static DatabaseName parse(fs::path db_base, const std::string &name);
 };

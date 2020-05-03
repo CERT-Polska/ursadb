@@ -13,7 +13,7 @@ DatabaseSnapshot::DatabaseSnapshot(
     fs::path db_name, fs::path db_base, DatabaseConfig config,
     std::map<std::string, OnDiskIterator> iterators,
     std::vector<const OnDiskDataset *> datasets,
-    const std::unordered_map<uint64_t, TaskSpec> &tasks)
+    std::unordered_map<uint64_t, TaskSpec> tasks)
     : db_name(std::move(db_name)),
       db_base(std::move(db_base)),
       iterators(std::move(iterators)),
@@ -206,7 +206,7 @@ QueryStatistics DatabaseSnapshot::execute(const Query &query,
     std::vector<const OnDiskDataset *> datasets_to_query;
     if (datasets.empty()) {
         // No datasets selected explicitly == query everything.
-        datasets_to_query = std::move(get_datasets());
+        datasets_to_query = get_datasets();
     } else {
         datasets_to_query.reserve(datasets.size());
         for (const auto &dsname : datasets) {
@@ -279,8 +279,7 @@ std::vector<std::string> DatabaseSnapshot::find_compact_candidate(
         std::vector<const OnDiskDataset *> candidates;
         if (smart) {
             // When we're trying to be smart, ignore too small sets.
-            candidates = std::move(
-                OnDiskDataset::get_compact_candidates(std::move(set)));
+            candidates = std::move(OnDiskDataset::get_compact_candidates(set));
         } else {
             candidates = std::move(set);
         }
@@ -357,6 +356,7 @@ void DatabaseSnapshot::internal_compact(
     Task *task, std::vector<const OnDiskDataset *> datasets) const {
     std::vector<std::string> ds_names;
 
+    ds_names.reserve(datasets.size());
     for (const auto *ds : datasets) {
         ds_names.push_back(ds->get_name());
     }
