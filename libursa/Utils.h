@@ -14,7 +14,7 @@
 using TrigramCallback = std::function<void(TriGram)>;
 
 // Trigram generator - will call callback for every availbale trigram.
-using TrigramGenerator = void (*)(const uint8_t *mem, size_t size,
+using TrigramGenerator = void (*)(const uint8_t *mem, uint64_t size,
                                   TrigramCallback callback);
 
 // Validator for the token value. First parameter is offset, second token char.
@@ -35,11 +35,11 @@ TokenValidator get_validator_for(IndexType type);
 // Returns a number of bytes needed for ngram of the specified type.
 size_t get_ngram_size_for(IndexType type);
 
-void gen_trigrams(const uint8_t *mem, size_t size, TrigramCallback callback);
-void gen_b64grams(const uint8_t *mem, size_t size, TrigramCallback callback);
-void gen_wide_b64grams(const uint8_t *mem, size_t size,
+void gen_trigrams(const uint8_t *mem, uint64_t size, TrigramCallback callback);
+void gen_b64grams(const uint8_t *mem, uint64_t size, TrigramCallback callback);
+void gen_wide_b64grams(const uint8_t *mem, uint64_t size,
                        TrigramCallback callback);
-void gen_h4grams(const uint8_t *mem, size_t size, TrigramCallback callback);
+void gen_h4grams(const uint8_t *mem, uint64_t size, TrigramCallback callback);
 
 void combinations(const QString &qstr, size_t len, const TrigramGenerator &gen,
                   const TrigramCallback &cb);
