@@ -84,12 +84,12 @@ void FlatIndexBuilder::save(const std::string &fname) {
     auto ndx_type = static_cast<uint32_t>(index_type());
     uint32_t reserved = 0;
 
-    out.write((char *)&magic, 4);
-    out.write((char *)&version, 4);
-    out.write((char *)&ndx_type, 4);
-    out.write((char *)&reserved, 4);
+    out.write(reinterpret_cast<char *>(&magic), 4);
+    out.write(reinterpret_cast<char *>(&version), 4);
+    out.write(reinterpret_cast<char *>(&ndx_type), 4);
+    out.write(reinterpret_cast<char *>(&reserved), 4);
 
-    auto offset = (uint64_t)out.tellp();
+    auto offset = static_cast<uint64_t>(out.tellp());
     std::vector<uint64_t> offsets(NUM_TRIGRAMS + 1);
     offsets[0] = offset;
     // Sort raw_data by trigrams (higher part of raw_data contains the
@@ -122,22 +122,23 @@ void FlatIndexBuilder::save(const std::string &fname) {
         int64_t diff = (next - prev) - 1;
         while (diff >= 0x80U) {
             offset++;
-            out_bytes.push_back((uint8_t)(0x80U | (diff & 0x7FU)));
+            out_bytes.push_back(static_cast<uint8_t>(0x80U | (diff & 0x7FU)));
             diff >>= 7;
         }
 
         offset++;
-        out_bytes.push_back((uint8_t)diff);
+        out_bytes.push_back(static_cast<uint8_t>(diff));
         prev = next;
     }
 
-    out.write((char *)out_bytes.data(), out_bytes.size());
+    out.write(reinterpret_cast<char *>(out_bytes.data()), out_bytes.size());
 
     for (TriGram v = last_trigram + 1; v <= NUM_TRIGRAMS; v++) {
         offsets[v] = offset;
     }
 
-    out.write((char *)offsets.data(), (NUM_TRIGRAMS + 1) * sizeof(uint64_t));
+    out.write(reinterpret_cast<char *>(offsets.data()),
+              (NUM_TRIGRAMS + 1) * sizeof(uint64_t));
 }
 
 void FlatIndexBuilder::add_file(FileId fid, const uint8_t *data, size_t size) {

@@ -97,7 +97,8 @@ std::vector<FileId> internal_pick_common(
         FileId min_id = *heads[0].first;
         for (int i = 1; i < static_cast<int>(heads.size()); i++) {
             if (*heads[i].first < min_id) {
-                min_index = i;  // TODO benchmark and consider removing.
+                min_index =
+                    i;  // TODO(unknown): benchmark and consider removing.
                 min_id = *heads[i].first;
             }
         }

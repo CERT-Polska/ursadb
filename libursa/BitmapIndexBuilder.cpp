@@ -12,13 +12,13 @@ BitmapIndexBuilder::BitmapIndexBuilder(IndexType ntype)
     : IndexBuilder(ntype), raw_data(file_run_size * NUM_TRIGRAMS) {}
 
 void BitmapIndexBuilder::add_trigram(FileId fid, TriGram val) {
-    unsigned int offset = fid / 8;
-    unsigned int shift = fid % 8;
+    uint32_t offset = fid / 8;
+    uint32_t shift = fid % 8;
     raw_data[val * file_run_size + offset] |= (1U << shift);
 }
 
 std::vector<FileId> BitmapIndexBuilder::get_run(TriGram val) const {
-    unsigned int run_start = file_run_size * val;
+    uint32_t run_start = file_run_size * val;
     std::vector<FileId> result;
     for (int offset = 0; offset < file_run_size; offset++) {
         for (int shift = 0; shift < 8; shift++) {
@@ -40,12 +40,12 @@ void BitmapIndexBuilder::save(const std::string &fname) {
     auto ndx_type = static_cast<uint32_t>(index_type());
     uint32_t reserved = 0;
 
-    out.write((char *)&magic, 4);
-    out.write((char *)&version, 4);
-    out.write((char *)&ndx_type, 4);
-    out.write((char *)&reserved, 4);
+    out.write(reinterpret_cast<char *>(&magic), 4);
+    out.write(reinterpret_cast<char *>(&version), 4);
+    out.write(reinterpret_cast<char *>(&ndx_type), 4);
+    out.write(reinterpret_cast<char *>(&reserved), 4);
 
-    auto offset = (uint64_t)out.tellp();
+    auto offset = static_cast<uint64_t>(out.tellp());
     std::vector<uint64_t> offsets(NUM_TRIGRAMS + 1);
 
     for (TriGram i = 0; i < NUM_TRIGRAMS; i++) {
@@ -55,7 +55,8 @@ void BitmapIndexBuilder::save(const std::string &fname) {
 
     offsets[NUM_TRIGRAMS] = offset;
 
-    out.write((char *)offsets.data(), (NUM_TRIGRAMS + 1) * sizeof(uint64_t));
+    out.write(reinterpret_cast<char *>(offsets.data()),
+              (NUM_TRIGRAMS + 1) * sizeof(uint64_t));
 }
 
 void BitmapIndexBuilder::add_file(FileId fid, const uint8_t *data,

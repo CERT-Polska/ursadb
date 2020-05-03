@@ -284,7 +284,8 @@ constexpr char unescape_char(char escaped) {
 char transform_char(const parse_tree::node &n) {
     const std::string &content = n.content();
     if (n.is<hexbyte>()) {
-        return (char)((hex2int(content[0]) << 4) + hex2int(content[1]));
+        return static_cast<char>((hex2int(content[0]) << 4) +
+                                 hex2int(content[1]));
     }
     if (n.is<ascii_char>()) {
         return content[0];
@@ -377,7 +378,7 @@ Query transform(const parse_tree::node &n) {
     }
     if (n.is<min_of_expr>()) {
         auto &count = n.children[0];
-        unsigned int counti;
+        uint32_t counti;
 
         try {
             counti = std::stoi(count->content());

@@ -13,7 +13,7 @@
 
 std::string_view get_version_string() { return ursadb_version_string; }
 
-std::string random_hex_string(unsigned long length) {
+std::string random_hex_string(uint64_t length) {
     constexpr static char charset[] = "0123456789abcdef";
     thread_local static std::random_device rd;
     thread_local static std::seed_seq seed{
@@ -25,7 +25,7 @@ std::string random_hex_string(unsigned long length) {
     std::string result;
     result.reserve(length);
 
-    for (unsigned long i = 0; i < length; i++) {
+    for (uint64_t i = 0; i < length; i++) {
         result += charset[pick(random)];
     }
 
@@ -193,11 +193,11 @@ void RunWriter::write(FileId next) {
     int64_t diff = (next - prev) - 1;
     while (diff >= 0x80U) {
         out_bytes++;
-        out->put((uint8_t)(0x80U | (diff & 0x7FU)));
+        out->put(static_cast<uint8_t>(0x80U | (diff & 0x7FU)));
         diff >>= 7;
     }
     out_bytes++;
-    out->put((uint8_t)diff);
+    out->put(static_cast<uint8_t>(diff));
     prev = next;
 }
 
@@ -217,11 +217,11 @@ void PosixRunWriter::write(FileId next) {
     int64_t diff = (next - prev_) - 1;
     while (diff >= 0x80U) {
         out_bytes_++;
-        buffer_.push_back((uint8_t)(0x80U | (diff & 0x7FU)));
+        buffer_.push_back(static_cast<uint8_t>(0x80U | (diff & 0x7FU)));
         diff >>= 7;
     }
     out_bytes_++;
-    buffer_.push_back((uint8_t)diff);
+    buffer_.push_back(static_cast<uint8_t>(diff));
     prev_ = next;
 
     if (buffer_.size() > RUN_BUFFER_SIZE) {
@@ -341,9 +341,8 @@ void store_dataset(const fs::path &db_base, const std::string &fname,
 std::string bin_str_to_hex(const std::string &str) {
     std::ostringstream ret;
 
-    unsigned int c;
-    for (char i : str) {
-        c = (unsigned int)(unsigned char)i;
+    for (uint8_t i : str) {
+        uint32_t c = static_cast<uint32_t>(i);
         ret << std::hex << std::setfill('0') << std::setw(2) << std::uppercase
             << c;
     }

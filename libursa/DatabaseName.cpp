@@ -16,7 +16,7 @@ DatabaseName DatabaseName::derive_temporary() const {
     return DatabaseName(db_base, "temp", id, fname);
 }
 
-// TODO: convert all legacy names to DatbaseName.
+// TODO(unknown): convert all legacy names to DatbaseName.
 DatabaseName DatabaseName::parse(fs::path db_base, const std::string &name) {
     auto first_dot = name.find('.');
     auto second_dot = name.find('.', first_dot + 1);

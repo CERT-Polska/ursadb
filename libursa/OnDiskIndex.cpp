@@ -100,7 +100,7 @@ std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram) const {
     return get_run(offsets.first, offsets.second);
 }
 
-unsigned long OnDiskIndex::real_size() const { return fs::file_size(fpath); }
+uint64_t OnDiskIndex::real_size() const { return fs::file_size(fpath); }
 
 // Finds the biggest batch size starting from `trigram`, for which size of all
 // runs is still smaller than max_bytes.
@@ -148,7 +148,7 @@ void OnDiskIndex::on_disk_merge_core(
         uint64_t batch_size = find_max_batch(indexes, trigram, MAX_BATCH_BYTES);
 
         if (batch_size == 0) {
-            // TODO fallback to old unbatched merge method.
+            // TODO(unknown): fallback to old unbatched merge method.
             spdlog::error("Merge too big, can't fit into MAX_BATCH_BYTES");
             throw std::runtime_error("Can't merge, batch size too big");
         }
@@ -208,7 +208,7 @@ void OnDiskIndex::on_disk_merge(const fs::path &db_base,
     OnDiskIndexHeader header;
     header.magic = DB_MAGIC;
     header.version = OnDiskIndex::VERSION;
-    header.raw_type = (uint32_t)merge_type;
+    header.raw_type = static_cast<uint32_t>(merge_type);
     header.reserved = 0;
 
     out.write(reinterpret_cast<uint8_t *>(&header), sizeof(header));

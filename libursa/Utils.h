@@ -24,7 +24,7 @@ using TokenValidator = std::function<bool(uint32_t, uint8_t)>;
 namespace fs = std::experimental::filesystem;
 
 std::string_view get_version_string();
-std::string random_hex_string(unsigned long length);
+std::string random_hex_string(uint64_t length);
 
 // Returns a function that can be used to generate ngrams of the specified type.
 TrigramGenerator get_generator_for(IndexType type);

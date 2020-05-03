@@ -35,7 +35,7 @@ Response execute_command(const SelectCommand &cmd, Task *task,
         auto stats = snap->execute(cmd.get_query(), cmd.taints(),
                                    cmd.datasets(), task, &writer);
 
-        // TODO DbChange should use DatabaseName type instead.
+        // TODO(unknown): DbChange should use DatabaseName type instead.
         DatabaseName meta_filename =
             snap->derive_name(data_filename, "itermeta");
         OnDiskIterator::construct(meta_filename, data_filename,

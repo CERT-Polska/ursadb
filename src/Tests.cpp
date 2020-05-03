@@ -23,9 +23,9 @@
 using namespace std::string_literals;
 
 TriGram gram3_pack(const char (&s)[4]) {
-    TriGram v0 = (uint8_t)s[0];
-    TriGram v1 = (uint8_t)s[1];
-    TriGram v2 = (uint8_t)s[2];
+    TriGram v0 = static_cast<uint8_t>(s[0]);
+    TriGram v1 = static_cast<uint8_t>(s[1]);
+    TriGram v2 = static_cast<uint8_t>(s[2]);
     return (v0 << 16U) | (v1 << 8U) | (v2 << 0U);
 }
 
@@ -346,26 +346,31 @@ TEST_CASE("get_trigrams", "[ngrams]") {
 
     SECTION("String len < 3") {
         str = "";
-        gram3 = get_trigrams((const uint8_t *)str.c_str(), str.length());
+        gram3 = get_trigrams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                             str.length());
         REQUIRE(gram3.empty());
         str = "a";
-        gram3 = get_trigrams((const uint8_t *)str.c_str(), str.length());
+        gram3 = get_trigrams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                             str.length());
         REQUIRE(gram3.empty());
         str = "aa";
-        gram3 = get_trigrams((const uint8_t *)str.c_str(), str.length());
+        gram3 = get_trigrams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                             str.length());
         REQUIRE(gram3.empty());
     }
 
     SECTION("String len 3") {
         str = "abc";
-        gram3 = get_trigrams((const uint8_t *)str.c_str(), str.length());
+        gram3 = get_trigrams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                             str.length());
         REQUIRE(gram3[0] == gram3_pack("abc"));
         REQUIRE(gram3.size() == 1);
     }
 
     SECTION("String len 4") {
         str = "abcd";
-        gram3 = get_trigrams((const uint8_t *)str.c_str(), str.length());
+        gram3 = get_trigrams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                             str.length());
         REQUIRE(gram3[0] == gram3_pack("abc"));
         REQUIRE(gram3[1] == gram3_pack("bcd"));
         REQUIRE(gram3.size() == 2);
@@ -377,29 +382,36 @@ TEST_CASE("get_b64grams", "[ngrams]") {
     std::vector<TriGram> gram3;
 
     str = "";
-    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_b64grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                         str.length());
     REQUIRE(gram3.empty());
     str = "a";
-    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_b64grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                         str.length());
     REQUIRE(gram3.empty());
     str = "ab";
-    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_b64grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                         str.length());
     REQUIRE(gram3.empty());
     str = "abc";
-    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_b64grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                         str.length());
     REQUIRE(gram3.empty());
     str = "abcd";
-    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_b64grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                         str.length());
     REQUIRE(gram3.size() == 1);
     REQUIRE(gram3[0] == text4_pack("abcd"));
     str = "abcde";
-    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_b64grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                         str.length());
     REQUIRE(gram3.size() == 2);
     REQUIRE(gram3[0] == text4_pack("abcd"));
     REQUIRE(gram3[1] == text4_pack("bcde"));
     // NOLINTNEXTLINE(modernize-raw-string-literal)
     str = "abcde\xAAXghi";
-    gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_b64grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                         str.length());
     REQUIRE(gram3.size() == 3);
     REQUIRE(gram3[0] == text4_pack("abcd"));
     REQUIRE(gram3[1] == text4_pack("bcde"));
@@ -411,34 +423,43 @@ TEST_CASE("get_wide_b64grams", "[ngrams]") {
     std::vector<TriGram> gram3;
 
     str = "";
-    gram3 = get_wide_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_wide_b64grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                              str.length());
     REQUIRE(gram3.empty());
     str = "a";
-    gram3 = get_wide_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_wide_b64grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                              str.length());
     REQUIRE(gram3.empty());
     str = "ab";
-    gram3 = get_wide_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_wide_b64grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                              str.length());
     REQUIRE(gram3.empty());
     str = "abcdefg";
-    gram3 = get_wide_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_wide_b64grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                              str.length());
     REQUIRE(gram3.empty());
     str = std::string("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 10);
-    gram3 = get_wide_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_wide_b64grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                              str.length());
     REQUIRE(gram3.empty());
     str = std::string("a\0b\0c\0d\0", 8);
-    gram3 = get_wide_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_wide_b64grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                              str.length());
     REQUIRE(gram3.size() == 1);
     REQUIRE(gram3[0] == text4_pack("abcd"));
     str = std::string("a\0b\0c\0d\0e\0", 10);
-    gram3 = get_wide_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_wide_b64grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                              str.length());
     REQUIRE(gram3.size() == 2);
     REQUIRE(gram3[0] == text4_pack("abcd"));
     REQUIRE(gram3[1] == text4_pack("bcde"));
     str = std::string("\0a\0b\0c\0d", 8);
-    gram3 = get_wide_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_wide_b64grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                              str.length());
     REQUIRE(gram3.empty());
     str = std::string("\0a\0b\0c\0d\0", 9);
-    gram3 = get_wide_b64grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_wide_b64grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                              str.length());
     REQUIRE(gram3.size() == 1);
     REQUIRE(gram3[0] == text4_pack("abcd"));
 }
@@ -448,23 +469,29 @@ TEST_CASE("get_h4grams", "[ngrams]") {
     std::vector<TriGram> gram3;
 
     str = "";
-    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_h4grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                        str.length());
     REQUIRE(gram3.empty());
     str = "a";
-    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_h4grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                        str.length());
     REQUIRE(gram3.empty());
     str = "ab";
-    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_h4grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                        str.length());
     REQUIRE(gram3.empty());
     str = "abc";
-    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_h4grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                        str.length());
     REQUIRE(gram3.empty());
     str = "abcd";
-    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_h4grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                        str.length());
     REQUIRE(gram3.size() == 1);
     REQUIRE(gram3[0] == (gram3_pack("abc") ^ gram3_pack("bcd")));
     str = "abcde";
-    gram3 = get_h4grams((const uint8_t *)str.c_str(), str.length());
+    gram3 = get_h4grams(reinterpret_cast<const uint8_t *>(str.c_str()),
+                        str.length());
     REQUIRE(gram3.size() == 2);
     REQUIRE(gram3[0] == (gram3_pack("abc") ^ gram3_pack("bcd")));
     REQUIRE(gram3[1] == (gram3_pack("bcd") ^ gram3_pack("cde")));
@@ -491,7 +518,7 @@ TEST_CASE("Compress run symmetry", "[compress_run]") {
     compress_run(fids, ss);
 
     std::string s = ss.str();
-    const auto *ptr = (uint8_t *)s.data();
+    const auto *ptr = reinterpret_cast<uint8_t *>(s.data());
 
     std::vector<FileId> read_fids = read_compressed_run(ptr, ptr + s.length());
 
@@ -594,7 +621,8 @@ class OnDiskIndexTest {
     }
 
    public:
-    OnDiskIndexTest(IndexType type) : index_(build_and_get_fname(type)) {}
+    explicit OnDiskIndexTest(IndexType type)
+        : index_(build_and_get_fname(type)) {}
 
     ~OnDiskIndexTest() { fs::remove(index_.get_fpath()); }
 
@@ -619,26 +647,6 @@ TEST_CASE("FlatIndexBuilder for gram3", "[index_builder]") {
 TEST_CASE("FlatIndexBuilder for text4", "[index_builder]") {
     OnDiskIndexTest<FlatIndexBuilder> index(IndexType::TEXT4);
     check_test_payload_text4(index.get());
-}
-
-void make_query(Database &db, std::string query_str,
-                const std::set<std::string> &expected_out) {
-    TaskSpec *task_spec = db.allocate_task();
-    Task task(task_spec);
-    auto cmd = parse<SelectCommand>(std::move(query_str));
-    InMemoryResultWriter out;
-    db.snapshot().execute(cmd.get_query(), {}, {}, &task, &out);
-    db.commit_task(*task_spec, task.changes());
-
-    std::vector<std::string> out_fixed;
-    for (const auto &x : out.get()) {
-        std::string xx = x.substr(x.find_last_of('/') + 1);
-        xx.resize(xx.size() - 4);
-        out_fixed.push_back(xx);
-    }
-
-    std::set<std::string> out_set(out_fixed.begin(), out_fixed.end());
-    REQUIRE(out_set == expected_out);
 }
 
 TEST_CASE("Test internal_pick_common", "[internal_pick_common]") {

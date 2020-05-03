@@ -34,7 +34,7 @@ fs::path produce_test_files(int file_count, int file_size) {
         fs::path out_path = directory / filename;
         std::ofstream out(out_path);
         for (int j = 0; j < file_size; j++) {
-            out << (char)pick(random);
+            out << static_cast<char>(pick(random));
         }
     }
     return directory;
