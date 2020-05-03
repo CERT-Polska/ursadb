@@ -48,11 +48,15 @@ class Database {
                             const std::string &conn_id,
                             const std::vector<DatabaseLock> &locks);
 
-    const std::vector<OnDiskDataset *> &working_sets() {
+    const std::vector<OnDiskDataset *> &working_sets() const {
         return working_datasets;
     }
-    const std::vector<std::unique_ptr<OnDiskDataset>> &loaded_sets() {
+    const std::vector<std::unique_ptr<OnDiskDataset>> &loaded_sets() const {
         return loaded_datasets;
+    }
+
+    const std::map<std::string, OnDiskIterator> &get_iterators() const {
+        return iterators;
     }
 
     static void create(const std::string &path);

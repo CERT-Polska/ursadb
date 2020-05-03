@@ -1,9 +1,8 @@
 #include "NetworkService.h"
 
-#include <sys/resource.h>
-
 #include <thread>
 
+#include "Environment.h"
 #include "libursa/Daemon.h"
 #include "libursa/DatabaseUpgrader.h"
 #include "libursa/QueryParser.h"
@@ -185,18 +184,6 @@ void NetworkService::poll_frontend() {
     s_send(&backend, client_addr, ZMQ_SNDMORE);
     s_send_padding(&backend, ZMQ_SNDMORE);
     s_send(&backend, request);
-}
-
-// On some systems the default limit of open files for service is very low.
-// Increase it to something more reasonable.
-void fix_rlimit() {
-    struct rlimit limit;
-
-    limit.rlim_cur = 65535;
-    limit.rlim_max = 65535;
-    if (setrlimit(RLIMIT_NOFILE, &limit) != 0) {
-        spdlog::warn("setrlimit() failed");
-    }
 }
 
 // Main entry point of the system!

@@ -20,6 +20,8 @@ add_executable(
     ursadb
     src/NetworkService.cpp
     src/NetworkService.h
+    src/Environment.cpp
+    src/Environment.h
 )
 target_include_directories(ursadb PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(ursadb ursa)
@@ -42,7 +44,12 @@ target_link_libraries(ursacli ursa)
 target_enable_ipo(ursacli)
 target_clangformat_setup(ursacli)
 
-add_executable(ursadb_trim src/Trim.cpp)
+add_executable(
+    ursadb_trim
+    src/Environment.cpp
+    src/Environment.h
+    src/Trim.cpp
+)
 target_include_directories(ursadb_trim PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(ursadb_trim ursa)
 target_enable_ipo(ursadb_trim)

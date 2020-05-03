@@ -47,6 +47,9 @@ class OnDiskDataset {
     const std::string &get_files_fname() const {
         return files_index->get_files_fname();
     }
+    const std::string &get_fname_cache_fname() const {
+        return files_index->get_cache_fname();
+    }
     void toggle_taint(const std::string &taint_name);
     bool has_all_taints(const std::set<std::string> &taints) const;
     QueryStatistics execute(const QueryGraphCollection &graphs,
