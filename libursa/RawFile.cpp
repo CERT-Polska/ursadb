@@ -25,7 +25,7 @@ RawFile::~RawFile() {
 
 uint64_t RawFile::size() const {
     struct stat st;
-    if (::fstat(fd, &st)) {
+    if (::fstat(fd, &st) != 0) {
         throw std::runtime_error("RawFile::size: fstat failed");
     }
     return st.st_size;

@@ -22,7 +22,7 @@ std::vector<FileId> BitmapIndexBuilder::get_run(TriGram val) const {
     std::vector<FileId> result;
     for (int offset = 0; offset < file_run_size; offset++) {
         for (int shift = 0; shift < 8; shift++) {
-            if (raw_data[run_start + offset] & (1 << shift)) {
+            if ((raw_data[run_start + offset] & (1 << shift)) != 0) {
                 result.push_back(offset * 8 + shift);
             }
         }

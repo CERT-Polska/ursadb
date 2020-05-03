@@ -25,7 +25,7 @@ class Query {
     bool operator==(const Query &other) const;
 
     // Converts this instance of Query to equivalent QueryGraph.
-    QueryGraph to_graph(IndexType type) const;
+    QueryGraph to_graph(IndexType ntype) const;
 
    private:
     QueryType type;

@@ -102,7 +102,7 @@ class QueryResult {
     void do_and_real(const std::vector<FileId> &other);
 
     static QueryResult do_min_of_real(
-        int min, const std::vector<const QueryResult *> &others);
+        int cutoff, const std::vector<const QueryResult *> &sources);
 
    public:
     QueryResult(QueryResult &&other) = default;
@@ -120,9 +120,9 @@ class QueryResult {
     void do_and(const QueryResult &other);
     void do_and(const QueryResult &other, QueryStatistics *toupdate);
 
-    static QueryResult do_min_of(int min,
-                                 const std::vector<const QueryResult *> &others,
-                                 QueryStatistics *toupdate);
+    static QueryResult do_min_of(
+        int cutoff, const std::vector<const QueryResult *> &sources,
+        QueryStatistics *toupdate);
 
     // If true, means that QueryResults represents special "uninitialized"
     // value, "set of all FileIds in DataSet".

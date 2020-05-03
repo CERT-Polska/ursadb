@@ -26,7 +26,7 @@ class DatabaseSnapshot {
     std::set<std::string> locked_iterators;
     std::unordered_map<uint64_t, TaskSpec> tasks;
 
-    void find_all_indexed_files(std::set<std::string> *indexed) const;
+    void find_all_indexed_files(std::set<std::string> *existing_files) const;
     void build_target_list(const std::string &filepath,
                            const std::set<std::string> &existing_files,
                            std::vector<std::string> *targets) const;
@@ -61,24 +61,25 @@ class DatabaseSnapshot {
 
     // Recursively indexes files under paths in `filepaths`. Ensures that no
     // file will be indexed twice - this may be a very memory-heavy operation
-    void recursive_index_paths(Task *task, const std::vector<IndexType> &types,
-                               const std::vector<std::string> &filepaths) const;
+    void recursive_index_paths(
+        Task *task, const std::vector<IndexType> &types,
+        const std::vector<std::string> &root_paths) const;
 
     // Recursively indexes files under paths in `filepaths`. Does not check for
     // duplicated files, which makes if faster, but also more dangerous.
     void force_recursive_index_paths(
         Task *task, const std::vector<IndexType> &types,
-        const std::vector<std::string> &filepaths) const;
+        const std::vector<std::string> &root_paths) const;
 
     // Indexes files with given paths. Ensures that no file will be indexed
     // twice - this may be a very memory-heavy operation.
     void index_files(Task *task, const std::vector<IndexType> &types,
-                     const std::vector<std::string> &filepaths) const;
+                     const std::vector<std::string> &filenames) const;
 
     // Indexes files with given paths. Does not check for
     // duplicated files, which makes if faster, but also more dangerous.
     void force_index_files(Task *task, const std::vector<IndexType> &types,
-                           const std::vector<std::string> &filepaths) const;
+                           const std::vector<std::string> &targets) const;
 
     void reindex_dataset(Task *task, const std::vector<IndexType> &types,
                          const std::string &dataset_name) const;

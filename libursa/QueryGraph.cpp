@@ -222,7 +222,7 @@ QueryResult QueryGraph::run(const QueryFunc &oracle) const {
                                                     std::move(predecessors),
                                                     std::move(next), &stats)));
         }
-        if (get(id).edges().size() == 0) {
+        if (get(id).edges().empty()) {
             result.do_or(visitor.state(id), &stats);
         }
     }

@@ -628,7 +628,7 @@ TEST_CASE("Test internal_pick_common", "[internal_pick_common]") {
     std::vector<FileId> source1 = {1, 2, 3};
     REQUIRE(internal_pick_common(1, {&source1}) ==
             std::vector<FileId>{1, 2, 3});
-    REQUIRE(internal_pick_common(2, {&source1}) == std::vector<FileId>{});
+    REQUIRE(internal_pick_common(2, {&source1}).empty());
 
     std::vector<FileId> source2 = {3, 4, 5};
     REQUIRE(internal_pick_common(1, {&source1, &source2}) ==
@@ -645,15 +645,13 @@ TEST_CASE("Test internal_pick_common", "[internal_pick_common]") {
     std::vector<FileId> source4 = {4, 5, 6};
     REQUIRE(internal_pick_common(1, {&source1, &source4}) ==
             std::vector<FileId>{1, 2, 3, 4, 5, 6});
-    REQUIRE(internal_pick_common(2, {&source1, &source4}) ==
-            std::vector<FileId>{});
+    REQUIRE(internal_pick_common(2, {&source1, &source4}).empty());
 
     REQUIRE(internal_pick_common(1, {&source1, &source2, &source4}) ==
             std::vector<FileId>{1, 2, 3, 4, 5, 6});
     REQUIRE(internal_pick_common(2, {&source1, &source2, &source4}) ==
             std::vector<FileId>{3, 4, 5});
-    REQUIRE(internal_pick_common(3, {&source1, &source2, &source4}) ==
-            std::vector<FileId>{});
+    REQUIRE(internal_pick_common(3, {&source1, &source2, &source4}).empty());
 
     REQUIRE(internal_pick_common(1, {&source1, &source2, &source3}) ==
             std::vector<FileId>{1, 2, 3, 4, 5});
@@ -663,9 +661,8 @@ TEST_CASE("Test internal_pick_common", "[internal_pick_common]") {
             std::vector<FileId>{3});
 
     std::vector<FileId> source5 = {};
-    REQUIRE(internal_pick_common(1, {&source5}) == std::vector<FileId>{});
-    REQUIRE(internal_pick_common(2, {&source5, &source5}) ==
-            std::vector<FileId>{});
+    REQUIRE(internal_pick_common(1, {&source5}).empty());
+    REQUIRE(internal_pick_common(2, {&source5, &source5}).empty());
     REQUIRE(internal_pick_common(1, {&source1, &source5}) ==
             std::vector<FileId>{1, 2, 3});
     REQUIRE(internal_pick_common(1, {&source5, &source1}) ==
@@ -769,9 +766,9 @@ QueryFunc make_expect_oracle(IndexType type, std::vector<std::string> strings) {
         auto it = std::find(accepted.begin(), accepted.end(), gram);
         if (it == accepted.end()) {
             throw std::runtime_error("Unexpected query");
-        } else {
-            accepted.erase(it);
         }
+        accepted.erase(it);
+
         return QueryResult::everything();
     };
 }

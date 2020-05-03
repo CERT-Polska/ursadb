@@ -10,7 +10,7 @@
 constexpr int MAX_TRIGRAMS = 100000000;
 
 FlatIndexBuilder::FlatIndexBuilder(IndexType ntype)
-    : IndexBuilder(ntype), raw_data(), max_fileid_(0) {
+    : IndexBuilder(ntype), max_fileid_(0) {
     raw_data.reserve(MAX_TRIGRAMS);
 }
 
