@@ -185,7 +185,7 @@ void DatabaseSnapshot::reindex_dataset(Task *task,
 
 DatabaseName DatabaseSnapshot::allocate_name(const std::string &type) const {
     while (true) {
-        // TODO limit this to some sane value (like 10000 etc),
+        // TODO(unknown): limit this to some sane value (like 10000 etc),
         // to avoid infinite loop in exceptional cases.
 
         std::stringstream ss;

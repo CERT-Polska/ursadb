@@ -12,12 +12,12 @@ const std::vector<Query> &Query::as_queries() const {
     return queries;
 }
 
-unsigned int Query::as_count() const { return count; }
+uint32_t Query::as_count() const { return count; }
 
 Query::Query(const QueryType &type, std::vector<Query> &&queries)
     : type(type), count(0), queries(std::move(queries)) {}
 
-Query::Query(unsigned int count, std::vector<Query> &&queries)
+Query::Query(uint32_t count, std::vector<Query> &&queries)
     : type(QueryType::MIN_OF), count(count), queries(std::move(queries)) {}
 
 Query::Query(QString &&qstr)
@@ -79,7 +79,7 @@ Query q_or(std::vector<Query> &&queries) {
     return Query(QueryType::OR, std::move(queries));
 }
 
-Query q_min_of(unsigned int count, std::vector<Query> &&queries) {
+Query q_min_of(uint32_t count, std::vector<Query> &&queries) {
     return Query(count, std::move(queries));
 }
 

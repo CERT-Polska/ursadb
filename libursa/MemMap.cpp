@@ -5,7 +5,7 @@
 #include <unistd.h>
 
 MemMap::MemMap(const std::string &fname) : fname(fname) {
-    fd = open(fname.c_str(), O_RDONLY, (mode_t)0600);
+    fd = open(fname.c_str(), O_RDONLY, static_cast<mode_t>(0600));
 
     if (fd == -1) {
         throw file_open_error("file open error");
@@ -24,7 +24,8 @@ MemMap::MemMap(const std::string &fname) : fname(fname) {
     }
 
     fsize = static_cast<uint64_t>(fsize_tmp);
-    mmap_ptr = (uint8_t *)mmap(nullptr, fsize, PROT_READ, MAP_SHARED, fd, 0);
+    mmap_ptr = static_cast<uint8_t *>(
+        mmap(nullptr, fsize, PROT_READ, MAP_SHARED, fd, 0));
 
     if (mmap_ptr == MAP_FAILED) {
         close(fd);

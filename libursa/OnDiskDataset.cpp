@@ -98,7 +98,7 @@ bool OnDiskDataset::has_all_taints(const std::set<std::string> &taints) const {
 const std::string &OnDiskDataset::get_name() const { return name; }
 
 std::string OnDiskDataset::get_id() const {
-    // TODO use DatabaseName as a class member instead
+    // TODO(unknown): use DatabaseName as a class member instead
     auto dbname = DatabaseName::parse(db_base, name);
     return dbname.get_id();
 }
@@ -250,7 +250,7 @@ std::vector<const OnDiskDataset *> OnDiskDataset::get_compact_candidates(
         const OnDiskDataset *ds;
         uint64_t size;
 
-        DatasetScore(const OnDiskDataset *ds, unsigned long size)
+        DatasetScore(const OnDiskDataset *ds, uint64_t size)
             : ds(ds), size(size) {}
     };
 
@@ -280,7 +280,7 @@ std::vector<const OnDiskDataset *> OnDiskDataset::get_compact_candidates(
     std::sort(scores.begin(), scores.end(), compare_size());
 
     out.push_back(scores[0].ds);
-    unsigned int offset = 1;
+    uint32_t offset = 1;
 
     while (offset < scores.size() &&
            scores[offset - 1].size * 2 > scores[offset].size) {

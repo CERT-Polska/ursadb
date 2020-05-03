@@ -24,7 +24,7 @@ FileId DatasetBuilder::register_fname(const std::string &fname) {
             "file name contains invalid character (either \\r or \\n)");
     }
 
-    auto new_id = (FileId)fids.size();
+    auto new_id = static_cast<FileId>(fids.size());
     fids.push_back(fname);
     return new_id;
 }
