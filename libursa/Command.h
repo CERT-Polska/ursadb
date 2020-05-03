@@ -54,6 +54,15 @@ class IteratorPopCommand {
     uint64_t elements_to_pop() const { return how_many; }
 };
 
+class DatasetDropCommand {
+    std::string dataset_id_;
+
+   public:
+    DatasetDropCommand(const std::string &dataset_id)
+        : dataset_id_(dataset_id) {}
+    const std::string &dataset_id() const { return dataset_id_; }
+};
+
 class IndexFromCommand {
     std::string path_list_fname_;
     std::vector<IndexType> types_;
@@ -145,4 +154,5 @@ class TaintCommand {
 using Command = std::variant<SelectCommand, IndexCommand, IndexFromCommand,
                              IteratorPopCommand, ReindexCommand, CompactCommand,
                              ConfigGetCommand, ConfigSetCommand, StatusCommand,
-                             TopologyCommand, PingCommand, TaintCommand>;
+                             TopologyCommand, PingCommand, TaintCommand,
+                             DatasetDropCommand>;
