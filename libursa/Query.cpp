@@ -84,7 +84,8 @@ Query q_min_of(unsigned int count, std::vector<Query> &&queries) {
 }
 
 // Returns a subset of a given QToken, with values accepted by TokenValidator.
-QToken filter_qtoken(const QToken &token, uint32_t off, TokenValidator is_ok) {
+QToken filter_qtoken(const QToken &token, uint32_t off,
+                     const TokenValidator &is_ok) {
     std::vector<uint8_t> possible_values;
     for (uint8_t val : token.possible_values()) {
         if (is_ok(off, val)) {
@@ -98,7 +99,8 @@ QToken filter_qtoken(const QToken &token, uint32_t off, TokenValidator is_ok) {
 // generate a query graph that is too big.
 // Token validator checks if the specified character can occur at the specified
 // position in the stream (otherwise ngram won't be generated).
-QueryGraph to_query_graph(const QString &str, int size, TokenValidator is_ok) {
+QueryGraph to_query_graph(const QString &str, int size,
+                          const TokenValidator &is_ok) {
     // Graph representing the final query equivalent to qstring.
     QueryGraph result;
 

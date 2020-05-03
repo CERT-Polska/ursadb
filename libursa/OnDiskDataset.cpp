@@ -234,6 +234,7 @@ OnDiskDataset::get_compatible_datasets(
     }
 
     std::vector<std::vector<const OnDiskDataset *>> result;
+    result.reserve(partial.size());
     for (const auto &kv : partial) {
         result.push_back(kv.second);
     }

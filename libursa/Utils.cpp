@@ -91,6 +91,7 @@ std::optional<TriGram> convert_gram(IndexType type, uint64_t source) {
     int size = get_ngram_size_for(type);
     std::vector<TriGram> result;
     std::vector<uint8_t> mem;
+    mem.reserve(size);
     for (int i = 0; i < size; i++) {
         mem.push_back(((source) >> ((size - i - 1) * 8)) & 0xFF);
     }
@@ -102,7 +103,8 @@ std::optional<TriGram> convert_gram(IndexType type, uint64_t source) {
     return std::make_optional(result[0]);
 }
 
-void gen_b64grams(const uint8_t *mem, uint64_t size, TrigramCallback cb) {
+void gen_b64grams(const uint8_t *mem, uint64_t size,
+                  const TrigramCallback &cb) {
     if (size < 4) {
         return;
     }
@@ -124,7 +126,8 @@ void gen_b64grams(const uint8_t *mem, uint64_t size, TrigramCallback cb) {
     }
 }
 
-void gen_wide_b64grams(const uint8_t *mem, uint64_t size, TrigramCallback cb) {
+void gen_wide_b64grams(const uint8_t *mem, uint64_t size,
+                       const TrigramCallback &cb) {
     if (size < 8) {
         return;
     }
@@ -155,7 +158,8 @@ void gen_wide_b64grams(const uint8_t *mem, uint64_t size, TrigramCallback cb) {
     }
 }
 
-void gen_trigrams(const uint8_t *mem, uint64_t size, TrigramCallback cb) {
+void gen_trigrams(const uint8_t *mem, uint64_t size,
+                  const TrigramCallback &cb) {
     if (size < 3) {
         return;
     }
@@ -168,7 +172,7 @@ void gen_trigrams(const uint8_t *mem, uint64_t size, TrigramCallback cb) {
     }
 }
 
-void gen_h4grams(const uint8_t *mem, uint64_t size, TrigramCallback cb) {
+void gen_h4grams(const uint8_t *mem, uint64_t size, const TrigramCallback &cb) {
     if (size < 4) {
         return;
     }

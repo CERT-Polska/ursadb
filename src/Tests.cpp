@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <string>
+#include <utility>
 #include <variant>
 
 #include "catch/Catch.h"
@@ -37,7 +38,7 @@ TriGram text4_pack(const char (&s)[5]) {
 }
 
 template <typename T>
-T parse(std::string query_text) {
+T parse(const std::string &query_text) {
     Command cmd = parse_command(query_text);
     REQUIRE(std::holds_alternative<T>(cmd));
     return std::move(std::get<T>(cmd));
@@ -621,17 +622,17 @@ TEST_CASE("FlatIndexBuilder for text4", "[index_builder]") {
 }
 
 void make_query(Database &db, std::string query_str,
-                std::set<std::string> expected_out) {
+                const std::set<std::string> &expected_out) {
     TaskSpec *task_spec = db.allocate_task();
     Task task(task_spec);
-    auto cmd = parse<SelectCommand>(query_str);
+    auto cmd = parse<SelectCommand>(std::move(query_str));
     InMemoryResultWriter out;
     db.snapshot().execute(cmd.get_query(), {}, {}, &task, &out);
     db.commit_task(*task_spec, task.changes());
 
     std::vector<std::string> out_fixed;
     for (const auto &x : out.get()) {
-        std::string xx = x.substr(x.find_last_of("/") + 1);
+        std::string xx = x.substr(x.find_last_of('/') + 1);
         xx.resize(xx.size() - 4);
         out_fixed.push_back(xx);
     }
@@ -731,7 +732,7 @@ TEST_CASE("Simple graph and", "[query_graphs]") {
     }
 }
 
-QueryFunc make_oracle(std::string accepting) {
+QueryFunc make_oracle(const std::string &accepting) {
     return [accepting](uint64_t gram1) {
         if (accepting.find(static_cast<char>(gram1)) != std::string::npos) {
             return QueryResult::everything();
@@ -790,7 +791,8 @@ QueryFunc make_expect_oracle(IndexType type, std::vector<std::string> strings) {
 }
 
 // Internal function, used for tests.
-QueryGraph to_query_graph(const QString &str, int size, TokenValidator is_ok);
+QueryGraph to_query_graph(const QString &str, int size,
+                          const TokenValidator &is_ok);
 
 // Ensure that the queries that were executed match exectly to expected ones.
 // This makes sure that query was parsed correctly and contains expected ngrams.
@@ -803,7 +805,7 @@ void ensure_queries(const QString &query, IndexType type,
     auto validator = get_validator_for(type);
     size_t size = get_ngram_size_for(type);
     QueryGraph graph{to_query_graph(query, size, validator)};
-    auto oracle = make_expect_oracle(type, strings);
+    auto oracle = make_expect_oracle(type, std::move(strings));
     graph.run(oracle);
     oracle(ORACLE_CHECK_MAGIC);
 }

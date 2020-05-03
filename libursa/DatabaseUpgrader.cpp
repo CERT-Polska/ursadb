@@ -27,7 +27,8 @@ json read_json(std::string_view path) {
     return db_json;
 }
 
-void save_json(fs::path root, std::string_view path, const json &dbjson) {
+void save_json(const fs::path &root, std::string_view path,
+               const json &dbjson) {
     std::string tmp_db_name = root / ("upgrade." + random_hex_string(8));
     std::ofstream db_file;
     db_file.exceptions(std::ofstream::badbit);

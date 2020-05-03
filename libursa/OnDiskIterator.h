@@ -9,7 +9,7 @@ class OnDiskIterator {
     uint64_t byte_offset;
     uint64_t file_offset;
 
-    OnDiskIterator(const DatabaseName name, const DatabaseName datafile_name,
+    OnDiskIterator(const DatabaseName &name, const DatabaseName &datafile_name,
                    uint64_t total_files, uint64_t byte_offset,
                    uint64_t file_offset);
 

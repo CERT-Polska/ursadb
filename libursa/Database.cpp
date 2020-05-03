@@ -48,7 +48,7 @@ void Database::load_from_disk() {
         throw std::runtime_error("Failed to parse JSON");
     }
 
-    for (const std::string &dataset_fname : db_json["datasets"]) {
+    for (const std::string dataset_fname : db_json["datasets"]) {
         load_dataset(dataset_fname);
     }
 

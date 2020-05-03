@@ -143,7 +143,7 @@ QueryResult masked_or(std::vector<const QueryResult *> &&to_or,
     for (const auto *query : to_or) {
         QueryResult alternative(query->clone());
         alternative.do_and(mask, toupdate);
-        result.do_or(std::move(alternative), toupdate);
+        result.do_or(alternative, toupdate);
     }
     return result;
 }
@@ -170,7 +170,7 @@ QueryResult masked_min_of(uint32_t min_want,
     }
     // Do a real `min ... of` operation.
     QueryResult result{QueryResult::do_min_of(min_want, sources, toupdate)};
-    result.do_and(std::move(mask), toupdate);
+    result.do_and(mask, toupdate);
     return result;
 }
 

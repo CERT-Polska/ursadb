@@ -45,7 +45,7 @@ class DatabaseSnapshot {
     DatabaseSnapshot(fs::path db_name, fs::path db_base, DatabaseConfig config,
                      std::map<std::string, OnDiskIterator> iterators,
                      std::vector<const OnDiskDataset *> datasets,
-                     const std::unordered_map<uint64_t, TaskSpec> &tasks);
+                     std::unordered_map<uint64_t, TaskSpec> tasks);
 
     DatabaseName derive_name(const DatabaseName &original,
                              const std::string &type) const {
