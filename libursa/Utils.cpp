@@ -103,15 +103,15 @@ std::optional<TriGram> convert_gram(IndexType type, uint64_t source) {
     return std::make_optional(result[0]);
 }
 
-void gen_b64grams(const uint8_t *mem, size_t size, TrigramCallback cb) {
+void gen_b64grams(const uint8_t *mem, uint64_t size, TrigramCallback cb) {
     if (size < 4) {
         return;
     }
 
     uint32_t gram4 = 0;
-    int good_run = 0;
+    uint64_t good_run = 0;
 
-    for (size_t offset = 0; offset < size; offset++) {
+    for (uint64_t offset = 0; offset < size; offset++) {
         int next = get_b64_value(mem[offset]);
         if (next < 0) {
             good_run = 0;
@@ -125,15 +125,15 @@ void gen_b64grams(const uint8_t *mem, size_t size, TrigramCallback cb) {
     }
 }
 
-void gen_wide_b64grams(const uint8_t *mem, size_t size, TrigramCallback cb) {
+void gen_wide_b64grams(const uint8_t *mem, uint64_t size, TrigramCallback cb) {
     if (size < 8) {
         return;
     }
 
     uint32_t gram4 = 0;
-    int good_run = 0;
+    uint64_t good_run = 0;
 
-    for (unsigned int offset = 0; offset < size; offset++) {
+    for (uint64_t offset = 0; offset < size; offset++) {
         if (good_run % 2 == 1) {
             if (mem[offset] == 0) {
                 good_run += 1;
@@ -156,27 +156,27 @@ void gen_wide_b64grams(const uint8_t *mem, size_t size, TrigramCallback cb) {
     }
 }
 
-void gen_trigrams(const uint8_t *mem, size_t size, TrigramCallback cb) {
+void gen_trigrams(const uint8_t *mem, uint64_t size, TrigramCallback cb) {
     if (size < 3) {
         return;
     }
 
     uint32_t gram3 = (mem[0] << 8U) | mem[1];
 
-    for (unsigned int offset = 2; offset < size; offset++) {
+    for (uint64_t offset = 2; offset < size; offset++) {
         gram3 = ((gram3 & 0xFFFFU) << 8U) | mem[offset];
         cb(gram3);
     }
 }
 
-void gen_h4grams(const uint8_t *mem, size_t size, TrigramCallback cb) {
+void gen_h4grams(const uint8_t *mem, uint64_t size, TrigramCallback cb) {
     if (size < 4) {
         return;
     }
 
     uint32_t gram4 = 0;
 
-    for (unsigned int offset = 0; offset < size; offset++) {
+    for (uint64_t offset = 0; offset < size; offset++) {
         gram4 = ((gram4 & 0xFFFFFFU) << 8U) | mem[offset];
 
         if (offset >= 3) {
