@@ -38,7 +38,7 @@ MemMap::MemMap(MemMap &&other) {
     this->fsize = other.fsize;
     this->mmap_ptr = other.mmap_ptr;
 
-    other.mmap_ptr = 0;
+    other.mmap_ptr = nullptr;
     other.fd = -1;
 }
 

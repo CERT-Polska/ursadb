@@ -3,6 +3,7 @@
 #include <experimental/filesystem>
 #include <fstream>
 #include <set>
+#include <utility>
 
 #include "BitmapIndexBuilder.h"
 #include "FlatIndexBuilder.h"
@@ -11,8 +12,8 @@
 #include "Utils.h"
 
 DatasetBuilder::DatasetBuilder(BuilderType builder_type,
-                               const std::vector<IndexType> &index_types)
-    : builder_type(builder_type), index_types(index_types) {
+                               std::vector<IndexType> index_types)
+    : builder_type(builder_type), index_types(std::move(index_types)) {
     clear();
 }
 

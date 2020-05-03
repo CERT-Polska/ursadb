@@ -41,7 +41,7 @@ class OnDiskDataset {
     void drop_file(const std::string &fname) const;
 
    public:
-    explicit OnDiskDataset(const fs::path &db_base, const std::string &fname);
+    explicit OnDiskDataset(const fs::path &db_base, std::string fname);
     const std::string &get_name() const;
     fs::path get_base() const;
     const std::string &get_files_fname() const {

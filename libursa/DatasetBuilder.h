@@ -12,7 +12,7 @@ namespace fs = std::experimental::filesystem;
 class DatasetBuilder {
    public:
     DatasetBuilder(BuilderType builder_type,
-                   const std::vector<IndexType> &index_types);
+                   std::vector<IndexType> index_types);
 
     void index(const std::string &filepath);
     void force_registered(const std::string &filepath);

@@ -338,8 +338,8 @@ std::string bin_str_to_hex(const std::string &str) {
     std::ostringstream ret;
 
     unsigned int c;
-    for (std::string::size_type i = 0; i < str.length(); ++i) {
-        c = (unsigned int)(unsigned char)str[i];
+    for (char i : str) {
+        c = (unsigned int)(unsigned char)i;
         ret << std::hex << std::setfill('0') << std::setw(2) << std::uppercase
             << c;
     }

@@ -3,6 +3,7 @@
 #include <array>
 #include <fstream>
 #include <set>
+#include <utility>
 
 #include "DatabaseName.h"
 #include "Json.h"
@@ -28,8 +29,8 @@ void OnDiskDataset::toggle_taint(const std::string &taint) {
     }
 }
 
-OnDiskDataset::OnDiskDataset(const fs::path &db_base, const std::string &fname)
-    : name(fname), db_base(db_base) {
+OnDiskDataset::OnDiskDataset(const fs::path &db_base, std::string fname)
+    : name(std::move(fname)), db_base(db_base) {
     std::ifstream in(db_base / name, std::ifstream::binary);
     json j;
     in >> j;
@@ -199,8 +200,8 @@ void OnDiskDataset::drop_file(const std::string &fname) const {
 void OnDiskDataset::drop() {
     std::vector<std::string> idx_names;
 
-    for (auto it = indices.begin(); it != indices.end(); ++it) {
-        idx_names.push_back((*it).get_fname());
+    for (auto &indice : indices) {
+        idx_names.push_back(indice.get_fname());
     }
 
     // deallocate objects to close FDs

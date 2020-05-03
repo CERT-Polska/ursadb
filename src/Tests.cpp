@@ -61,7 +61,9 @@ QueryGraph mqg(const std::string &str, IndexType type) {
 
 TEST_CASE("packing 3grams", "[internal]") {
     // pay attention to the input, this covers unexpected sign extension
+    // NOLINTNEXTLINE(modernize-raw-string-literal)
     REQUIRE(gram3_pack("\xCC\xBB\xAA") == (TriGram)0xCCBBAAU);
+    // NOLINTNEXTLINE(modernize-raw-string-literal)
     REQUIRE(gram3_pack("\xAA\xBB\xCC") == (TriGram)0xAABBCCU);
     REQUIRE(gram3_pack("abc") == (TriGram)0x616263);
 }
@@ -139,22 +141,22 @@ TEST_CASE("select literal", "[queryparser]") {
 }
 
 TEST_CASE("select literal with hex escapes", "[queryparser]") {
-    auto cmd = parse<SelectCommand>("select \"\\x4d\\x53\\x4d\";");
+    auto cmd = parse<SelectCommand>(R"(select "\x4d\x53\x4d";)");
     REQUIRE(cmd.get_query() == q(std::move(mqs("MSM"))));
 }
 
 TEST_CASE("select literal with uppercase hex escapes", "[queryparser]") {
-    auto cmd = parse<SelectCommand>("select \"\\x4D\\x53\\x4D\";");
+    auto cmd = parse<SelectCommand>(R"(select "\x4D\x53\x4D";)");
     REQUIRE(cmd.get_query() == q(std::move(mqs("MSM"))));
 }
 
 TEST_CASE("select char escapses", "[queryparser]") {
-    auto cmd = parse<SelectCommand>("select \"\\n\\t\\r\\f\\b\\\\\\\"\";");
+    auto cmd = parse<SelectCommand>(R"(select "\n\t\r\f\b\\\"";)");
     REQUIRE(cmd.get_query() == q(std::move(mqs("\n\t\r\f\b\\\""))));
 }
 
 TEST_CASE("select OR", "[queryparser]") {
-    auto cmd = parse<SelectCommand>("select \"test\" | \"cat\";");
+    auto cmd = parse<SelectCommand>(R"(select "test" | "cat";)");
     std::vector<Query> expect_or;
     expect_or.emplace_back(q(mqs("test")));
     expect_or.emplace_back(q(mqs("cat")));
@@ -162,7 +164,7 @@ TEST_CASE("select OR", "[queryparser]") {
 }
 
 TEST_CASE("select AND", "[queryparser]") {
-    auto cmd = parse<SelectCommand>("select \"test\" & \"cat\";");
+    auto cmd = parse<SelectCommand>(R"(select "test" & "cat";)");
     std::vector<Query> expect_and;
     expect_and.emplace_back(q(mqs("test")));
     expect_and.emplace_back(q(mqs("cat")));
@@ -171,7 +173,7 @@ TEST_CASE("select AND", "[queryparser]") {
 
 TEST_CASE("select operator order", "[queryparser]") {
     auto cmd =
-        parse<SelectCommand>("select \"cat\" | \"dog\" & \"msm\" | \"monk\";");
+        parse<SelectCommand>(R"(select "cat" | "dog" & "msm" | "monk";)");
 
     std::vector<Query> expect_or;
     expect_or.emplace_back(q(std::move(mqs("msm"))));
@@ -190,7 +192,7 @@ TEST_CASE("select operator order", "[queryparser]") {
 
 TEST_CASE("select min .. of", "[queryparser]") {
     auto cmd =
-        parse<SelectCommand>("select min 2 of (\"xyz\", \"cat\", \"hmm\");");
+        parse<SelectCommand>(R"(select min 2 of ("xyz", "cat", "hmm");)");
     std::vector<Query> expect_min;
     expect_min.emplace_back(q(std::move(mqs("xyz"))));
     expect_min.emplace_back(q(std::move(mqs("cat"))));
@@ -212,20 +214,20 @@ TEST_CASE("select literal into iterator", "[queryparser]") {
 }
 
 TEST_CASE("select literal with taints", "[queryparser]") {
-    auto cmd = parse<SelectCommand>("select with taints [\"hmm\"] \"MSM\";");
+    auto cmd = parse<SelectCommand>(R"(select with taints ["hmm"] "MSM";)");
     REQUIRE(cmd.get_query() == q(std::move(mqs("MSM"))));
     REQUIRE(cmd.taints() == std::set<std::string>{"hmm"});
 }
 
 TEST_CASE("select literal with datasets", "[queryparser]") {
-    auto cmd = parse<SelectCommand>("select with datasets [\"hmm\"] \"MSM\";");
+    auto cmd = parse<SelectCommand>(R"(select with datasets ["hmm"] "MSM";)");
     REQUIRE(cmd.get_query() == q(std::move(mqs("MSM"))));
     REQUIRE(cmd.datasets() == std::set<std::string>{"hmm"});
 }
 
 TEST_CASE("select literal with datasets and taints", "[queryparser]") {
     auto cmd = parse<SelectCommand>(
-        "select with taints [\"kot\"] with datasets [\"hmm\"] \"MSM\";");
+        R"(select with taints ["kot"] with datasets ["hmm"] "MSM";)");
     REQUIRE(cmd.get_query() == q(std::move(mqs("MSM"))));
     REQUIRE(cmd.datasets() == std::set<std::string>{"hmm"});
     REQUIRE(cmd.taints() == std::set<std::string>{"kot"});
@@ -268,7 +270,7 @@ TEST_CASE("index command with empty type override", "[queryparser]") {
 }
 
 TEST_CASE("index command with escapes", "[queryparser]") {
-    auto cmd = parse<IndexCommand>("index \"\\x63\\x61\\x74\";");
+    auto cmd = parse<IndexCommand>(R"(index "\x63\x61\x74";)");
     REQUIRE(cmd.get_paths() == std::vector<std::string>{"cat"});
 }
 
@@ -278,7 +280,7 @@ TEST_CASE("index command with hexstring", "[queryparser]") {
 }
 
 TEST_CASE("index command with multiple paths", "[queryparser]") {
-    auto cmd = parse<IndexCommand>("index \"aaa\" \"bbb\";");
+    auto cmd = parse<IndexCommand>(R"(index "aaa" "bbb";)");
     REQUIRE(cmd.get_paths() == std::vector<std::string>{"aaa", "bbb"});
 }
 
@@ -302,14 +304,14 @@ TEST_CASE("index from command with nocheck", "[queryparser]") {
 }
 
 TEST_CASE("dataset.taint command", "[queryparser]") {
-    auto cmd = parse<TaintCommand>("dataset \"xyz\" taint \"hmm\";");
+    auto cmd = parse<TaintCommand>(R"(dataset "xyz" taint "hmm";)");
     REQUIRE(cmd.get_dataset() == "xyz");
     REQUIRE(cmd.get_mode() == TaintMode::Add);
     REQUIRE(cmd.get_taint() == "hmm");
 }
 
 TEST_CASE("dataset.untaint command", "[queryparser]") {
-    auto cmd = parse<TaintCommand>("dataset \"xyz\" untaint \"hmm\";");
+    auto cmd = parse<TaintCommand>(R"(dataset "xyz" untaint "hmm";)");
     REQUIRE(cmd.get_dataset() == "xyz");
     REQUIRE(cmd.get_mode() == TaintMode::Clear);
     REQUIRE(cmd.get_taint() == "hmm");
@@ -394,6 +396,7 @@ TEST_CASE("get_b64grams", "[ngrams]") {
     REQUIRE(gram3.size() == 2);
     REQUIRE(gram3[0] == text4_pack("abcd"));
     REQUIRE(gram3[1] == text4_pack("bcde"));
+    // NOLINTNEXTLINE(modernize-raw-string-literal)
     str = "abcde\xAAXghi";
     gram3 = get_b64grams((const uint8_t *)str.c_str(), str.length());
     REQUIRE(gram3.size() == 3);
@@ -508,8 +511,11 @@ TEST_CASE("Compress run sanity", "[compress_run]") {
 }
 
 std::vector<std::string> basic_test_payload{
+    // NOLINTNEXTLINE(modernize-raw-string-literal)
     "kjhg", "\xA1\xA2\xA3\xA4\xA5\xA6\xA7\xA8", "",
+    // NOLINTNEXTLINE(modernize-raw-string-literal)
     "\xA1\xA2Xbcde\xA3\xA4\xA5\xA6\xA7systXm32\xA5Xcdef\xA6\xA7",
+    // NOLINTNEXTLINE(modernize-raw-string-literal)
     "\xAA\xAA\xAA\xAA\xAA\xAAXm32\xA5Xd\xAA\xAA\xAA\xAA\xAA\xAA"};
 
 void add_payload(IndexBuilder *builder,
@@ -539,11 +545,16 @@ void check_test_payload_gram3(const OnDiskIndex &ndx) {
     check_query_is_everything(ndx, "a", type);
     check_query_is_everything(ndx, "ab", type);
     check_query(ndx, "kjhg", {1}, type);
+    // NOLINTNEXTLINE(modernize-raw-string-literal)
     check_query(ndx, "\xA1\xA2\xA3", {2}, type);
+    // NOLINTNEXTLINE(modernize-raw-string-literal)
     check_query(ndx, "m32\xA5X", {4, 5}, type);
+    // NOLINTNEXTLINE(modernize-raw-string-literal)
     check_query(ndx, "Xm32\xA5X", {4, 5}, type);
+    // NOLINTNEXTLINE(modernize-raw-string-literal)
     check_query(ndx, "Xm32\xA5s", {}, type);
     check_query(ndx, "Xbcdef", {4}, type);
+    // NOLINTNEXTLINE(modernize-raw-string-literal)
     check_query(ndx, "\xA4\xA5\xA6\xA7", {2, 4}, type);
 }
 
@@ -555,10 +566,15 @@ void check_test_payload_text4(const OnDiskIndex &ndx) {
     check_query_is_everything(ndx, "abc", type);
     check_query(ndx, "Xbcd", {4}, type);
     check_query(ndx, "Xbcdef", {4}, type);
+    // NOLINTNEXTLINE(modernize-raw-string-literal)
     check_query(ndx, "m32\xA5X", {}, type);
+    // NOLINTNEXTLINE(modernize-raw-string-literal)
     check_query(ndx, "Xm32\xA5X", {4, 5}, type);
+    // NOLINTNEXTLINE(modernize-raw-string-literal)
     check_query_is_everything(ndx, "\xA1\xA2\xA3", type);
+    // NOLINTNEXTLINE(modernize-raw-string-literal)
     check_query_is_everything(ndx, "d\xA6\xA7", type);
+    // NOLINTNEXTLINE(modernize-raw-string-literal)
     check_query_is_everything(ndx, "\xA4\xA5\xA6\xA7", type);
 }
 
@@ -745,7 +761,7 @@ const uint64_t ORACLE_CHECK_MAGIC = std::numeric_limits<uint64_t>::max();
 QueryFunc make_expect_oracle(IndexType type, std::vector<std::string> strings) {
     std::vector<uint32_t> accepted;
     for (const auto &str : strings) {
-        const uint8_t *dataptr = reinterpret_cast<const uint8_t *>(str.data());
+        const auto *dataptr = reinterpret_cast<const uint8_t *>(str.data());
         get_generator_for(type)(dataptr, str.size(), [&accepted](auto gram) {
             accepted.push_back(gram);
         });
