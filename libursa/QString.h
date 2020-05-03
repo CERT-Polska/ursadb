@@ -41,7 +41,7 @@ class QToken {
     bool empty() const { return opts_.empty(); }
 
     // Compares two QTokens. Assumes that `opts_` is in the ascending order.
-    bool operator==(const QToken &a) const;
+    bool operator==(const QToken &other) const;
 
     // For when you really positively need to use a copy constructor.
     QToken clone() const { return QToken(*this); }

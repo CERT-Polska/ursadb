@@ -126,7 +126,7 @@ class QueryGraph {
 
     // Merges ngrams of two given nodes assuming they're adjacent in query.
     // For example, will merge ABC and BCD into ABCD.
-    uint64_t combine(NodeId source, NodeId target) const;
+    uint64_t combine(NodeId sourceid, NodeId targetid) const;
 
     // Adds an existing node to the query graph, and returns its id.
     NodeId make(QueryGraphNode node) {

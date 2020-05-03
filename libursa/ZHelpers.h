@@ -7,7 +7,7 @@
 #include <zmq.hpp>
 
 // Sends one message to socket or throws std::runtime_error if it fails
-bool s_send_raw(zmq::socket_t *socket, std::string_view data, int flags);
+bool s_send_raw(zmq::socket_t *socket, std::string_view payload, int flags);
 
 // Receives one message from socket or throws std::runtime_error if it fails
 std::optional<std::string> s_recv_raw(zmq::socket_t *socket);

@@ -68,17 +68,17 @@ void NetworkService::run() {
         zmq::pollitem_t items[] = {
             {static_cast<void *>(backend), 0, ZMQ_POLLIN, 0},
             {static_cast<void *>(frontend), 0, ZMQ_POLLIN, 0}};
-        if (worker_queue.size()) {
+        if (!worker_queue.empty()) {
             zmq::poll(&items[0], 2, -1);
         } else {
             zmq::poll(&items[0], 1, -1);
         }
 
         //  Handle worker activity on backend
-        if (items[0].revents & ZMQ_POLLIN) {
+        if ((items[0].revents & ZMQ_POLLIN) != 0) {
             poll_backend();
         }
-        if (items[1].revents & ZMQ_POLLIN) {
+        if ((items[1].revents & ZMQ_POLLIN) != 0) {
             poll_frontend();
         }
     }

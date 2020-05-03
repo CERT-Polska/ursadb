@@ -12,7 +12,7 @@
 #include "spdlog/spdlog.h"
 
 Database::Database(const std::string &fname, bool initialize)
-    : last_task_id(0), tasks() {
+    : last_task_id(0) {
     fs::path fpath = fs::absolute(fname);
     db_name = fs::path(fpath).filename();
     db_base = fs::path(fpath).parent_path();
@@ -230,7 +230,7 @@ void Database::commit_task(const TaskSpec &spec,
             load_dataset(change.obj_name);
         } else if (change.type == DbChangeType::ToggleTaint) {
             OnDiskDataset *ds = find_working_dataset(change.obj_name);
-            if (!ds) {
+            if (ds == nullptr) {
                 spdlog::warn("ToggleTaint failed - nonexistent dataset");
                 continue;  // suspicious, but maybe task was delayed?
             }

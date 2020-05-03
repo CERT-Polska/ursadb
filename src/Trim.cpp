@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    if (!remove_list.size()) {
+    if (remove_list.empty()) {
         spdlog::info("Database consistent, nothing to do");
         return 0;
     }

@@ -65,9 +65,8 @@ TokenValidator get_validator_for(IndexType type) {
             return [](uint32_t ndx, uint8_t chr) {
                 if ((ndx % 2) == 0) {
                     return get_b64_value(chr) >= 0;
-                } else {
-                    return chr == 0;
                 }
+                return chr == 0;
             };
     }
     throw std::runtime_error("unhandled index type (validator)");
@@ -239,7 +238,8 @@ FileId decompress_single(uint8_t **ptrptr) {
     }
 }
 
-void PosixRunWriter::write_raw(FileId base, uint8_t *start, uint8_t *end) {
+void PosixRunWriter::write_raw(FileId base, uint8_t *start,
+                               const uint8_t *end) {
     // Special case: when the range is empty, do nothing.
     if (end == start) {
         return;

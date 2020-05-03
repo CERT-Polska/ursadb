@@ -161,8 +161,8 @@ void print_usage(std::string_view exec_name) {
 
 int main(int argc, char *argv[]) {
     std::string server_addr = "tcp://localhost:9281";
-    std::string db_command = "";
-    bool is_interactive = isatty(STDIN_FILENO);
+    std::string db_command;
+    bool is_interactive = isatty(STDIN_FILENO) != 0;
     bool raw_json = false;
 
     int c;
@@ -192,7 +192,8 @@ int main(int argc, char *argv[]) {
         spdlog::error("Too many positional arguments provided.");
         print_usage(argc >= 1 ? argv[0] : "ursacli");
         return 1;
-    } else if (argc - optind == 1) {
+    }
+    if (argc - optind == 1) {
         server_addr = argv[optind];
     }
 

@@ -247,16 +247,17 @@ template <> struct store<drop_token> : std::true_type {};
 
 // clang-format on
 
-constexpr int hex2int(char hexchar) {
+int hex2int(char hexchar) {
     if (hexchar >= '0' && hexchar <= '9') {
         return hexchar - '0';
-    } else if (hexchar >= 'a' && hexchar <= 'f') {
-        return 10 + hexchar - 'a';
-    } else if (hexchar >= 'A' && hexchar <= 'F') {
-        return 10 + hexchar - 'A';
-    } else {
-        throw std::runtime_error("invalid hex char");
     }
+    if (hexchar >= 'a' && hexchar <= 'f') {
+        return 10 + hexchar - 'a';
+    }
+    if (hexchar >= 'A' && hexchar <= 'F') {
+        return 10 + hexchar - 'A';
+    }
+    throw std::runtime_error("invalid hex char");
 }
 
 constexpr char unescape_char(char escaped) {
@@ -284,13 +285,14 @@ char transform_char(const parse_tree::node &n) {
     const std::string &content = n.content();
     if (n.is<hexbyte>()) {
         return (char)((hex2int(content[0]) << 4) + hex2int(content[1]));
-    } else if (n.is<ascii_char>()) {
-        return content[0];
-    } else if (n.is<escaped_char>()) {
-        return unescape_char(content[0]);
-    } else {
-        throw std::runtime_error("unknown character parse");
     }
+    if (n.is<ascii_char>()) {
+        return content[0];
+    }
+    if (n.is<escaped_char>()) {
+        return unescape_char(content[0]);
+    }
+    throw std::runtime_error("unknown character parse");
 }
 
 std::vector<IndexType> transform_index_types(const parse_tree::node &n) {
@@ -311,13 +313,14 @@ QToken transform_hexbyte(const parse_tree::node &atom) {
 
     if (c[0] == '?' && c[1] == '?') {  // \x??
         return QToken::wildcard();
-    } else if (c[0] == '?') {  // \x?A
-        return QToken::high_wildcard(hex2int(c[1]));
-    } else if (c[1] == '?') {  // \xA?
-        return QToken::low_wildcard(hex2int(c[0]) << 4U);
-    } else {
-        return QToken::single(transform_char(atom));
     }
+    if (c[0] == '?') {  // \x?A
+        return QToken::high_wildcard(hex2int(c[1]));
+    }
+    if (c[1] == '?') {  // \xA?
+        return QToken::low_wildcard(hex2int(c[0]) << 4U);
+    }
+    return QToken::single(transform_char(atom));
 }
 
 QString transform_qstring(const parse_tree::node &n) {
@@ -371,7 +374,8 @@ std::string transform_string(const parse_tree::node &n) {
 Query transform(const parse_tree::node &n) {
     if (n.is<plaintext>() || n.is<wide_plaintext>() || n.is<hexstring>()) {
         return Query(transform_qstring(n));
-    } else if (n.is<min_of_expr>()) {
+    }
+    if (n.is<min_of_expr>()) {
         auto &count = n.children[0];
         unsigned int counti;
 
@@ -389,7 +393,8 @@ Query transform(const parse_tree::node &n) {
         }
 
         return Query(counti, std::move(subq));
-    } else if (n.is<expression>()) {
+    }
+    if (n.is<expression>()) {
         if (n.children.size() == 1) {
             return transform(*n.children[0]);
         }
@@ -400,14 +405,14 @@ Query transform(const parse_tree::node &n) {
             opts.emplace_back(transform(*n.children[0]));
             opts.emplace_back(transform(*n.children[2]));
             return Query(QueryType::OR, std::move(opts));
-        } else if (expr->is<op_and>()) {
+        }
+        if (expr->is<op_and>()) {
             std::vector<Query> opts;
             opts.emplace_back(transform(*n.children[0]));
             opts.emplace_back(transform(*n.children[2]));
             return Query(QueryType::AND, std::move(opts));
-        } else {
-            throw std::runtime_error("encountered unexpected expression");
         }
+        throw std::runtime_error("encountered unexpected expression");
     }
     throw std::runtime_error("encountered unexpected node");
 }
@@ -453,14 +458,16 @@ Command transform_command(const parse_tree::node &n) {
         const auto &expr = n.children[iter]->children[0];
         return Command(
             SelectCommand(transform(*expr), taints, datasets, use_iterator));
-    } else if (n.is<iterator>()) {
+    }
+    if (n.is<iterator>()) {
         if (!n.children[1]->is<pop_token>()) {
             throw std::runtime_error("Unknown iterator mode");
         }
         std::string iterator_id = transform_string(*n.children[0]);
         uint64_t pop = std::stoi(n.children[2]->content());
         return Command(IteratorPopCommand(iterator_id, pop));
-    } else if (n.is<index>()) {
+    }
+    if (n.is<index>()) {
         auto &target_n = n.children[0];
 
         std::vector<std::string> paths;
@@ -482,57 +489,63 @@ Command transform_command(const parse_tree::node &n) {
             }
 
             return Command(IndexCommand(paths, types, ensure_unique));
-        } else if (target_n->is<from_list_construct>()) {
+        }
+        if (target_n->is<from_list_construct>()) {
             std::string list_file = transform_string(*target_n->children[0]);
             return Command(IndexFromCommand(list_file, types, ensure_unique));
-        } else {
-            throw std::runtime_error("unexpected first node in index");
         }
-    } else if (n.is<reindex>()) {
+        throw std::runtime_error("unexpected first node in index");
+    }
+    if (n.is<reindex>()) {
         std::string dataset_id = transform_string(*n.children[0]);
         std::vector<IndexType> types;
         if (n.children.size() > 1) {
             types = transform_index_types(*n.children[1]);
         }
         return Command(ReindexCommand(dataset_id, types));
-    } else if (n.is<compact>()) {
+    }
+    if (n.is<compact>()) {
         if (n.children[0]->is<all_token>()) {
             return Command(CompactCommand(CompactType::All));
-        } else {
-            return Command(CompactCommand(CompactType::Smart));
         }
-    } else if (n.is<config>()) {
+        return Command(CompactCommand(CompactType::Smart));
+    }
+    if (n.is<config>()) {
         if (n.children[0]->is<get_token>()) {
             std::vector<std::string> elms;
             for (size_t i = 1; i < n.children.size(); i++) {
                 elms.push_back(transform_string(*n.children[i]));
             }
             return Command(ConfigGetCommand(elms));
-        } else {
-            std::string key = transform_string(*n.children[1]);
-            uint64_t value = std::stoi(n.children[2]->content());
-            return Command(ConfigSetCommand(key, value));
         }
-    } else if (n.is<status>()) {
+        std::string key = transform_string(*n.children[1]);
+        uint64_t value = std::stoi(n.children[2]->content());
+        return Command(ConfigSetCommand(key, value));
+    }
+    if (n.is<status>()) {
         return Command(StatusCommand());
-    } else if (n.is<topology>()) {
+    }
+    if (n.is<topology>()) {
         return Command(TopologyCommand());
-    } else if (n.is<ping>()) {
+    }
+    if (n.is<ping>()) {
         return Command(PingCommand());
-    } else if (n.is<dataset>()) {
+    }
+    if (n.is<dataset>()) {
         std::string dataset = transform_string(*n.children[0]);
 
         if (n.children[1]->is<taint_token>()) {
             std::string taint = transform_string(*n.children[2]);
             return Command(TaintCommand(dataset, TaintMode::Add, taint));
-        } else if (n.children[1]->is<untaint_token>()) {
+        }
+        if (n.children[1]->is<untaint_token>()) {
             std::string taint = transform_string(*n.children[2]);
             return Command(TaintCommand(dataset, TaintMode::Clear, taint));
-        } else if (n.children[1]->is<drop_token>()) {
-            return Command(DatasetDropCommand(dataset));
-        } else {
-            throw std::runtime_error("Unknown dataset operation node");
         }
+        if (n.children[1]->is<drop_token>()) {
+            return Command(DatasetDropCommand(dataset));
+        }
+        throw std::runtime_error("Unknown dataset operation node");
     }
 
     throw std::runtime_error(
@@ -546,7 +559,6 @@ Command parse_command(const std::string &s) {
     if (const auto root =
             parse_tree::parse<queryparse::grammar, queryparse::store>(in)) {
         return queryparse::transform_command(*root->children[0]);
-    } else {
-        throw std::runtime_error("PARSE FAILED");
     }
+    throw std::runtime_error("PARSE FAILED");
 }

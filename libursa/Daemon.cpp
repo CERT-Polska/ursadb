@@ -44,12 +44,11 @@ Response execute_command(const SelectCommand &cmd, Task *task,
             DBChange(DbChangeType::NewIterator, meta_filename.get_filename()));
         return Response::select_iterator(
             meta_filename.get_id(), writer.get_file_count(), stats.counters());
-    } else {
-        InMemoryResultWriter writer;
-        auto stats = snap->execute(cmd.get_query(), cmd.taints(),
-                                   cmd.datasets(), task, &writer);
-        return Response::select(writer.get(), stats.counters());
     }
+    InMemoryResultWriter writer;
+    auto stats = snap->execute(cmd.get_query(), cmd.taints(), cmd.datasets(),
+                               task, &writer);
+    return Response::select(writer.get(), stats.counters());
 }
 
 Response execute_command(const IteratorPopCommand &cmd, Task *task,
@@ -182,7 +181,7 @@ Response execute_command([[maybe_unused]] const PingCommand &cmd, Task *task,
 Response execute_command(const TaintCommand &cmd, Task *task,
                          const DatabaseSnapshot *snap) {
     const OnDiskDataset *ds = snap->find_dataset(cmd.get_dataset());
-    if (!ds) {
+    if (ds == nullptr) {
         throw std::runtime_error("can't taint non-existent dataset");
     }
     const std::string &taint = cmd.get_taint();

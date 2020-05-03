@@ -35,11 +35,10 @@ TokenValidator get_validator_for(IndexType type);
 // Returns a number of bytes needed for ngram of the specified type.
 size_t get_ngram_size_for(IndexType type);
 
-void gen_trigrams(const uint8_t *mem, uint64_t size, TrigramCallback callback);
-void gen_b64grams(const uint8_t *mem, uint64_t size, TrigramCallback callback);
-void gen_wide_b64grams(const uint8_t *mem, uint64_t size,
-                       TrigramCallback callback);
-void gen_h4grams(const uint8_t *mem, uint64_t size, TrigramCallback callback);
+void gen_trigrams(const uint8_t *mem, uint64_t size, TrigramCallback cb);
+void gen_b64grams(const uint8_t *mem, uint64_t size, TrigramCallback cb);
+void gen_wide_b64grams(const uint8_t *mem, uint64_t size, TrigramCallback cb);
+void gen_h4grams(const uint8_t *mem, uint64_t size, TrigramCallback cb);
 
 void combinations(const QString &qstr, size_t len, const TrigramGenerator &gen,
                   const TrigramCallback &cb);
@@ -106,7 +105,7 @@ class PosixRunWriter {
     void write(FileId next);
 
     // Writes run of FileIds without decompressing them.
-    void write_raw(FileId base, uint8_t *start, uint8_t *end);
+    void write_raw(FileId base, uint8_t *start, const uint8_t *end);
 
     // Flush buffered changes to the backing fd.
     void flush();

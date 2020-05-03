@@ -28,7 +28,7 @@ class Database {
 
     explicit Database(const std::string &fname, bool initialize);
 
-    bool can_acquire(const DatabaseLock &lock) const;
+    bool can_acquire(const DatabaseLock &newlock) const;
 
    public:
     explicit Database(const std::string &fname);
@@ -39,7 +39,7 @@ class Database {
         &current_tasks() {
         return tasks;
     }
-    void commit_task(const TaskSpec &task,
+    void commit_task(const TaskSpec &spec,
                      const std::vector<DBChange> &changes);
     const TaskSpec &get_task(uint64_t task_id);
     void erase_task(uint64_t task_id);
@@ -59,12 +59,12 @@ class Database {
         return iterators;
     }
 
-    static void create(const std::string &path);
+    static void create(const std::string &fname);
     void load_iterator(const DatabaseName &name);
     void update_iterator(const DatabaseName &name, uint64_t byte_offset,
                          uint64_t file_offset);
-    void load_dataset(const std::string &dsname);
-    OnDiskDataset *find_working_dataset(const std::string &dsname);
+    void load_dataset(const std::string &ds);
+    OnDiskDataset *find_working_dataset(const std::string &name);
     void drop_dataset(const std::string &dsname);
     void destroy_dataset(const std::string &dsname);
     void collect_garbage(std::set<DatabaseSnapshot *> &working_snapshots);

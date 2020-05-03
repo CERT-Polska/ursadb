@@ -57,7 +57,7 @@ void upgrade_v1_0_0(json *dbjson) {
 
 void migrate_version(std::string_view path) {
     std::string most_recent = "1.3.2";
-    std::string prev_version = "";
+    std::string prev_version;
     auto db_root = fs::path(path).parent_path();
     while (true) {
         json db_json = std::move(read_json(path));
@@ -65,7 +65,8 @@ void migrate_version(std::string_view path) {
         if (version == prev_version) {
             spdlog::error("Upgrade procedure failed. Trying to proceed...");
             break;
-        } else if (version != prev_version && !prev_version.empty()) {
+        }
+        if (version != prev_version && !prev_version.empty()) {
             spdlog::info("UPGRADE: {} -> {}.", prev_version, version);
         }
         if (version == most_recent) {

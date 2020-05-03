@@ -340,7 +340,7 @@ void DatabaseSnapshot::compact_locked_datasets(Task *task) const {
     for (const auto &lock : task->spec().locks()) {
         if (const auto *dslock = std::get_if<DatasetLock>(&lock)) {
             const OnDiskDataset *ds = find_dataset(dslock->target());
-            if (!ds) {
+            if (ds == nullptr) {
                 throw std::runtime_error("Locked DS doesn't exist");
             }
             datasets.push_back(ds);

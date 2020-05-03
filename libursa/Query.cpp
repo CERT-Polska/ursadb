@@ -21,7 +21,7 @@ Query::Query(unsigned int count, std::vector<Query> &&queries)
     : type(QueryType::MIN_OF), count(count), queries(std::move(queries)) {}
 
 Query::Query(QString &&qstr)
-    : type(QueryType::PRIMITIVE), count(0), value(std::move(qstr)), queries() {}
+    : type(QueryType::PRIMITIVE), count(0), value(std::move(qstr)) {}
 
 bool Query::operator==(const Query &other) const {
     return type == other.type && value == other.value &&

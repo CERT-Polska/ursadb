@@ -43,7 +43,7 @@ MemMap::MemMap(MemMap &&other) {
 }
 
 MemMap::~MemMap() {
-    if (mmap_ptr) {
+    if (mmap_ptr != nullptr) {
         munmap(mmap_ptr, fsize);
     }
 
