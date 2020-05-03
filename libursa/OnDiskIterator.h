@@ -4,15 +4,18 @@
 
 class OnDiskIterator {
     DatabaseName name;
-    std::string datafile_filename;
+    DatabaseName datafile_name;
     uint64_t total_files;
     uint64_t byte_offset;
     uint64_t file_offset;
 
-   public:
-    explicit OnDiskIterator(const DatabaseName &name);
+    OnDiskIterator(const DatabaseName name, const DatabaseName datafile_name,
+                   uint64_t total_files, uint64_t byte_offset,
+                   uint64_t file_offset);
 
+   public:
     const DatabaseName &get_name() const { return name; }
+    const DatabaseName &get_data_name() const { return name; }
 
     void pop(int count, std::vector<std::string> *out);
     void save();
@@ -28,6 +31,8 @@ class OnDiskIterator {
         byte_offset = new_bytes;
         file_offset = new_files;
     }
+
+    static OnDiskIterator load(const DatabaseName &name);
 
     static void construct(const DatabaseName &location,
                           const DatabaseName &backing_storage, int total_files);

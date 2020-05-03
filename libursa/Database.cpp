@@ -13,8 +13,9 @@
 
 Database::Database(const std::string &fname, bool initialize)
     : last_task_id(0), tasks() {
-    db_name = fs::path(fname).filename();
-    db_base = fs::path(fname).parent_path();
+    fs::path fpath = fs::absolute(fname);
+    db_name = fs::path(fpath).filename();
+    db_base = fs::path(fpath).parent_path();
 
     if (initialize) {
         load_from_disk();
@@ -131,7 +132,7 @@ void Database::save() {
 }
 
 void Database::load_iterator(const DatabaseName &name) {
-    iterators.emplace(name.get_id(), OnDiskIterator(name));
+    iterators.emplace(name.get_id(), OnDiskIterator::load(name));
     spdlog::info("LOAD: {}", name.get_filename());
 }
 
