@@ -200,6 +200,13 @@ Response execute_command(const TaintCommand &cmd, Task *task,
     return Response::ok();
 }
 
+Response execute_command(const DatasetDropCommand &cmd, Task *task,
+                         [[maybe_unused]] const DatabaseSnapshot *snap) {
+    task->change(DBChange(DbChangeType::Drop, cmd.dataset_id()));
+
+    return Response::ok();
+}
+
 Response dispatch_command(const Command &cmd, Task *task,
                           const DatabaseSnapshot *snap) {
     return std::visit(

@@ -160,7 +160,7 @@ void Database::update_iterator(const DatabaseName &name, uint64_t byte_offset,
 
 void Database::drop_dataset(const std::string &dsname) {
     for (auto it = working_datasets.begin(); it != working_datasets.end();) {
-        if ((*it)->get_name() == dsname) {
+        if ((*it)->get_name() == dsname || (*it)->get_id() == dsname) {
             it = working_datasets.erase(it);
             spdlog::info("DROP: {}", dsname);
         } else {
@@ -171,7 +171,7 @@ void Database::drop_dataset(const std::string &dsname) {
 
 void Database::destroy_dataset(const std::string &dsname) {
     for (auto it = loaded_datasets.begin(); it != loaded_datasets.end();) {
-        if ((*it)->get_name() == dsname) {
+        if ((*it)->get_name() == dsname || (*it)->get_id() == dsname) {
             spdlog::info("DESTROY: {}", dsname);
             (*it)->drop();
             it = loaded_datasets.erase(it);

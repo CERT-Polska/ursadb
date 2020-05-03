@@ -54,6 +54,7 @@ struct pop_token : TAO_PEGTL_STRING("pop") {};
 struct config_token : TAO_PEGTL_STRING("config") {};
 struct get_token : TAO_PEGTL_STRING("get") {};
 struct set_token : TAO_PEGTL_STRING("set") {};
+struct drop_token : TAO_PEGTL_STRING("drop") {};
 
 // literals
 
@@ -161,9 +162,10 @@ struct into_iterator_construct : seq<plus<space>, into_token, plus<space>, itera
 struct select_body : seq<star<space>, expression> {};
 
 // dataset command
+struct dataset_drop: seq<drop_token> {};
 struct dataset_taint: seq<taint_token, plus<space>, plaintext> {};
 struct dataset_untaint: seq<untaint_token, plus<space>, plaintext> {};
-struct dataset_operation: sor<dataset_taint, dataset_untaint> {};
+struct dataset_operation: sor<dataset_taint, dataset_untaint, dataset_drop> {};
 
 // iterator command
 struct iterator_pop: seq<pop_token, plus<space>, number> {};
@@ -241,6 +243,7 @@ template <> struct store<from_list_construct> : std::true_type {};
 template <> struct store<select_body> : std::true_type {};
 template <> struct store<pop_token> : std::true_type {};
 template <> struct store<iterator_magic> : std::true_type {};
+template <> struct store<drop_token> : std::true_type {};
 
 // clang-format on
 
@@ -519,16 +522,17 @@ Command transform_command(const parse_tree::node &n) {
     } else if (n.is<dataset>()) {
         std::string dataset = transform_string(*n.children[0]);
 
-        TaintMode mode;
         if (n.children[1]->is<taint_token>()) {
-            mode = TaintMode::Add;
+            std::string taint = transform_string(*n.children[2]);
+            return Command(TaintCommand(dataset, TaintMode::Add, taint));
         } else if (n.children[1]->is<untaint_token>()) {
-            mode = TaintMode::Clear;
+            std::string taint = transform_string(*n.children[2]);
+            return Command(TaintCommand(dataset, TaintMode::Clear, taint));
+        } else if (n.children[1]->is<drop_token>()) {
+            return Command(DatasetDropCommand(dataset));
         } else {
             throw std::runtime_error("Unknown dataset operation node");
         }
-        std::string taint = transform_string(*n.children[2]);
-        return Command(TaintCommand(dataset, mode, taint));
     }
 
     throw std::runtime_error(

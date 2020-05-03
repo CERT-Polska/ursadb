@@ -178,7 +178,7 @@ void DatabaseSnapshot::reindex_dataset(Task *task,
         }
     }
 
-    task->change(DBChange(DbChangeType::Drop, source->get_name()));
+    task->change(DBChange(DbChangeType::Drop, source->get_id()));
     task->spec().add_progress(1);
 }
 
@@ -364,7 +364,7 @@ void DatabaseSnapshot::internal_compact(
     OnDiskDataset::merge(db_base, dataset_name, datasets, &task->spec());
 
     for (auto &dataset : datasets) {
-        task->change(DBChange(DbChangeType::Drop, dataset->get_name()));
+        task->change(DBChange(DbChangeType::Drop, dataset->get_id()));
     }
 
     task->change(DBChange(DbChangeType::Insert, dataset_name));
