@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <stdexcept>
+#include <utility>
 
 #include "ExclusiveFile.h"
 #include "Indexer.h"
@@ -13,11 +14,11 @@ DatabaseSnapshot::DatabaseSnapshot(
     std::map<std::string, OnDiskIterator> iterators,
     std::vector<const OnDiskDataset *> datasets,
     const std::unordered_map<uint64_t, TaskSpec> &tasks)
-    : db_name(db_name),
-      db_base(db_base),
-      iterators(iterators),
-      config(config),
-      datasets(datasets),
+    : db_name(std::move(db_name)),
+      db_base(std::move(db_base)),
+      iterators(std::move(iterators)),
+      config(std::move(config)),
+      datasets(std::move(datasets)),
       tasks(std::move(tasks)) {}
 
 const OnDiskDataset *DatabaseSnapshot::find_dataset(

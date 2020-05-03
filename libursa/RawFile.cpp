@@ -32,7 +32,7 @@ uint64_t RawFile::size() const {
 }
 
 void RawFile::pread(void *buf, size_t to_read, off_t offset) const {
-    char *buf_raw = static_cast<char *>(buf);
+    auto *buf_raw = static_cast<char *>(buf);
     while (to_read > 0) {
         ssize_t result = ::pread(fd, buf_raw, to_read, offset);
         if (result < 0) {
@@ -46,7 +46,7 @@ void RawFile::pread(void *buf, size_t to_read, off_t offset) const {
 
 template <typename T>
 void RawFile::write(const T *buf, size_t count) {
-    const char *buf_raw = reinterpret_cast<const char *>(buf);
+    const auto *buf_raw = reinterpret_cast<const char *>(buf);
     uint64_t to_write = count * sizeof(T);
     while (to_write > 0) {
         ssize_t result = ::write(fd, buf_raw, to_write);

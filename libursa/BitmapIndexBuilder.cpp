@@ -37,7 +37,7 @@ void BitmapIndexBuilder::save(const std::string &fname) {
 
     uint32_t magic = DB_MAGIC;
     uint32_t version = 6;
-    uint32_t ndx_type = static_cast<uint32_t>(index_type());
+    auto ndx_type = static_cast<uint32_t>(index_type());
     uint32_t reserved = 0;
 
     out.write((char *)&magic, 4);

@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <thread>
+#include <utility>
 #include <zmq.hpp>
 
 #include "libursa/Json.h"
@@ -47,7 +48,7 @@ void UrsaClient::check_conn_status(zmq::socket_t *socket) {
     }
 
     auto res = json::parse(res_str)["result"];
-    std::string server_status = res["status"].get<std::string>();
+    auto server_status = res["status"].get<std::string>();
 
     if (server_status != "ok") {
         std::string msg = "Server returned bad status: " + server_status;
@@ -139,7 +140,7 @@ void UrsaClient::start() {
 
 UrsaClient::UrsaClient(std::string server_addr, bool is_interactive,
                        bool raw_json)
-    : server_addr(server_addr),
+    : server_addr(std::move(server_addr)),
       is_interactive(is_interactive),
       raw_json(raw_json),
       context(1),

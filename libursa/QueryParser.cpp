@@ -483,9 +483,8 @@ Command transform_command(const parse_tree::node &n) {
         }
 
         if (target_n->is<paths_construct>()) {
-            for (auto it = target_n->children.cbegin();
-                 it != target_n->children.cend(); ++it) {
-                paths.push_back(transform_string(**it));
+            for (const auto &it : target_n->children) {
+                paths.push_back(transform_string(*it));
             }
 
             return Command(IndexCommand(paths, types, ensure_unique));
