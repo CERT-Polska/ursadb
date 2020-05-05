@@ -22,7 +22,8 @@ class OnDiskIndex {
 
     static constexpr uint32_t VERSION = 6;
     std::vector<FileId> get_run(uint64_t ptr, uint64_t next_ptr) const;
-    std::vector<FileId> query_primitive(TriGram trigram) const;
+    std::vector<FileId> query_primitive(TriGram trigram,
+                                        QueryCounter *counter) const;
     std::pair<uint64_t, uint64_t> get_run_offsets(TriGram trigram) const;
     bool internal_expand(QString::const_iterator qit, uint8_t *out, size_t pos,
                          size_t comb_len, const TrigramGenerator &gen,
@@ -41,7 +42,7 @@ class OnDiskIndex {
     const std::string &get_fname() const { return fname; }
     const fs::path &get_fpath() const { return fpath; }
     IndexType index_type() const { return ntype; }
-    QueryResult query(const QueryGraph &graph) const;
+    QueryResult query(const QueryGraph &graph, QueryCounters *counters) const;
     uint64_t real_size() const;
     static void on_disk_merge(const fs::path &db_base, const std::string &fname,
                               IndexType merge_type,

@@ -199,10 +199,10 @@ DatabaseName DatabaseSnapshot::allocate_name(const std::string &type) const {
     }
 }
 
-QueryStatistics DatabaseSnapshot::execute(const Query &query,
-                                          const std::set<std::string> &taints,
-                                          const std::set<std::string> &datasets,
-                                          Task *task, ResultWriter *out) const {
+QueryCounters DatabaseSnapshot::execute(const Query &query,
+                                        const std::set<std::string> &taints,
+                                        const std::set<std::string> &datasets,
+                                        Task *task, ResultWriter *out) const {
     std::vector<const OnDiskDataset *> datasets_to_query;
     if (datasets.empty()) {
         // No datasets selected explicitly == query everything.
@@ -229,16 +229,15 @@ QueryStatistics DatabaseSnapshot::execute(const Query &query,
 
     task->spec().estimate_work(datasets_to_query.size());
 
-    QueryStatistics stats;
+    QueryCounters counters;
     for (const auto *ds : datasets_to_query) {
         task->spec().add_progress(1);
         if (!ds->has_all_taints(taints)) {
             continue;
         }
-        auto ds_stats = ds->execute(graphs, out);
-        stats.add(ds_stats);
+        ds->execute(graphs, out, &counters);
     }
-    return stats;
+    return counters;
 }
 
 // For every dataset that we want to merge, we need to keep 8*(2**24) bytes
