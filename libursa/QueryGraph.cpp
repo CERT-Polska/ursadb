@@ -133,7 +133,7 @@ class InorderGraphVisitor {
 
 // Executes a masked_or operation: `(A | B | C | ...) & mask`.
 QueryResult masked_or(std::vector<const QueryResult *> &&to_or,
-                      QueryResult &&mask, QueryStatistics *toupdate) {
+                      QueryResult &&mask, QueryCounters *counters) {
     if (to_or.empty()) {
         // Empty or list means everything(). The only case when it happens
         // is for sources, when it makes sense to just return mask.
@@ -142,8 +142,8 @@ QueryResult masked_or(std::vector<const QueryResult *> &&to_or,
     QueryResult result{QueryResult::empty()};
     for (const auto *query : to_or) {
         QueryResult alternative(query->clone());
-        alternative.do_and(mask, toupdate);
-        result.do_or(alternative, toupdate);
+        alternative.do_and(mask, &counters->ands());
+        result.do_or(alternative, &counters->ors());
     }
     return result;
 }
@@ -151,7 +151,7 @@ QueryResult masked_or(std::vector<const QueryResult *> &&to_or,
 // Executes a masked minof operation: `min n of (A, B, C, ...) & mask`.
 QueryResult masked_min_of(uint32_t min_want,
                           std::vector<const QueryResult *> &&sources,
-                          QueryResult &&mask, QueryStatistics *toupdate) {
+                          QueryResult &&mask, QueryCounters *counters) {
     if (sources.empty()) {
         // Empty or list means everything(). The only case when it happens
         // is for sources, when it makes sense to just return mask.
@@ -160,17 +160,18 @@ QueryResult masked_min_of(uint32_t min_want,
     // The query is equivalent to AND, just run ANDs in a loop.
     if (min_want == sources.size()) {
         for (const auto *source : sources) {
-            mask.do_and(*source, toupdate);
+            mask.do_and(*source, &counters->ands());
         }
         return std::move(mask);
     }
     // Don't pay the price of generic solution in the common case`.
     if (min_want == 1) {
-        return masked_or(std::move(sources), std::move(mask), toupdate);
+        return masked_or(std::move(sources), std::move(mask), counters);
     }
     // Do a real `min ... of` operation.
-    QueryResult result{QueryResult::do_min_of(min_want, sources, toupdate)};
-    result.do_and(mask, toupdate);
+    QueryResult result{
+        QueryResult::do_min_of(min_want, sources, &counters->minofs())};
+    result.do_and(mask, &counters->ands());
     return result;
 }
 
@@ -189,7 +190,8 @@ uint64_t QueryGraph::combine(NodeId sourceid, NodeId targetid) const {
     return (source.gram() << 8) + (target.gram() & 0xFF);
 }
 
-QueryResult QueryGraph::run(const QueryFunc &oracle) const {
+QueryResult QueryGraph::run(const QueryFunc &oracle,
+                            QueryCounters *counters) const {
     if (nodes_.empty()) {
         // The graph has no nodes. By convention this means that it maches
         // every file (because it doesn't exclude any file).
@@ -198,7 +200,6 @@ QueryResult QueryGraph::run(const QueryFunc &oracle) const {
     QueryResult result{QueryResult::empty()};
     InorderGraphVisitor<QueryResult, QueryResult::everything> visitor(sources_,
                                                                       &nodes_);
-    QueryStatistics stats;
     while (!visitor.empty()) {
         // New state is: (union of all possible predecessors) & oracle(id)
         NodeId id{visitor.next()};
@@ -218,15 +219,14 @@ QueryResult QueryGraph::run(const QueryFunc &oracle) const {
             QueryResult next = {get(id).is_epsilon()
                                     ? QueryResult::everything()
                                     : QueryResult(oracle(get(id).gram()))};
-            visitor.set(id, std::move(masked_min_of(get(id).min_want(),
-                                                    std::move(predecessors),
-                                                    std::move(next), &stats)));
+            visitor.set(id, std::move(masked_min_of(
+                                get(id).min_want(), std::move(predecessors),
+                                std::move(next), counters)));
         }
         if (get(id).edges().empty()) {
-            result.do_or(visitor.state(id), &stats);
+            result.do_or(visitor.state(id), &counters->ors());
         }
     }
-    result.set_stats(stats);
     return result;
 }
 

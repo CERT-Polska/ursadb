@@ -6,8 +6,6 @@ void Response::write_counters(
     const std::unordered_map<std::string, QueryCounter> &counters) {
     for (const auto &[name, counter] : counters) {
         content["counters"][name]["count"] = counter.count();
-        content["counters"][name]["in_files"] = counter.in_files();
-        content["counters"][name]["out_files"] = counter.out_files();
         content["counters"][name]["milliseconds"] = counter.duration_ms();
     }
 }

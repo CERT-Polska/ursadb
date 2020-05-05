@@ -36,7 +36,8 @@ class OnDiskDataset {
         return taints == other.taints;
     }
     std::string get_file_name(FileId fid) const;
-    QueryResult query(const QueryGraphCollection &graphs) const;
+    QueryResult query(const QueryGraphCollection &graphs,
+                      QueryCounters *counters) const;
     const OnDiskIndex &get_index_with_type(IndexType index_type) const;
     void drop_file(const std::string &fname) const;
 
@@ -52,8 +53,8 @@ class OnDiskDataset {
     }
     void toggle_taint(const std::string &taint);
     bool has_all_taints(const std::set<std::string> &taints) const;
-    QueryStatistics execute(const QueryGraphCollection &graphs,
-                            ResultWriter *out) const;
+    void execute(const QueryGraphCollection &graphs, ResultWriter *out,
+                 QueryCounters *counters) const;
     uint64_t get_file_count() const { return files_index->get_file_count(); }
     void for_each_filename(std::function<void(const std::string &)> cb) const {
         files_index->for_each_filename(cb);

@@ -83,10 +83,10 @@ class DatabaseSnapshot {
 
     void reindex_dataset(Task *task, const std::vector<IndexType> &types,
                          const std::string &dataset_name) const;
-    QueryStatistics execute(const Query &query,
-                            const std::set<std::string> &taints,
-                            const std::set<std::string> &datasets, Task *task,
-                            ResultWriter *out) const;
+    QueryCounters execute(const Query &query,
+                          const std::set<std::string> &taints,
+                          const std::set<std::string> &datasets, Task *task,
+                          ResultWriter *out) const;
 
     // Find candidates for compacting, but in a "smart" way - if the algorithm
     // decides that there are no good candidates, it won't do anything.

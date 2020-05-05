@@ -9,19 +9,15 @@ void QueryResult::do_or_real(const std::vector<FileId> &other) {
     std::swap(new_results, results);
 }
 
-void QueryResult::do_or(const QueryResult &other, QueryStatistics *toupdate) {
-    QueryOperation op(file_count() + other.file_count());
+void QueryResult::do_or(const QueryResult &other, QueryCounter *counter) {
+    auto op = QueryOperation(counter);
     if (this->is_everything() || other.is_everything()) {
         has_everything = true;
         results.clear();
     } else {
         do_or_real(other.results);
     }
-    stats_.add(other.stats_);
-    toupdate->add_or(op.end(file_count()));
 }
-
-void QueryResult::do_or(const QueryResult &other) { do_or(other, &stats_); }
 
 void QueryResult::do_and_real(const std::vector<FileId> &other) {
     auto new_end =
@@ -30,8 +26,8 @@ void QueryResult::do_and_real(const std::vector<FileId> &other) {
     results.erase(new_end, results.end());
 }
 
-void QueryResult::do_and(const QueryResult &other, QueryStatistics *toupdate) {
-    QueryOperation op(file_count() + other.file_count());
+void QueryResult::do_and(const QueryResult &other, QueryCounter *counter) {
+    auto op = QueryOperation(counter);
     if (other.is_everything()) {
     } else if (this->is_everything()) {
         results = other.results;
@@ -39,33 +35,21 @@ void QueryResult::do_and(const QueryResult &other, QueryStatistics *toupdate) {
     } else {
         do_and_real(other.results);
     }
-    stats_.add(other.stats_);
-    toupdate->add_and(op.end(file_count()));
-}
-
-void QueryResult::do_and(const QueryResult &other) { do_and(other, &stats_); }
-
-QueryCounter QueryOperation::end(uint32_t out_files) const {
-    auto duration = std::chrono::steady_clock::now() - start_;
-    return QueryCounter(1, in_files_, out_files, duration);
 }
 
 void QueryCounter::add(const QueryCounter &other) {
     count_ += other.count_;
-    in_files_ += other.in_files_;
-    out_files_ += other.out_files_;
     duration_ += other.duration_;
 }
 
-void QueryStatistics::add(const QueryStatistics &other) {
+void QueryCounters::add(const QueryCounters &other) {
     ors_.add(other.ors_);
     ands_.add(other.ands_);
     reads_.add(other.reads_);
     minofs_.add(other.minofs_);
 }
 
-std::unordered_map<std::string, QueryCounter> QueryStatistics::counters()
-    const {
+std::unordered_map<std::string, QueryCounter> QueryCounters::counters() const {
     std::unordered_map<std::string, QueryCounter> result;
     result["or"] = ors_;
     result["and"] = ands_;
@@ -97,8 +81,7 @@ std::vector<FileId> internal_pick_common(
         FileId min_id = *heads[0].first;
         for (int i = 1; i < static_cast<int>(heads.size()); i++) {
             if (*heads[i].first < min_id) {
-                min_index =
-                    i;  // TODO(unknown): benchmark and consider removing.
+                min_index = i;
                 min_id = *heads[i].first;
             }
         }
@@ -180,13 +163,13 @@ QueryResult QueryResult::do_min_of_real(
 
 QueryResult QueryResult::do_min_of(
     int cutoff, const std::vector<const QueryResult *> &sources,
-    QueryStatistics *toupdate) {
-    uint64_t total_files = 0;
-    for (const auto *src : sources) {
-        total_files += src->file_count();
-    }
-    QueryOperation op(total_files);
+    QueryCounter *counter) {
+    QueryOperation op(counter);
     QueryResult out{do_min_of_real(cutoff, sources)};
-    toupdate->add_minof(op.end(out.file_count()));
     return out;
+}
+
+QueryOperation::~QueryOperation() {
+    auto duration = std::chrono::steady_clock::now() - start_;
+    parent->add(QueryCounter(1, duration));
 }

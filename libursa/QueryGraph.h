@@ -182,7 +182,7 @@ class QueryGraph {
     QueryGraph dual() const;
 
     // Gets all files matching the current graph, using a provided oracle.
-    QueryResult run(const QueryFunc &oracle) const;
+    QueryResult run(const QueryFunc &oracle, QueryCounters *counters) const;
 
     // Returns a number of nodes in this query graph.
     uint32_t size() const { return nodes_.size(); }

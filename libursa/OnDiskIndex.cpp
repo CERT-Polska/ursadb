@@ -58,17 +58,19 @@ OnDiskIndex::OnDiskIndex(const std::string &fname)
 }
 
 // Returns all files that can be matched to given graph.
-QueryResult OnDiskIndex::query(const QueryGraph &graph) const {
+QueryResult OnDiskIndex::query(const QueryGraph &graph,
+                               QueryCounters *counters) const {
     spdlog::debug("Graph query for {}", get_index_type_name(index_type()));
 
-    QueryFunc oracle = [this](uint64_t raw_gram) {
+    QueryFunc oracle = [this, counters](uint64_t raw_gram) {
         auto gram = convert_gram(index_type(), raw_gram);
         if (gram) {
-            return QueryResult(std::move(query_primitive(*gram)));
+            return QueryResult(
+                std::move(query_primitive(*gram, &counters->reads())));
         }
         return QueryResult::everything();
     };
-    return graph.run(oracle);
+    return graph.run(oracle, counters);
 }
 
 std::pair<uint64_t, uint64_t> OnDiskIndex::get_run_offsets(
@@ -95,7 +97,9 @@ std::vector<FileId> OnDiskIndex::get_run(uint64_t ptr,
                                run_bytes.data() + run_bytes.size());
 }
 
-std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram) const {
+std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram,
+                                                 QueryCounter *counter) const {
+    auto op = QueryOperation(counter);
     std::pair<uint64_t, uint64_t> offsets = get_run_offsets(trigram);
     return get_run(offsets.first, offsets.second);
 }

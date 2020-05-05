@@ -64,17 +64,19 @@ std::string OnDiskDataset::get_file_name(FileId fid) const {
     return files_index->get_file_name(fid);
 }
 
-QueryResult OnDiskDataset::query(const QueryGraphCollection &graphs) const {
+QueryResult OnDiskDataset::query(const QueryGraphCollection &graphs,
+                                 QueryCounters *counters) const {
     QueryResult result = QueryResult::everything();
     for (auto &ndx : indices) {
-        result.do_and(ndx.query(graphs.get(ndx.index_type())));
+        auto subresult{ndx.query(graphs.get(ndx.index_type()), counters)};
+        result.do_and(subresult, &counters->ands());
     }
     return result;
 }
 
-QueryStatistics OnDiskDataset::execute(const QueryGraphCollection &graphs,
-                                       ResultWriter *out) const {
-    QueryResult result = query(graphs);
+void OnDiskDataset::execute(const QueryGraphCollection &graphs,
+                            ResultWriter *out, QueryCounters *counters) const {
+    QueryResult result = query(graphs, counters);
     if (result.is_everything()) {
         files_index->for_each_filename(
             [&out](const std::string &fname) { out->push_back(fname); });
@@ -83,7 +85,6 @@ QueryStatistics OnDiskDataset::execute(const QueryGraphCollection &graphs,
             out->push_back(get_file_name(fid));
         }
     }
-    return result.stats();
 }
 
 bool OnDiskDataset::has_all_taints(const std::set<std::string> &taints) const {

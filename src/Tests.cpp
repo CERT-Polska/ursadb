@@ -559,12 +559,14 @@ void add_payload(IndexBuilder *builder,
 
 void check_query_is_everything(const OnDiskIndex &ndx, const std::string &query,
                                IndexType type) {
-    REQUIRE(ndx.query(mqg(query, type)).is_everything());
+    QueryCounters dummy;
+    REQUIRE(ndx.query(mqg(query, type), &dummy).is_everything());
 }
 
 void check_query(const OnDiskIndex &ndx, const std::string &query,
                  const std::vector<uint32_t> &results, IndexType type) {
-    REQUIRE(ndx.query(mqg(query, type)).vector() == results);
+    QueryCounters dummy;
+    REQUIRE(ndx.query(mqg(query, type), &dummy).vector() == results);
 }
 
 void check_test_payload_gram3(const OnDiskIndex &ndx) {
@@ -752,16 +754,18 @@ QueryFunc make_oracle(const std::string &accepting) {
 TEST_CASE("Test basic query", "[query_graphs]") {
     auto graph{make_kot()};
 
-    REQUIRE(graph.run(make_oracle("tok")).is_everything());
-    REQUIRE(!graph.run(make_oracle("abc")).is_everything());
+    QueryCounters dummy;
+    REQUIRE(graph.run(make_oracle("tok"), &dummy).is_everything());
+    REQUIRE(!graph.run(make_oracle("abc"), &dummy).is_everything());
 }
 
 TEST_CASE("Test wildcard query", "[query_graphs]") {
     auto graph{make_caet()};
 
-    REQUIRE(graph.run(make_oracle("cat")).is_everything());
-    REQUIRE(graph.run(make_oracle("cet")).is_everything());
-    REQUIRE(!graph.run(make_oracle("abc")).is_everything());
+    QueryCounters dummy;
+    REQUIRE(graph.run(make_oracle("cat"), &dummy).is_everything());
+    REQUIRE(graph.run(make_oracle("cet"), &dummy).is_everything());
+    REQUIRE(!graph.run(make_oracle("abc"), &dummy).is_everything());
 }
 
 // Special value, ensure that all expected queries were asked.
@@ -814,7 +818,8 @@ void ensure_queries(const QString &query, IndexType type,
     size_t size = get_ngram_size_for(type);
     QueryGraph graph{to_query_graph(query, size, validator)};
     auto oracle = make_expect_oracle(type, std::move(strings));
-    graph.run(oracle);
+    QueryCounters dummy;
+    graph.run(oracle, &dummy);
     oracle(ORACLE_CHECK_MAGIC);
 }
 
