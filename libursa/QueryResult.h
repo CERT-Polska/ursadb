@@ -6,32 +6,27 @@
 
 #include "Core.h"
 #include "QueryCounters.h"
+#include "SortedRun.h"
 
 class QueryResult {
    private:
-    std::vector<FileId> results;
+    SortedRun results;
     bool has_everything;
 
     QueryResult() : results{}, has_everything{true} {}
-    QueryResult(const QueryResult &other) = default;
-
-    // Number of explicitly stored files. This will return 0 for
-    // QueryResult::everything.
-    size_t file_count() const { return results.size(); }
-
-    void do_or_real(const std::vector<FileId> &other);
-    void do_and_real(const std::vector<FileId> &other);
+    QueryResult(SortedRun results, bool has_everything)
+        : results(std::move(results)), has_everything(has_everything) {}
 
     static QueryResult do_min_of_real(
         int cutoff, const std::vector<const QueryResult *> &sources);
 
    public:
     QueryResult(QueryResult &&other) = default;
-    explicit QueryResult(std::vector<FileId> &&results)
-        : results(results), has_everything(false) {}
+    explicit QueryResult(SortedRun &&results)
+        : results(std::move(results)), has_everything(false) {}
     QueryResult &operator=(QueryResult &&other) = default;
 
-    static QueryResult empty() { return QueryResult(std::vector<FileId>()); }
+    static QueryResult empty() { return QueryResult(SortedRun()); }
 
     static QueryResult everything() { return QueryResult(); }
 
@@ -50,11 +45,10 @@ class QueryResult {
     // circuiting in some optimisations.
     bool is_empty() const { return !has_everything && results.empty(); }
 
-    const std::vector<FileId> &vector() const { return results; }
+    const SortedRun &vector() const { return results; }
 
     // For when you really need to clone the query result
-    QueryResult clone() const { return *this; }
+    QueryResult clone() const {
+        return QueryResult(results.clone(), has_everything);
+    }
 };
-
-std::vector<FileId> internal_pick_common(
-    int cutoff, const std::vector<const std::vector<FileId> *> &sources);

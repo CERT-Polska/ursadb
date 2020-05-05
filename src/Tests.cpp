@@ -564,9 +564,10 @@ void check_query_is_everything(const OnDiskIndex &ndx, const std::string &query,
 }
 
 void check_query(const OnDiskIndex &ndx, const std::string &query,
-                 const std::vector<uint32_t> &results, IndexType type) {
+                 std::vector<uint32_t> results, IndexType type) {
     QueryCounters dummy;
-    REQUIRE(ndx.query(mqg(query, type), &dummy).vector() == results);
+    auto run = SortedRun(std::move(results));
+    REQUIRE(ndx.query(mqg(query, type), &dummy).vector() == run);
 }
 
 void check_test_payload_gram3(const OnDiskIndex &ndx) {
@@ -651,52 +652,66 @@ TEST_CASE("FlatIndexBuilder for text4", "[index_builder]") {
     check_test_payload_text4(index.get());
 }
 
-TEST_CASE("Test internal_pick_common", "[internal_pick_common]") {
+std::vector<FileId> pick_common(
+    int cutoff, const std::vector<const std::vector<uint32_t> *> &sources_raw) {
+    std::vector<SortedRun> sources;
+    std::vector<const SortedRun *> sourceptrs;
+    sources.reserve(sources_raw.size());
+    sourceptrs.reserve(sources_raw.size());
+
+    for (const auto &src : sources_raw) {
+        sources.push_back(SortedRun(std::vector<uint32_t>(*src)));
+        sourceptrs.push_back(&sources.back());
+    }
+
+    auto out{SortedRun::pick_common(cutoff, sourceptrs)};
+    return std::vector<FileId>(out.begin(), out.end());
+}
+
+TEST_CASE("Test pick_common", "[pick_common]") {
     std::vector<FileId> source1 = {1, 2, 3};
-    REQUIRE(internal_pick_common(1, {&source1}) ==
-            std::vector<FileId>{1, 2, 3});
-    REQUIRE(internal_pick_common(2, {&source1}).empty());
+    REQUIRE(pick_common(1, {&source1}) == std::vector<FileId>{1, 2, 3});
+    REQUIRE(pick_common(2, {&source1}).empty());
 
     std::vector<FileId> source2 = {3, 4, 5};
-    REQUIRE(internal_pick_common(1, {&source1, &source2}) ==
+    REQUIRE(pick_common(1, {&source1, &source2}) ==
             std::vector<FileId>{1, 2, 3, 4, 5});
-    REQUIRE(internal_pick_common(2, {&source1, &source2}) ==
-            std::vector<FileId>{3});
+    REQUIRE(pick_common(2, {&source1, &source2}) == std::vector<FileId>{3});
 
     std::vector<FileId> source3 = {1, 2, 3};
-    REQUIRE(internal_pick_common(1, {&source1, &source3}) ==
+    REQUIRE(pick_common(1, {&source1, &source3}) ==
             std::vector<FileId>{1, 2, 3});
-    REQUIRE(internal_pick_common(2, {&source1, &source3}) ==
+    REQUIRE(pick_common(2, {&source1, &source3}) ==
             std::vector<FileId>{1, 2, 3});
 
     std::vector<FileId> source4 = {4, 5, 6};
-    REQUIRE(internal_pick_common(1, {&source1, &source4}) ==
+    REQUIRE(pick_common(1, {&source1, &source4}) ==
             std::vector<FileId>{1, 2, 3, 4, 5, 6});
-    REQUIRE(internal_pick_common(2, {&source1, &source4}).empty());
+    REQUIRE(pick_common(2, {&source1, &source4}).empty());
 
-    REQUIRE(internal_pick_common(1, {&source1, &source2, &source4}) ==
+    REQUIRE(pick_common(1, {&source1, &source2, &source4}) ==
             std::vector<FileId>{1, 2, 3, 4, 5, 6});
-    REQUIRE(internal_pick_common(2, {&source1, &source2, &source4}) ==
+    REQUIRE(pick_common(2, {&source1, &source2, &source4}) ==
             std::vector<FileId>{3, 4, 5});
-    REQUIRE(internal_pick_common(3, {&source1, &source2, &source4}).empty());
+    REQUIRE(pick_common(3, {&source1, &source2, &source4}).empty());
 
-    REQUIRE(internal_pick_common(1, {&source1, &source2, &source3}) ==
+    REQUIRE(pick_common(1, {&source1, &source2, &source3}) ==
             std::vector<FileId>{1, 2, 3, 4, 5});
-    REQUIRE(internal_pick_common(2, {&source1, &source2, &source3}) ==
+    REQUIRE(pick_common(2, {&source1, &source2, &source3}) ==
             std::vector<FileId>{1, 2, 3});
-    REQUIRE(internal_pick_common(3, {&source1, &source2, &source3}) ==
+    REQUIRE(pick_common(3, {&source1, &source2, &source3}) ==
             std::vector<FileId>{3});
 
     std::vector<FileId> source5 = {};
-    REQUIRE(internal_pick_common(1, {&source5}).empty());
-    REQUIRE(internal_pick_common(2, {&source5, &source5}).empty());
-    REQUIRE(internal_pick_common(1, {&source1, &source5}) ==
+    REQUIRE(pick_common(1, {&source5}).empty());
+    REQUIRE(pick_common(2, {&source5, &source5}).empty());
+    REQUIRE(pick_common(1, {&source1, &source5}) ==
             std::vector<FileId>{1, 2, 3});
-    REQUIRE(internal_pick_common(1, {&source5, &source1}) ==
+    REQUIRE(pick_common(1, {&source5, &source1}) ==
             std::vector<FileId>{1, 2, 3});
-    REQUIRE(internal_pick_common(2, {&source1, &source1, &source5}) ==
+    REQUIRE(pick_common(2, {&source1, &source1, &source5}) ==
             std::vector<FileId>{1, 2, 3});
-    REQUIRE(internal_pick_common(2, {&source1, &source5, &source1}) ==
+    REQUIRE(pick_common(2, {&source1, &source5, &source1}) ==
             std::vector<FileId>{1, 2, 3});
 }
 

@@ -57,6 +57,8 @@ add_library(
     Responses.cpp
     Responses.h
     ResultWriter.h
+    SortedRun.cpp
+    SortedRun.h
     Task.cpp
     Task.h
     Utils.cpp
