@@ -7,7 +7,7 @@
 
 #include "Core.h"
 #include "Json.h"
-#include "QueryResult.h"
+#include "QueryCounters.h"
 #include "Task.h"
 
 struct IndexEntry {

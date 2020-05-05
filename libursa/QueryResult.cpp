@@ -37,27 +37,6 @@ void QueryResult::do_and(const QueryResult &other, QueryCounter *counter) {
     }
 }
 
-void QueryCounter::add(const QueryCounter &other) {
-    count_ += other.count_;
-    duration_ += other.duration_;
-}
-
-void QueryCounters::add(const QueryCounters &other) {
-    ors_.add(other.ors_);
-    ands_.add(other.ands_);
-    reads_.add(other.reads_);
-    minofs_.add(other.minofs_);
-}
-
-std::unordered_map<std::string, QueryCounter> QueryCounters::counters() const {
-    std::unordered_map<std::string, QueryCounter> result;
-    result["or"] = ors_;
-    result["and"] = ands_;
-    result["read"] = reads_;
-    result["minof"] = minofs_;
-    return result;
-}
-
 std::vector<FileId> internal_pick_common(
     int cutoff, const std::vector<const std::vector<FileId> *> &sources) {
     // returns all FileIds which appear at least `cutoff` times among provided
@@ -167,9 +146,4 @@ QueryResult QueryResult::do_min_of(
     QueryOperation op(counter);
     QueryResult out{do_min_of_real(cutoff, sources)};
     return out;
-}
-
-QueryOperation::~QueryOperation() {
-    auto duration = std::chrono::steady_clock::now() - start_;
-    parent->add(QueryCounter(1, duration));
 }

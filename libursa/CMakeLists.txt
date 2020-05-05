@@ -44,6 +44,8 @@ add_library(
     QString.h
     Query.cpp
     Query.h
+    QueryCounters.cpp
+    QueryCounters.h
     QueryGraph.cpp
     QueryGraph.h
     QueryParser.cpp

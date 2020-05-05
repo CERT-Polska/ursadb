@@ -5,6 +5,7 @@
 
 #include "Core.h"
 #include "QString.h"
+#include "QueryCounters.h"
 #include "QueryGraph.h"
 #include "QueryResult.h"
 #include "RawFile.h"
