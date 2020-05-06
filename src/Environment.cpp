@@ -4,14 +4,20 @@
 
 #include "spdlog/spdlog.h"
 
-// On some systems the default limit of open files for service is very low.
-// Increase it to something more reasonable.
+// Increase RLIMIT to something more reasonable.
 void fix_rlimit() {
     struct rlimit limit;
 
-    limit.rlim_cur = 65535;
-    limit.rlim_max = 65535;
+    if (getrlimit(RLIMIT_NOFILE, &limit) != 0) {
+        spdlog::warn("getrlimit() failed");
+        return;
+    }
+
+    limit.rlim_cur = limit.rlim_max;
     if (setrlimit(RLIMIT_NOFILE, &limit) != 0) {
         spdlog::warn("setrlimit() failed");
+        return;
     }
+
+    spdlog::debug("RLIMIT_NOFILE updated: {}", limit.rlim_cur);
 }
