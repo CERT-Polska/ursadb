@@ -14,10 +14,10 @@ DatabaseConfig::DatabaseConfig(json config) : config_(config) {
 }
 
 std::optional<ConfigKey> ConfigKey::parse(std::string_view value) {
-    if (value == "query_max_edge") {
-        return ConfigKey::query_max_edge();
-    } else if (value == "query_max_ngram") {
-        return ConfigKey::query_max_ngram();
+    for (const auto &opt : ConfigKey::available()) {
+        if (opt.key() == value) {
+            return opt;
+        }
     }
     return std::nullopt;
 }
