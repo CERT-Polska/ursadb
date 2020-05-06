@@ -58,7 +58,7 @@ void Database::load_from_disk() {
         load_iterator(name);
     }
 
-    config = DatabaseConfig(db_json["config"]);
+    config_ = DatabaseConfig(db_json["config"]);
 }
 
 void Database::create(const std::string &fname) {
@@ -121,7 +121,7 @@ void Database::save() {
     db_json["iterators"] = iterators_json;
     db_json["version"] = std::string(ursadb_format_version);
 
-    db_json["config"] = config.get_raw();
+    db_json["config"] = config_.get_raw();
 
     db_file << std::setw(4) << db_json << std::endl;
     db_file.flush();
@@ -250,9 +250,12 @@ void Database::commit_task(const TaskSpec &spec,
             uint64_t new_files = std::atoi(param.substr(split_loc + 1).c_str());
             update_iterator(itname, new_bytes, new_files);
         } else if (change.type == DbChangeType::ConfigChange) {
-            std::string key = change.obj_name;
+            std::string keyname = change.obj_name;
             uint64_t value = std::atoi(change.parameter.c_str());
-            config.set(key, value);
+            auto key = ConfigKey::parse(keyname);
+            if (key) {
+                config_.set(*key, value);
+            }
         } else {
             throw std::runtime_error("unknown change type requested");
         }
@@ -282,6 +285,6 @@ DatabaseSnapshot Database::snapshot() {
         taskspecs.emplace(k, *v.get());
     }
 
-    return DatabaseSnapshot(db_name, db_base, config, iterators, cds,
+    return DatabaseSnapshot(db_name, db_base, config_, iterators, cds,
                             taskspecs);
 }

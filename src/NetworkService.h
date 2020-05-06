@@ -20,8 +20,6 @@
 #include "libursa/Database.h"
 #include "libursa/DatabaseSnapshot.h"
 
-constexpr int NUM_WORKERS = 4;
-
 enum class NetAction : uint32_t {
     Ready = 0,
     Response = 1,
