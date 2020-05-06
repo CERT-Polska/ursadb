@@ -93,9 +93,11 @@ void DatasetBuilder::clear() {
 
     for (const auto &index_type : index_types) {
         if (builder_type == BuilderType::FLAT) {
-            indices.emplace_back(new FlatIndexBuilder(index_type));
+            indices.emplace_back(
+                std::make_unique<FlatIndexBuilder>(index_type));
         } else if (builder_type == BuilderType::BITMAP) {
-            indices.emplace_back(new BitmapIndexBuilder(index_type));
+            indices.emplace_back(
+                std::make_unique<BitmapIndexBuilder>(index_type));
         } else {
             throw std::runtime_error("unhandled builder type");
         }

@@ -4,6 +4,7 @@ E2E-tests for ursadb
 
 import subprocess
 import os
+import resource
 from pathlib import Path
 import pytest
 from typing import Dict, Any, List
@@ -13,15 +14,29 @@ import json
 import tempfile
 
 
+class UrsadbConfig:
+    def __init__(self, rlimit_ram=None):
+        self.rlimit_ram = rlimit_ram
+
+
 class UrsadbTestContext:
-    def __init__(self, ursadb_new: Path, ursadb: Path):
+    def __init__(self, ursadb_new: Path, ursadb: Path, config: UrsadbConfig):
         self.backend = "tcp://127.0.0.1:9876"
         self.tmpdirs = []
         self.ursadb_dir = self.tmpdir()
         self.db = self.ursadb_dir / "db.ursa"
 
+        def configure():
+            # Set maximum CPU time to 1 second in child process, after fork() but before exec()
+            if config.rlimit_ram is not None:
+                resource.setrlimit(
+                    resource.RLIMIT_AS, (config.rlimit_ram, config.rlimit_ram)
+                )
+
         subprocess.check_call([ursadb_new, self.db])
-        self.ursadb = subprocess.Popen([ursadb, self.db, self.backend])
+        self.ursadb = subprocess.Popen(
+            [ursadb, self.db, self.backend], preexec_fn=configure
+        )
 
     def __make_socket(self) -> zmq.Context:
         context = zmq.Context()
@@ -72,7 +87,10 @@ def ursadb(request):
     ursadb = ursadb_root / "ursadb"
     ursadb_new = ursadb_root / "ursadb_new"
 
-    context = UrsadbTestContext(ursadb_new, ursadb)
+    config = UrsadbConfig()
+    if hasattr(request, "param"):
+        config = request.param
+    context = UrsadbTestContext(ursadb_new, ursadb, config)
     yield context
     context.close()
 
@@ -110,7 +128,10 @@ def match_pattern(value: Any, pattern: Any):
 
 
 def store_files(
-    ursadb: UrsadbTestContext, type: str, data: Dict[str, bytes]
+    ursadb: UrsadbTestContext,
+    type: str,
+    data: Dict[str, bytes],
+    expect_error: bool = False,
 ) -> None:
     """ Stores files on disk, and index them. Make sure to be
     deterministic, because we're using this for tests. """
@@ -122,7 +143,11 @@ def store_files(
 
     ursa_names = " ".join(f'"{f}"' for f in filenames)
 
-    ursadb.check_request(f"index {ursa_names} with [{type}];")
+    if expect_error:
+        res = ursadb.request(f"index {ursa_names} with [{type}];")
+        assert "error" in res
+    else:
+        ursadb.check_request(f"index {ursa_names} with [{type}];")
 
 
 def check_query(ursadb: UrsadbTestContext, query: str, expected: List[str]):
