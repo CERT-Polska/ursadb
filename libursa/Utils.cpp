@@ -202,15 +202,12 @@ void RunWriter::write(FileId next) {
 }
 
 PosixRunWriter::~PosixRunWriter() {
-    if (!buffer_.empty()) {
+    if (!buffer_.empty() && fd_ != -1) {
         // PosixRunWriter buffer not flushed, fatal error.
         spdlog::error("PosixRunWriter not flushed before destructing");
         std::terminate();
     }
 }
-
-// Arbitrary run buffer size for PosixRunWriter - 4kb.
-const uint64_t RUN_BUFFER_SIZE = 128 * 1024 * 1024;
 
 void PosixRunWriter::write(FileId next) {
     assert(next > prev_);
@@ -224,7 +221,7 @@ void PosixRunWriter::write(FileId next) {
     buffer_.push_back(static_cast<uint8_t>(diff));
     prev_ = next;
 
-    if (buffer_.size() > RUN_BUFFER_SIZE) {
+    if (buffer_.size() >= buffer_.capacity()) {
         flush();
     }
 }
@@ -258,7 +255,7 @@ void PosixRunWriter::write_raw(FileId base, uint8_t *start,
     for (const uint8_t *ptr = start; ptr < end; ++ptr) {
         out_bytes_++;
         buffer_.push_back(*ptr);
-        if (buffer_.size() > RUN_BUFFER_SIZE) {
+        if (buffer_.size() >= buffer_.capacity()) {
             flush();
         }
         acc += (*ptr & 0x7FU) << shift;
@@ -272,7 +269,7 @@ void PosixRunWriter::write_raw(FileId base, uint8_t *start,
 }
 
 void PosixRunWriter::flush() {
-    if (!buffer_.empty()) {
+    if (!buffer_.empty() && fd_ != -1) {
         if (::write(fd_, buffer_.data(), buffer_.size()) !=
             static_cast<int>(buffer_.size())) {
             throw std::runtime_error("Failed to flush PosixRunWriter");

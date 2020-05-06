@@ -5,8 +5,7 @@
 void QueryResult::do_or(const QueryResult &other, QueryCounter *counter) {
     auto op = QueryOperation(counter);
     if (this->is_everything() || other.is_everything()) {
-        has_everything = true;
-        results = SortedRun();
+        *this = everything();
     } else {
         results.do_or(other.results);
     }

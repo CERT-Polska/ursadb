@@ -65,8 +65,8 @@ QueryResult OnDiskIndex::query(const QueryGraph &graph,
     QueryFunc oracle = [this, counters](uint64_t raw_gram) {
         auto gram = convert_gram(index_type(), raw_gram);
         if (gram) {
-            return QueryResult(
-                std::move(query_primitive(*gram, &counters->reads())));
+            return QueryResult(std::move(SortedRun(
+                std::move(query_primitive(*gram, &counters->reads())))));
         }
         return QueryResult::everything();
     };
@@ -81,24 +81,22 @@ std::pair<uint64_t, uint64_t> OnDiskIndex::get_run_offsets(
     return std::make_pair(ptrs[0], ptrs[1]);
 }
 
-std::vector<FileId> OnDiskIndex::get_run(uint64_t ptr,
-                                         uint64_t next_ptr) const {
+std::vector<uint8_t> OnDiskIndex::get_run(uint64_t ptr,
+                                          uint64_t next_ptr) const {
     uint64_t run_length = next_ptr - ptr;
 
     if (ptr > next_ptr || next_ptr > index_size) {
-        // TODO() - Which index? Which run?
         throw std::runtime_error(
             "internal error: index is corrupted, invalid run");
     }
 
     std::vector<uint8_t> run_bytes(run_length);
     ndxfile.pread(run_bytes.data(), run_length, ptr);
-    return read_compressed_run(run_bytes.data(),
-                               run_bytes.data() + run_bytes.size());
+    return run_bytes;
 }
 
-std::vector<FileId> OnDiskIndex::query_primitive(TriGram trigram,
-                                                 QueryCounter *counter) const {
+std::vector<uint8_t> OnDiskIndex::query_primitive(TriGram trigram,
+                                                  QueryCounter *counter) const {
     auto op = QueryOperation(counter);
     std::pair<uint64_t, uint64_t> offsets = get_run_offsets(trigram);
     return get_run(offsets.first, offsets.second);

@@ -85,6 +85,9 @@ class RunWriter {
     uint64_t written_bytes() { return out_bytes; }
 };
 
+// Arbitrary run buffer size for PosixRunWriter - 16MB.
+const uint64_t DEFAULT_RUN_BUFFER_SIZE = 16 * 1024 * 1024;
+
 // Equivalent to RunWriter, but uses file descriptors instead of ostream.
 // Also buffers intermediate results explicitly.
 // Eventually we'll migrate everything to this class.
@@ -93,10 +96,14 @@ class PosixRunWriter {
     uint64_t out_bytes_;
     int64_t prev_;
     std::vector<uint8_t> buffer_;
+    uint64_t buffer_size_;
 
    public:
     // Creates a new clean instance of RunWriter.
-    PosixRunWriter(int fd) : fd_(fd), out_bytes_(0), prev_(-1), buffer_() {}
+    PosixRunWriter(int fd, uint64_t buffer_size = DEFAULT_RUN_BUFFER_SIZE)
+        : fd_(fd), out_bytes_(0), prev_(-1), buffer_() {
+        buffer_.reserve(buffer_size);
+    }
 
     PosixRunWriter(const PosixRunWriter &other) = delete;
     PosixRunWriter(PosixRunWriter &&other) = default;
@@ -114,9 +121,18 @@ class PosixRunWriter {
     // How many bytes were written by this RunWriter object so far
     uint64_t bytes_written() const { return out_bytes_; }
 
+    // Reset the internal state of the writer and start a new run.
     void reset() {
         out_bytes_ = 0;
         prev_ = -1;
+    }
+
+    // Get currently buffered bytes;
+    const std::vector<uint8_t> buffer() { return buffer_; }
+
+    // Construct writer instance that won't flush anything to a file.
+    static PosixRunWriter in_memory() {
+        return PosixRunWriter(-1, std::numeric_limits<uint64_t>::max());
     }
 };
 
