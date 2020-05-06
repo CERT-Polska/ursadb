@@ -45,7 +45,8 @@
 }
 
 void NetworkService::run() {
-    for (int worker_no = 0; worker_no < NUM_WORKERS; worker_no++) {
+    uint64_t num_workers = db.config().get(ConfigKey::database_workers());
+    for (uint64_t worker_no = 0; worker_no < num_workers; worker_no++) {
         std::string identity = std::to_string(worker_no);
         wctxs[identity] =
             std::make_unique<WorkerContext>(identity, db.snapshot(), nullptr);
