@@ -85,6 +85,17 @@ void UrsaClient::recv_res(zmq::socket_t *socket) {
         for (const auto &file : res["result"]["files"]) {
             std::cout << file.get<std::string>() << std::endl;
         }
+    } else if (res["type"] == "topology") {
+        for (const auto &item : res["result"]["datasets"].items()) {
+            std::cout << "dataset " << item.key() << " ";
+            std::cout << "[" << std::setw(10)
+                      << item.value()["file_count"].get<int>() << "]";
+            for (const auto &ndx : item.value()["indexes"].items()) {
+                std::cout << " (" << ndx.value()["type"].get<std::string>()
+                          << ")";
+            }
+            std::cout << std::endl;
+        }
     } else if (res["type"] == "error") {
         spdlog::error(res["error"]["message"].get<std::string>());
     } else {
