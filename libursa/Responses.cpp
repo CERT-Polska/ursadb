@@ -56,7 +56,7 @@ Response Response::ping(const std::string &connection_id) {
     Response r("ping");
     r.content["result"]["status"] = "ok";
     r.content["result"]["connection_id"] = connection_id;
-    r.content["result"]["ursadb_version"] = std::string(ursadb_version);
+    r.content["result"]["ursadb_version"] = std::string(ursadb_version_string);
     return r;
 }
 
@@ -101,7 +101,7 @@ Response Response::status(const std::unordered_map<uint64_t, TaskSpec> &tasks) {
         tasks_json.push_back(task_json);
     }
     r.content["result"]["tasks"] = tasks_json;
-    r.content["result"]["ursadb_version"] = std::string(ursadb_version);
+    r.content["result"]["ursadb_version"] = std::string(ursadb_version_string);
 
     return r;
 }

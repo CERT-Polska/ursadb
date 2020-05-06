@@ -1,16 +1,12 @@
 FROM debian:buster AS build
 
 RUN apt update \
-    && apt install -y gcc-7 g++-7 libzmq3-dev cmake build-essential
+    && apt install -y gcc-7 g++-7 libzmq3-dev cmake build-essential git
 
 RUN mkdir src && mkdir src/build
 COPY . src/
-COPY test /src/build/test
 WORKDIR /src/build
-RUN cmake -D CMAKE_C_COMPILER=/usr/bin/gcc-7 -D CMAKE_CXX_COMPILER=/usr/bin/g++-7 -D CMAKE_BUILD_TYPE=Release .. \
-    && make \
-    && chmod +x /src/build/ursadb_test \
-    && /src/build/ursadb_test
+RUN cmake -D CMAKE_CXX_COMPILER=/usr/bin/g++-7 -D CMAKE_BUILD_TYPE=Release .. && make
 
 FROM debian:buster
 
@@ -18,7 +14,7 @@ COPY --from=build /src/build/ursadb /usr/bin/ursadb
 COPY --from=build /src/build/ursadb_new /usr/bin/ursadb_new
 COPY --from=build /src/build/ursadb_bench /usr/bin/ursadb_bench
 COPY --from=build /src/build/ursadb_test /usr/bin/ursadb_test
-COPY --from=build /src/build/ursadb_trim /usr/bin/ursadb_trim
+COPY --from=build /src/build/ursacli /usr/bin/ursacli
 
 COPY entrypoint.sh /entrypoint.sh
 
