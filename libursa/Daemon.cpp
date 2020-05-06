@@ -220,9 +220,12 @@ Response dispatch_command_safe(const std::string &cmd_str, Task *task,
     try {
         Command cmd = parse_command(cmd_str);
         return dispatch_command(cmd, task, snap);
-    } catch (std::runtime_error &e) {
+    } catch (const std::runtime_error &e) {
         spdlog::error("Task {} failed: {}", task->spec().id(), e.what());
         return Response::error(e.what());
+    } catch (const std::bad_alloc &e) {
+        spdlog::error("Task {} failed: out of memory!", task->spec().id());
+        return Response::error("out of memory");
     }
 }
 
