@@ -13,7 +13,7 @@ def test_config_get_many(ursadb: UrsadbTestContext) -> None:
     """ Test config get command for multiple keys """
     ursadb.check_request(
         'config get "query_max_ngram" "query_max_edge";',
-        {"keys": {"query_max_ngram": 16, "query_max_edge": 1}},
+        {"keys": {"query_max_ngram": 16, "query_max_edge": 2}},
     )
 
 

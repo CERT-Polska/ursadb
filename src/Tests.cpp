@@ -57,7 +57,7 @@ QueryGraph mqg(const std::string &str, IndexType type) {
     for (const auto &c : str) {
         out.emplace_back(QToken::single(c));
     }
-    return q(std::move(out)).to_graph(type);
+    return q(std::move(out)).to_graph(type, DatabaseConfig());
 }
 
 TEST_CASE("packing 3grams", "[internal]") {
@@ -817,10 +817,6 @@ QueryFunc make_expect_oracle(IndexType type, std::vector<std::string> strings) {
     };
 }
 
-// Internal function, used for tests.
-QueryGraph to_query_graph(const QString &str, int size,
-                          const TokenValidator &is_ok);
-
 // Ensure that the queries that were executed match exectly to expected ones.
 // This makes sure that query was parsed correctly and contains expected ngrams.
 // For example: ensure_queries(mqs("cats"), IndexType::GRAM3, {"cats"});
@@ -831,7 +827,7 @@ void ensure_queries(const QString &query, IndexType type,
                     std::vector<std::string> strings) {
     auto validator = get_validator_for(type);
     size_t size = get_ngram_size_for(type);
-    QueryGraph graph{to_query_graph(query, size, validator)};
+    QueryGraph graph{to_query_graph(query, size, DatabaseConfig(), validator)};
     auto oracle = make_expect_oracle(type, std::move(strings));
     QueryCounters dummy;
     graph.run(oracle, &dummy);

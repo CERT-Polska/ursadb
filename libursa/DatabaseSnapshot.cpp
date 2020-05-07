@@ -225,7 +225,7 @@ QueryCounters DatabaseSnapshot::execute(const Query &query,
         }
     }
 
-    const QueryGraphCollection graphs{query, types_to_query};
+    const QueryGraphCollection graphs{query, types_to_query, config};
 
     task->spec().estimate_work(datasets_to_query.size());
 

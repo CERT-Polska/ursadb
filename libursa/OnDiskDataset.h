@@ -20,7 +20,8 @@ class QueryGraphCollection {
 
    public:
     QueryGraphCollection(const Query &query,
-                         const std::unordered_set<IndexType> &types);
+                         const std::unordered_set<IndexType> &types,
+                         const DatabaseConfig &config);
 
     const QueryGraph &get(IndexType type) const;
 };

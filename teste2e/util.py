@@ -21,11 +21,15 @@ class UrsadbConfig:
         rlimit_ram: int = None,
         merge_max_datasets: int = None,
         merge_max_files: int = None,
+        query_max_ngram: int = None,
+        query_max_edge: int = None,
     ) -> None:
         self.rlimit_ram = rlimit_ram
         self.raw_config = {
             "merge_max_datasets": merge_max_datasets,
             "merge_max_files": merge_max_files,
+            "query_max_edge": query_max_edge,
+            "query_max_ngram": query_max_ngram,
         }
 
 

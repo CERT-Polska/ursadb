@@ -47,7 +47,7 @@ class ConfigKey {
     // Recommendation: Stick to the default value. If you have a good disk and
     // want to reduce false-positives, increase to 16.
     const static ConfigKey query_max_edge() {
-        return ConfigKey("query_max_edge", 1, 1, 254);
+        return ConfigKey("query_max_edge", 2, 1, 255);
     }
 
     // Maximum number of values a ngram can take to be considered when planning
@@ -56,7 +56,7 @@ class ConfigKey {
     // Recommendation: Stick to the default value at first. If your queries are
     // fast, use many wildcards, but have many false positives, increase to 256.
     const static ConfigKey query_max_ngram() {
-        return ConfigKey("query_max_ngram", 16, 1, 16777216);
+        return ConfigKey("query_max_ngram", 16, 1, 16777215);
     }
 
     // How many tasks can be processed at once? The default 4 is a very

@@ -1,5 +1,6 @@
-from .util import UrsadbTestContext, store_files, check_query, get_index_hash
+from .util import UrsadbTestContext, store_files, check_query, get_index_hash, UrsadbConfig
 from .util import ursadb  # noqa
+import pytest
 
 
 def test_indexing_small(ursadb: UrsadbTestContext):
@@ -63,6 +64,11 @@ def test_text4_index_works_as_expected(ursadb: UrsadbTestContext):
     assert get_index_hash(ursadb, "text4")[:16] == "32078e5136ea7705"
 
 
+@pytest.mark.parametrize(
+    "ursadb",
+    [UrsadbConfig(query_max_ngram=256)],
+    indirect=["ursadb"],
+)
 def test_wide8_index_works_as_expected(ursadb: UrsadbTestContext):
     store_files(
         ursadb,
