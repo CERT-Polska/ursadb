@@ -1,5 +1,5 @@
-from util import UrsadbTestContext
-from util import ursadb  # noqa
+from .util import UrsadbTestContext
+from .util import ursadb  # noqa
 
 
 def test_config_get_default(ursadb: UrsadbTestContext):

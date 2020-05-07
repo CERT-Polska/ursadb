@@ -1,5 +1,5 @@
-from util import UrsadbTestContext
-from util import ursadb  # noqa
+from .util import UrsadbTestContext
+from .util import ursadb  # noqa
 
 
 def test_ping(ursadb: UrsadbTestContext):

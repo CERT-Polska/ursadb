@@ -1,5 +1,5 @@
-from util import UrsadbTestContext, store_files
-from util import ursadb  # noqa
+from .util import UrsadbTestContext, store_files
+from .util import ursadb  # noqa
 
 
 def test_pop(ursadb: UrsadbTestContext) -> None:

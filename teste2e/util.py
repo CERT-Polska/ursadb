@@ -9,14 +9,24 @@ from pathlib import Path
 import pytest
 from typing import Dict, Any, List
 import zmq
+import hashlib
 import shutil
 import json
 import tempfile
 
 
 class UrsadbConfig:
-    def __init__(self, rlimit_ram=None):
+    def __init__(
+        self,
+        rlimit_ram: int = None,
+        merge_max_datasets: int = None,
+        merge_max_files: int = None,
+    ) -> None:
         self.rlimit_ram = rlimit_ram
+        self.raw_config = {
+            "merge_max_datasets": merge_max_datasets,
+            "merge_max_files": merge_max_files,
+        }
 
 
 class UrsadbTestContext:
@@ -37,6 +47,11 @@ class UrsadbTestContext:
         self.ursadb = subprocess.Popen(
             [ursadb, self.db, self.backend], preexec_fn=configure
         )
+
+        for key, value in config.raw_config.items():
+            if value is None:
+                continue
+            self.check_request(f'config set "{key}" {value};')
 
     def __make_socket(self) -> zmq.Context:
         context = zmq.Context()
@@ -64,7 +79,9 @@ class UrsadbTestContext:
 
     def check_request(self, cmd: str, pattern: Any = None) -> Dict[str, Any]:
         response = self.request(cmd)
-        assert "error" not in response
+        if "error" in response:
+            print(json.dumps(response))
+            assert False
         if pattern:
             matches = match_pattern(response["result"], pattern)
             if not matches:
@@ -158,3 +175,10 @@ def check_query(ursadb: UrsadbTestContext, query: str, expected: List[str]):
 
     for fpath in response["result"]["files"]:
         assert any(fpath.endswith(f"/{fname}") for fname in expected)
+
+
+def get_index_hash(ursadb: UrsadbTestContext, type: str) -> str:
+    """ Tries to find sha256 hash of the provided index """
+    indexes = list(ursadb.ursadb_dir.glob(f"{type}*"))
+    assert len(indexes) == 1
+    return hashlib.sha256(indexes[0].read_bytes()).hexdigest()

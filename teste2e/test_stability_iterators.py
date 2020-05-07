@@ -4,8 +4,8 @@ Especially, ensure that every file is returned and there are no unexpected
 errors.
 """
 
-from util import UrsadbTestContext, store_files
-from util import ursadb  # noqa
+from .util import UrsadbTestContext, store_files
+from .util import ursadb  # noqa
 import json
 from multiprocessing import Pool
 import zmq
