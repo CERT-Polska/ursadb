@@ -298,10 +298,11 @@ std::vector<const OnDiskDataset *> OnDiskDataset::get_compact_candidates(
 }
 
 QueryGraphCollection::QueryGraphCollection(
-    const Query &query, const std::unordered_set<IndexType> &types) {
+    const Query &query, const std::unordered_set<IndexType> &types,
+    const DatabaseConfig &config) {
     graphs_.reserve(types.size());
     for (const auto type : types) {
-        graphs_.emplace(type, std::move(query.to_graph(type)));
+        graphs_.emplace(type, std::move(query.to_graph(type, config)));
     }
 }
 

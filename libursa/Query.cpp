@@ -95,11 +95,8 @@ QToken filter_qtoken(const QToken &token, uint32_t off,
     return QToken::with_values(std::move(possible_values));
 }
 
-// Expands the query to a query graph, but at the same time is careful not to
-// generate a query graph that is too big.
-// Token validator checks if the specified character can occur at the specified
-// position in the stream (otherwise ngram won't be generated).
 QueryGraph to_query_graph(const QString &str, int size,
+                          const DatabaseConfig &config,
                           const TokenValidator &is_ok) {
     // Graph representing the final query equivalent to qstring.
     QueryGraph result;
@@ -107,12 +104,12 @@ QueryGraph to_query_graph(const QString &str, int size,
     // Maximum number of possible values for the edge to be considered.
     // If token has more than MAX_EDGE possible values, it will never start
     // or end a subgraph. This is to avoid starting a subquery with `??`.
-    constexpr uint32_t MAX_EDGE = 16;
+    const uint64_t max_edge = config.get(ConfigKey::query_max_edge());
 
     // Maximum number of possible values for ngram to be considered. If ngram
     // has more than MAX_NGRAM possible values, it won't be included in the
     // graph and the graph will be split into one or more subgraphs.
-    constexpr uint32_t MAX_NGRAM = 256;
+    const uint64_t max_ngram = config.get(ConfigKey::query_max_ngram());
 
     spdlog::debug("Expand+prune for a query graph size={}", size);
 
@@ -126,7 +123,7 @@ QueryGraph to_query_graph(const QString &str, int size,
         frag_offset = 0;
 
         // Check if this node can become an edge.
-        if (str[offset].num_possible_values() > MAX_EDGE) {
+        if (str[offset].num_possible_values() > max_edge) {
             offset++;
             continue;
         }
@@ -157,7 +154,7 @@ QueryGraph to_query_graph(const QString &str, int size,
             for (int i = 0; i < size; i++) {
                 num_possible *= str[offset - i].num_possible_values();
             }
-            if (num_possible > MAX_NGRAM) {
+            if (num_possible > max_ngram) {
                 break;
             }
             auto token = filter_qtoken(str[offset], frag_offset, is_ok);
@@ -169,9 +166,9 @@ QueryGraph to_query_graph(const QString &str, int size,
             frag_offset += 1;
         }
 
-        // Finally, prune the subquery from the right (using MAX_EDGE).
+        // Finally, prune the subquery from the right (using max_edge).
         while (tokens.back().empty() ||
-               tokens.back().num_possible_values() > MAX_EDGE) {
+               tokens.back().num_possible_values() > max_edge) {
             // This is safe, because there must be at least one element.
             tokens.pop_back();
             if (tokens.empty()) {
@@ -200,17 +197,18 @@ QueryGraph to_query_graph(const QString &str, int size,
     return result;
 }
 
-QueryGraph Query::to_graph(IndexType ntype) const {
+QueryGraph Query::to_graph(IndexType ntype,
+                           const DatabaseConfig &config) const {
     if (type == QueryType::PRIMITIVE) {
         TokenValidator validator = get_validator_for(ntype);
         size_t input_len = get_ngram_size_for(ntype);
-        return to_query_graph(value, input_len, validator);
+        return to_query_graph(value, input_len, config, validator);
     }
 
     if (type == QueryType::AND) {
         QueryGraph result;
         for (const auto &query : queries) {
-            result.and_(query.to_graph(ntype));
+            result.and_(query.to_graph(ntype, config));
         }
         return result;
     }
@@ -219,9 +217,9 @@ QueryGraph Query::to_graph(IndexType ntype) const {
         if (queries.empty()) {
             return QueryGraph();
         }
-        QueryGraph result = std::move(queries[0].to_graph(ntype));
+        QueryGraph result = std::move(queries[0].to_graph(ntype, config));
         for (size_t i = 1; i < queries.size(); i++) {
-            result.or_(queries[i].to_graph(ntype));
+            result.or_(queries[i].to_graph(ntype, config));
         }
         return result;
     }
@@ -229,7 +227,7 @@ QueryGraph Query::to_graph(IndexType ntype) const {
     if (type == QueryType::MIN_OF) {
         std::vector<QueryGraph> subgraphs;
         for (const auto &query : queries) {
-            subgraphs.emplace_back(query.to_graph(ntype));
+            subgraphs.emplace_back(query.to_graph(ntype, config));
         }
         return QueryGraph::min_of(count, std::move(subgraphs));
     }

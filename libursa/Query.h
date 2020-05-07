@@ -4,8 +4,10 @@
 #include <string>
 #include <vector>
 
+#include "DatabaseConfig.h"
 #include "QString.h"
 #include "QueryGraph.h"
+#include "Utils.h"
 
 enum QueryType { PRIMITIVE = 1, AND = 2, OR = 3, MIN_OF = 4 };
 
@@ -25,7 +27,7 @@ class Query {
     bool operator==(const Query &other) const;
 
     // Converts this instance of Query to equivalent QueryGraph.
-    QueryGraph to_graph(IndexType ntype) const;
+    QueryGraph to_graph(IndexType ntype, const DatabaseConfig &config) const;
 
    private:
     QueryType type;
@@ -49,3 +51,11 @@ Query q_min_of(uint32_t count, std::vector<Query> &&queries);
 
 // Pretty-print the current query instance.
 std::ostream &operator<<(std::ostream &os, const Query &query);
+
+// Expands the query to a query graph, but at the same time is careful not to
+// generate a query graph that is too big.
+// Token validator checks if the specified character can occur at the specified
+// position in the stream (otherwise ngram won't be generated).
+QueryGraph to_query_graph(const QString &str, int size,
+                          const DatabaseConfig &config,
+                          const TokenValidator &is_ok);
