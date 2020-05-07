@@ -96,6 +96,32 @@ void UrsaClient::recv_res(zmq::socket_t *socket) {
             }
             std::cout << std::endl;
         }
+    } else if (res["type"] == "status") {
+        for (const auto &item : res["result"]["tasks"].items()) {
+            const auto &task = item.value();
+            uint64_t estimated = task["work_estimated"];
+            uint64_t done = task["work_done"];
+            uint64_t id = task["id"];
+            int done_per_10 = 0;
+            if (estimated != 0) {
+                done_per_10 = done * 10 / estimated;
+            }
+            std::cout << "task " << std::setw(9) << id;
+            std::cout << " [";
+            for (int i = 0; i < 10; i++) {
+                std::cout << ((i < done_per_10) ? "#" : " ");
+            }
+            std::cout << "] ";
+            std::string req = task["request"];
+            if (req.size() <= 110) {
+                std::cout << req;
+            } else {
+                std::cout << req.substr(0, 53);
+                std::cout << " (...) ";
+                std::cout << req.substr(req.size() - 50, 50);
+            }
+            std::cout << std::endl;
+        }
     } else if (res["type"] == "error") {
         spdlog::error(res["error"]["message"].get<std::string>());
     } else {
