@@ -1,5 +1,5 @@
-from util import UrsadbTestContext, store_files, check_query
-from util import ursadb  # noqa
+from .util import UrsadbTestContext, store_files, check_query
+from .util import ursadb  # noqa
 
 
 def test_basic_reindex(ursadb: UrsadbTestContext):

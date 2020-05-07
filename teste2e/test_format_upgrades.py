@@ -1,5 +1,5 @@
-from util import UrsadbTestContext
-from util import ursadb  # noqa
+from .util import UrsadbTestContext
+from .util import ursadb  # noqa
 import json
 import subprocess
 from pathlib import Path

@@ -4,8 +4,8 @@ Especially, ensure that merge don't lose files, and there can't be two merge
 operations at once.
 """
 
-from util import UrsadbTestContext, store_files
-from util import ursadb  # noqa
+from .util import UrsadbTestContext, store_files
+from .util import ursadb  # noqa
 from multiprocessing import Pool
 import zmq
 import time

@@ -240,13 +240,6 @@ QueryCounters DatabaseSnapshot::execute(const Query &query,
     return counters;
 }
 
-// For every dataset that we want to merge, we need to keep 8*(2**24) bytes
-// in memory (about 128MB). On the one hand, merging more datasets at once
-// is faster so we want to make this number big, OTOH on most computers RAM
-// is not unlimited so we need to make sure we won't crash the DB.
-// This should be parametrised by the DB - right now just hardcode it to 100.
-constexpr int MAX_DATASETS_TO_MERGE = 100;
-
 std::vector<std::string> DatabaseSnapshot::compact_smart_candidates() const {
     return find_compact_candidate(/*smart=*/true);
 }
@@ -267,6 +260,9 @@ bool is_dataset_locked(const std::unordered_map<uint64_t, TaskSpec> &tasks,
 
 std::vector<std::string> DatabaseSnapshot::find_compact_candidate(
     bool smart) const {
+    const uint64_t max_datasets = config.get(ConfigKey::merge_max_datasets());
+    const uint64_t max_files = config.get(ConfigKey::merge_max_files());
+
     // Try to find a best compact candidate. As a rating function, we use
     // "number of datasets" - "average number of files", because we want to
     // maximise number of datasets being compacted and minimise number of
@@ -291,25 +287,30 @@ std::vector<std::string> DatabaseSnapshot::find_compact_candidate(
             }
         }
 
+        // Compute number of files in this dataset.
+        uint64_t number_of_files = 0;
+        for (const auto &candidate : ready_candidates) {
+            number_of_files += candidate->get_file_count();
+        }
+
+        // Check for allowed maximum merge values. If they are exceeded, try to
+        // merge small datasets first.
+        std::sort(ready_candidates.begin(), ready_candidates.end(),
+                  [](const auto &lhs, const auto &rhs) {
+                      return lhs->get_file_count() < rhs->get_file_count();
+                  });
+        while (ready_candidates.size() > max_datasets ||
+               number_of_files > max_files) {
+            number_of_files -= ready_candidates.back()->get_file_count();
+            ready_candidates.pop_back();
+        }
+
         // It doesn't make sense to merge less than 2 datasets.
         if (ready_candidates.size() < 2) {
             continue;
         }
 
-        // Try to merge small datasets first. Cull too big collections.
-        if (ready_candidates.size() > MAX_DATASETS_TO_MERGE) {
-            std::sort(ready_candidates.begin(), ready_candidates.end(),
-                      [](const auto &lhs, const auto &rhs) {
-                          return lhs->get_file_count() < rhs->get_file_count();
-                      });
-            ready_candidates.resize(MAX_DATASETS_TO_MERGE);
-        }
-
         // Compute compact_value for this set, and maybe update best candidate.
-        uint64_t number_of_files = 0;
-        for (const auto &candidate : ready_candidates) {
-            number_of_files += candidate->get_file_count();
-        }
         uint64_t avg_files = number_of_files / ready_candidates.size();
         int64_t compact_value = ready_candidates.size() - avg_files;
         if (compact_value > best_compact_value) {
@@ -354,6 +355,11 @@ void DatabaseSnapshot::compact_locked_datasets(Task *task) const {
 void DatabaseSnapshot::internal_compact(
     Task *task, std::vector<const OnDiskDataset *> datasets) const {
     std::vector<std::string> ds_names;
+
+    // There's nothing to compact
+    if (datasets.size() < 2) {
+        return;
+    }
 
     ds_names.reserve(datasets.size());
     for (const auto *ds : datasets) {
