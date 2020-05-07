@@ -58,6 +58,7 @@ int main(int argc, char *argv[]) {
 
     for (const auto &[id, iter] : db.get_iterators()) {
         db_files.insert(iter.get_name().get_filename());
+        db_files.insert(iter.get_data_name().get_filename());
     }
 
     fs::directory_iterator end;
