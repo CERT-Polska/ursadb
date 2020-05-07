@@ -255,6 +255,8 @@ void Database::commit_task(const TaskSpec &spec,
             auto key = ConfigKey::parse(keyname);
             if (key) {
                 config_.set(*key, value);
+            } else {
+                spdlog::error("Invalid key name in DbChange - bug?");
             }
         } else {
             throw std::runtime_error("unknown change type requested");

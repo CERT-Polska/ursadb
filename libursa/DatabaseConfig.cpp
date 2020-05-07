@@ -29,7 +29,20 @@ uint64_t DatabaseConfig::get(const ConfigKey &key) const {
     return key.defval();
 }
 
+bool DatabaseConfig::can_set(const ConfigKey &key, uint64_t value) const {
+    if (value < key.min()) {
+        return false;
+    }
+    if (value > key.max()) {
+        return false;
+    }
+    return true;
+}
+
 void DatabaseConfig::set(const ConfigKey &key, uint64_t value) {
+    if (!can_set(key, value)) {
+        throw std::runtime_error("Tried to set config to invalid value");
+    }
     config_[key.key()] = value;
 }
 
