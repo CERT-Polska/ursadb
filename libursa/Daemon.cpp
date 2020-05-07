@@ -124,6 +124,13 @@ Response execute_command(const ConfigGetCommand &cmd,
 
 Response execute_command(const ConfigSetCommand &cmd, Task *task,
                          [[maybe_unused]] const DatabaseSnapshot *snap) {
+    auto key = ConfigKey::parse(cmd.key());
+    if (!key) {
+        return Response::error("Invalid key name specified");
+    }
+    if (!snap->get_config().can_set(*key, cmd.value())) {
+        return Response::error("Value specified is out of range");
+    }
     task->change(DBChange(DbChangeType::ConfigChange, cmd.key(),
                           std::to_string(cmd.value())));
     return Response::ok();

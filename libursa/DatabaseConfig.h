@@ -106,11 +106,24 @@ class DatabaseConfig {
     json config_;
 
    public:
+    // Constructs an empty config instance.
     DatabaseConfig() : config_(std::unordered_map<std::string, uint64_t>()) {}
+
+    // Constructs a new instance using given json.
     explicit DatabaseConfig(json config);
 
+    // Gets the current value of a given key, or returns a default.
     uint64_t get(const ConfigKey &key) const;
+
+    // Checks is it possible to set key to a given value.
+    bool can_set(const ConfigKey &key, uint64_t value) const;
+
+    // Sets the key to the given value, or throws an exception if it's invalid.
     void set(const ConfigKey &key, uint64_t value);
+
+    // Gets all key-value pairs, including defaults.
     std::unordered_map<std::string, uint64_t> get_all() const;
+
+    // Gets internal configuration JSON.
     const json get_raw() const { return config_; }
 };
