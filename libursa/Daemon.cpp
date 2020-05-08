@@ -236,14 +236,13 @@ Response dispatch_command_safe(const std::string &cmd_str, Task *task,
     }
 }
 
-std::vector<DatabaseLock> acquire_locks(
-    const IteratorPopCommand &cmd,
-    [[maybe_unused]] const DatabaseSnapshot *snap) {
+std::vector<DatabaseLock> acquire_locks(const IteratorPopCommand &cmd,
+                                        const DatabaseSnapshot *) {
     return {IteratorLock(cmd.get_iterator_id())};
 }
 
-std::vector<DatabaseLock> acquire_locks(
-    const ReindexCommand &cmd, [[maybe_unused]] const DatabaseSnapshot *snap) {
+std::vector<DatabaseLock> acquire_locks(const ReindexCommand &cmd,
+                                        const DatabaseSnapshot *) {
     return {DatasetLock(cmd.dataset_id())};
 }
 
@@ -256,7 +255,10 @@ std::vector<DatabaseLock> acquire_locks(const CompactCommand &cmd,
         to_lock = snap->compact_full_candidates();
     }
 
-    std::vector<DatabaseLock> locks;
+    // Every loaded compacted dataset will consume 128MiB of RAM.
+    uint64_t mebibytes_to_lock = to_lock.size() * 128;
+
+    std::vector<DatabaseLock> locks = {MemoryLock(mebibytes_to_lock)};
     locks.reserve(to_lock.size());
     for (const auto &dsid : to_lock) {
         locks.emplace_back(DatasetLock(dsid));

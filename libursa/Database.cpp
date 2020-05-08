@@ -70,13 +70,31 @@ void Database::create(const std::string &fname) {
     empty.save();
 }
 
-bool Database::can_acquire(const DatabaseLock &newlock) const {
+bool Database::can_acquire(const DatasetLock &newlock) const {
     for (const auto &[k, task] : tasks) {
         if (task->has_lock(newlock)) {
             return false;
         }
     }
     return true;
+}
+
+bool Database::can_acquire(const IteratorLock &newlock) const {
+    for (const auto &[k, task] : tasks) {
+        if (task->has_lock(newlock)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool Database::can_acquire(const MemoryLock &newlock) const {
+    uint64_t mebibytes_locked = 0;
+    for (const auto &[k, task] : tasks) {
+        mebibytes_locked += task->mebibytes_locked();
+    }
+    uint64_t new_memory = mebibytes_locked + newlock.mebibytes();
+    return new_memory < config_.get(ConfigKey::database_max_memory());
 }
 
 uint64_t Database::allocate_task_id() { return ++last_task_id; }
