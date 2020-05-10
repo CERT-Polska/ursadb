@@ -97,7 +97,10 @@ class UrsadbTestContext:
 
     def close(self):
         for dirpath in self.tmpdirs:
-            shutil.rmtree(dirpath)
+            try:
+                shutil.rmtree(dirpath)
+            except:
+                pass
         self.ursadb.terminate()
         self.ursadb.wait()
 
