@@ -5,7 +5,7 @@
 
 #include "Utils.h"
 
-constexpr int max_files = 8 * 8;
+constexpr int max_files = 8;
 constexpr int file_run_size = max_files / 8;
 
 BitmapIndexBuilder::BitmapIndexBuilder(IndexType ntype)
@@ -70,7 +70,7 @@ void BitmapIndexBuilder::add_file(FileId fid, const uint8_t *data,
     generator(data, size, [&](TriGram val) { add_trigram(fid, val); });
 }
 
-bool BitmapIndexBuilder::can_still_add([[maybe_unused]] uint64_t bytes,
+bool BitmapIndexBuilder::can_still_add(uint64_t /*bytes*/,
                                        int file_count) const {
-    return file_count >= max_files;
+    return file_count < max_files;
 }

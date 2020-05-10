@@ -209,7 +209,7 @@ PosixRunWriter::~PosixRunWriter() {
     }
 }
 
-// Arbitrary run buffer size for PosixRunWriter - 4kb.
+// Arbitrary run buffer size for PosixRunWriter - 128kb.
 const uint64_t RUN_BUFFER_SIZE = 128 * 1024 * 1024;
 
 void PosixRunWriter::write(FileId next) {

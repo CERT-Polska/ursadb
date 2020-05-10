@@ -3,11 +3,12 @@
 #include <algorithm>
 #include <fstream>
 
+#include "RawFile.h"
 #include "Utils.h"
 
-// raw_data will occupy at most 762 MB (MAX_TRIGRAMS*8 bytes)
+// raw_data will occupy at most 512 MB (MAX_TRIGRAMS*8 bytes)
 // TODO(): this should be parametrised by user somehow.
-constexpr int MAX_TRIGRAMS = 100000000;
+constexpr int MAX_TRIGRAMS = 1024 * 1024 * 64;
 
 FlatIndexBuilder::FlatIndexBuilder(IndexType ntype)
     : IndexBuilder(ntype), max_fileid_(0) {
@@ -75,21 +76,19 @@ void flat_radixsort(std::vector<uint64_t> *data, uint64_t max_fileid) {
 }
 
 void FlatIndexBuilder::save(const std::string &fname) {
-    std::ofstream out;
-    out.exceptions(std::ofstream::badbit);
-    out.open(fname, std::ofstream::binary);
+    RawFile fd(fname, O_WRONLY | O_CREAT | O_EXCL, 0600);
 
     uint32_t magic = DB_MAGIC;
     uint32_t version = 6;
     auto ndx_type = static_cast<uint32_t>(index_type());
     uint32_t reserved = 0;
 
-    out.write(reinterpret_cast<char *>(&magic), 4);
-    out.write(reinterpret_cast<char *>(&version), 4);
-    out.write(reinterpret_cast<char *>(&ndx_type), 4);
-    out.write(reinterpret_cast<char *>(&reserved), 4);
+    fd.write<uint32_t>(&magic, 1);
+    fd.write<uint32_t>(&version, 1);
+    fd.write<uint32_t>(&ndx_type, 1);
+    fd.write<uint32_t>(&reserved, 1);
 
-    auto offset = static_cast<uint64_t>(out.tellp());
+    auto offset = 16;
     std::vector<uint64_t> offsets(NUM_TRIGRAMS + 1);
     offsets[0] = offset;
     // Sort raw_data by trigrams (higher part of raw_data contains the
@@ -102,43 +101,31 @@ void FlatIndexBuilder::save(const std::string &fname) {
                    raw_data.end());
 
     TriGram last_trigram = 0;
-    int64_t prev = -1;
-
-    std::vector<uint8_t> out_bytes;
+    PosixRunWriter writer(fd.get());
     for (uint64_t d : raw_data) {
         TriGram val = (d >> 40ULL) & 0xFFFFFFU;
         FileId next = d & 0xFFFFFFFFFFULL;
 
         // adjust offsets for [last_trigram+1, val)
         if (last_trigram != val) {
+            offset += writer.bytes_written();
             for (TriGram v = last_trigram + 1; v <= val; v++) {
                 offsets[v] = offset;
             }
-
+            writer.reset();
             last_trigram = val;
-            prev = -1;
         }
 
-        int64_t diff = (next - prev) - 1;
-        while (diff >= 0x80U) {
-            offset++;
-            out_bytes.push_back(static_cast<uint8_t>(0x80U | (diff & 0x7FU)));
-            diff >>= 7;
-        }
-
-        offset++;
-        out_bytes.push_back(static_cast<uint8_t>(diff));
-        prev = next;
+        writer.write(next);
     }
-
-    out.write(reinterpret_cast<char *>(out_bytes.data()), out_bytes.size());
+    offset += writer.bytes_written();
+    writer.flush();
 
     for (TriGram v = last_trigram + 1; v <= NUM_TRIGRAMS; v++) {
         offsets[v] = offset;
     }
 
-    out.write(reinterpret_cast<char *>(offsets.data()),
-              (NUM_TRIGRAMS + 1) * sizeof(uint64_t));
+    fd.write(offsets.data(), (NUM_TRIGRAMS + 1));
 }
 
 void FlatIndexBuilder::add_file(FileId fid, const uint8_t *data, size_t size) {

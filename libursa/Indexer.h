@@ -21,6 +21,5 @@ class Indexer {
    public:
     Indexer(const DatabaseSnapshot *snap, const std::vector<IndexType> &types);
     void index(const std::string &target);
-    OnDiskDataset *force_compact();
     std::vector<const OnDiskDataset *> finalize();
 };
