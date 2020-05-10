@@ -125,3 +125,25 @@ def test_select_with_datasets(ursadb: UrsadbTestContext):
     )
 
     check_query(ursadb, f'with datasets ["{dsname}"] "test"', ["first"])
+
+
+def test_index_with_taints(ursadb: UrsadbTestContext):
+    store_files(ursadb, "gram3", {"kot": b"Random file"}, taints=["taint"])
+
+    ursadb.check_request(
+        "topology;",
+        {
+            "datasets": {
+                "#UNK#": {
+                    "file_count": 1,
+                    "indexes": [{"type": "gram3", "size": "#UNK#"}],
+                    "size": "#UNK#",
+                    "taints": ["taint"],
+                }
+            }
+        },
+    )
+    check_query(ursadb, '"file"', ["kot"])
+    check_query(ursadb, 'with taints ["taint"] "file"', ["kot"])
+    check_query(ursadb, 'with taints ["zzz"] "file"', [])
+

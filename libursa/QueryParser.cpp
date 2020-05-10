@@ -186,7 +186,7 @@ struct set_construct : seq<set_token, star<space>, plaintext, star<space>, numbe
 struct select : seq<select_token, opt<with_taints_construct>, opt<with_datasets_construct>, opt<into_iterator_construct>, select_body> {};
 struct dataset : seq<dataset_token, star<space>, plaintext, star<space>, dataset_operation> {};
 struct iterator : seq<iterator_token, star<space>, plaintext, star<space>, iterator_pop> {};
-struct index : seq<index_token, star<space>, sor<paths_construct, from_list_construct>, opt<index_with_construct>, opt<nocheck_construct>> {};
+struct index : seq<index_token, star<space>, sor<paths_construct, from_list_construct>, opt<index_with_construct>, opt<with_taints_construct>, opt<nocheck_construct>> {};
 struct reindex : seq<reindex_token, star<space>, string_like, star<space>, index_with_construct> {};
 struct compact : seq<compact_token, star<space>, sor<all_token, smart_token>> {};
 struct config : seq<config_token, star<space>, sor<get_construct, set_construct>> {};
@@ -472,14 +472,25 @@ Command transform_command(const parse_tree::node &n) {
         auto &target_n = n.children[0];
 
         std::vector<std::string> paths;
+        std::set<std::string> taints;
         std::vector<IndexType> types = default_index_types();
         bool ensure_unique = true;
 
         for (size_t mod = 1; mod < n.children.size(); mod++) {
             if (n.children[mod]->is<nocheck_construct>()) {
                 ensure_unique = false;
-            } else if (n.children[mod]->is<index_type_list>()) {
+                continue;
+            }
+            if (n.children[mod]->is<index_type_list>()) {
                 types = transform_index_types(*n.children[1]);
+                continue;
+            }
+            if (n.children[mod]->is<with_taints_token>()) {
+                for (const auto &taint : n.children[mod + 1]->children) {
+                    taints.insert(transform_string(*taint));
+                }
+                mod += 1;
+                continue;
             }
         }
 
@@ -488,11 +499,12 @@ Command transform_command(const parse_tree::node &n) {
                 paths.push_back(transform_string(*it));
             }
 
-            return Command(IndexCommand(paths, types, ensure_unique));
+            return Command(IndexCommand(paths, types, taints, ensure_unique));
         }
         if (target_n->is<from_list_construct>()) {
             std::string list_file = transform_string(*target_n->children[0]);
-            return Command(IndexFromCommand(list_file, types, ensure_unique));
+            return Command(
+                IndexFromCommand(list_file, types, taints, ensure_unique));
         }
         throw std::runtime_error("unexpected first node in index");
     }

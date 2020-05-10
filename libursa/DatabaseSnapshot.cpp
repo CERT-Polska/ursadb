@@ -90,6 +90,7 @@ void DatabaseSnapshot::find_all_indexed_files(
 
 void DatabaseSnapshot::recursive_index_paths(
     Task *task, const std::vector<IndexType> &types,
+    const std::set<std::string> &taints,
     const std::vector<std::string> &root_paths) const {
     std::vector<std::string> targets;
     {
@@ -99,21 +100,23 @@ void DatabaseSnapshot::recursive_index_paths(
             build_target_list(filepath, existing_files, &targets);
         }
     }
-    force_index_files(task, types, targets);
+    force_index_files(task, types, taints, targets);
 }
 
 void DatabaseSnapshot::force_recursive_index_paths(
     Task *task, const std::vector<IndexType> &types,
+    const std::set<std::string> &taints,
     const std::vector<std::string> &root_paths) const {
     std::vector<std::string> targets;
     for (const auto &filepath : root_paths) {
         build_target_list(filepath, {}, &targets);
     }
-    force_index_files(task, types, targets);
+    force_index_files(task, types, taints, targets);
 }
 
 void DatabaseSnapshot::index_files(
     Task *task, const std::vector<IndexType> &types,
+    const std::set<std::string> &taints,
     const std::vector<std::string> &filenames) const {
     std::vector<std::string> unique_filenames;
     {
@@ -125,11 +128,12 @@ void DatabaseSnapshot::index_files(
             }
         }
     }
-    force_index_files(task, types, unique_filenames);
+    force_index_files(task, types, taints, unique_filenames);
 }
 
 void DatabaseSnapshot::force_index_files(
     Task *task, const std::vector<IndexType> &types,
+    const std::set<std::string> &taints,
     const std::vector<std::string> &targets) const {
     if (targets.empty()) {
         return;
@@ -147,6 +151,10 @@ void DatabaseSnapshot::force_index_files(
 
     for (const auto *ds : indexer.finalize()) {
         task->change(DBChange(DbChangeType::Insert, ds->get_name()));
+        for (const auto &taint : taints) {
+            task->change(
+                DBChange(DbChangeType::ToggleTaint, ds->get_id(), taint));
+        }
     }
 
     task->spec().add_progress(1);
@@ -175,7 +183,7 @@ void DatabaseSnapshot::reindex_dataset(Task *task,
         task->change(DBChange(DbChangeType::Insert, ds->get_name()));
         for (const auto &taint : source->get_taints()) {
             task->change(
-                DBChange(DbChangeType::ToggleTaint, ds->get_name(), taint));
+                DBChange(DbChangeType::ToggleTaint, ds->get_id(), taint));
         }
     }
 

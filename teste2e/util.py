@@ -156,6 +156,7 @@ def store_files(
     type: str,
     data: Dict[str, bytes],
     expect_error: bool = False,
+    taints: List[str] = [],
 ) -> None:
     """ Stores files on disk, and index them. Make sure to be
     deterministic, because we're using this for tests. """
@@ -167,11 +168,16 @@ def store_files(
 
     ursa_names = " ".join(f'"{f}"' for f in filenames)
 
-    if expect_error:
-        res = ursadb.request(f"index {ursa_names} with [{type}];")
-        assert "error" in res
-    else:
-        ursadb.check_request(f"index {ursa_names} with [{type}];")
+    taints_mod = ""
+    if taints:
+        taint_list = ','.join(f'"{t}"' for t in taints)
+        taints_mod = f" with taints [{taint_list}]"
+
+    res = ursadb.request(f"index {ursa_names} with [{type}]{taints_mod};")
+    if ("error" in res) != expect_error:
+        print(f"index {ursa_names} with [{type}]{taints_mod};")
+        print(res)
+        assert False
 
 
 def check_query(ursadb: UrsadbTestContext, query: str, expected: List[str]):

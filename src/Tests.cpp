@@ -285,6 +285,12 @@ TEST_CASE("index command with multiple paths", "[queryparser]") {
     REQUIRE(cmd.get_paths() == std::vector<std::string>{"aaa", "bbb"});
 }
 
+TEST_CASE("index command with taints", "[queryparser]") {
+    auto cmd = parse<IndexCommand>(R"(index "aaa" with taints ["kot"];)");
+    REQUIRE(cmd.get_paths() == std::vector<std::string>{"aaa"});
+    REQUIRE(cmd.taints() == std::set<std::string>{"kot"});
+}
+
 TEST_CASE("index from command", "[queryparser]") {
     auto cmd = parse<IndexFromCommand>("index from list \"aaa\";");
     REQUIRE(cmd.get_path_list_fname() == "aaa");
