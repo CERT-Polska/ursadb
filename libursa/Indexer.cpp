@@ -90,33 +90,6 @@ void Indexer::make_spill(DatasetBuilder &builder) {
     builder.clear();
 }
 
-OnDiskDataset *Indexer::force_compact() {
-    if (!flat_builder.empty()) {
-        make_spill(flat_builder);
-    }
-
-    if (!bitmap_builder.empty()) {
-        make_spill(bitmap_builder);
-    }
-
-    if (created_datasets.empty()) {
-        throw std::runtime_error(
-            "forced to compact but no single file was indexed");
-    }
-
-    if (created_datasets.size() > 1) {
-        std::vector<const OnDiskDataset *> candidates = created_dataset_ptrs();
-        std::string merged_name = snap->allocate_name().get_filename();
-        OnDiskDataset::merge(snap->db_base, merged_name, candidates, nullptr);
-        for (const auto *ds : candidates) {
-            remove_dataset(ds);
-        }
-        register_dataset(merged_name);
-    }
-
-    return (*created_datasets.begin()).get();
-}
-
 std::vector<const OnDiskDataset *> Indexer::finalize() {
     if (!flat_builder.empty()) {
         make_spill(flat_builder);
