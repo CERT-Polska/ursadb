@@ -63,22 +63,26 @@ class DatabaseSnapshot {
     // file will be indexed twice - this may be a very memory-heavy operation
     void recursive_index_paths(
         Task *task, const std::vector<IndexType> &types,
+        const std::set<std::string> &taints,
         const std::vector<std::string> &root_paths) const;
 
     // Recursively indexes files under paths in `filepaths`. Does not check for
     // duplicated files, which makes if faster, but also more dangerous.
     void force_recursive_index_paths(
         Task *task, const std::vector<IndexType> &types,
+        const std::set<std::string> &taints,
         const std::vector<std::string> &root_paths) const;
 
     // Indexes files with given paths. Ensures that no file will be indexed
     // twice - this may be a very memory-heavy operation.
     void index_files(Task *task, const std::vector<IndexType> &types,
+                     const std::set<std::string> &taints,
                      const std::vector<std::string> &filenames) const;
 
     // Indexes files with given paths. Does not check for
     // duplicated files, which makes if faster, but also more dangerous.
     void force_index_files(Task *task, const std::vector<IndexType> &types,
+                           const std::set<std::string> &taints,
                            const std::vector<std::string> &targets) const;
 
     void reindex_dataset(Task *task, const std::vector<IndexType> &types,
