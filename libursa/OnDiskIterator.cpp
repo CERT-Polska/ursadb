@@ -65,7 +65,7 @@ void OnDiskIterator::pop(int count, std::vector<std::string> *out) {
 
     for (int i = 0; i < count && !reader.eof(); i++) {
         std::string next;
-        reader >> next;
+        std::getline(reader, next);
         if (reader.eof()) {
             break;
         }
