@@ -23,6 +23,23 @@ def test_select_with_taints(ursadb: UrsadbTestContext):
     check_query(ursadb, 'with taints ["test", "other"] "test"', [])
 
 
+def test_select_with_weird_filenames(ursadb: UrsadbTestContext):
+    weird_names = [
+        "hmm hmm",
+        "hmm \" ' hmm",
+        "hmm \\ hmm",
+        "hmm $(ls) $$ $shell hmm",
+        "hmm <> hmm"
+    ]
+    store_files(
+        ursadb, "gram3", {
+            name: b"test" for name in weird_names
+        },
+    )
+
+    check_query(ursadb, '"test"', weird_names)
+
+
 def test_select_with_datasets(ursadb: UrsadbTestContext):
     store_files(
         ursadb, "gram3", {"first": b"test",},

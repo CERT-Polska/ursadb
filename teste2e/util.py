@@ -166,6 +166,7 @@ def store_files(
         (tmpdir / name).write_bytes(value)
         filenames.append(str(tmpdir / name))
 
+    filenames = [f.replace('\\', '\\\\').replace('"', '\\"') for f in filenames]
     ursa_names = " ".join(f'"{f}"' for f in filenames)
 
     taints_mod = ""
@@ -189,6 +190,21 @@ def check_query(ursadb: UrsadbTestContext, query: str, expected: List[str]):
     for fpath in response["result"]["files"]:
         assert any(fpath.endswith(f"/{fname}") for fname in expected)
 
+    if "with taints" in query:
+        return
+
+    if "with datasets" in query:
+        return
+
+    response = ursadb.check_request(f"select into iterator {query};")
+    assert response["type"] == "select"
+    assert response["result"]["mode"] == "iterator"
+    it = response["result"]["iterator"]
+    files = ursadb.check_request(f'iterator "{it}" pop 999999999;')
+    assert len(files["result"]["files"]) == len(expected)
+
+    for fpath in files["result"]["files"]:
+        assert any(fpath.endswith(f"/{fname}") for fname in expected)
 
 def get_index_hash(ursadb: UrsadbTestContext, type: str) -> str:
     """ Tries to find sha256 hash of the provided index """
