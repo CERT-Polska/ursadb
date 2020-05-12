@@ -1,7 +1,7 @@
 # index types
 
 **TL;DR:** Use `[gram3, text4, wide8, hash4]` by default,
-`[gram3, text4, wide8, hash4]` if you want to save disk space.
+`[gram3, text4, wide8]` if you want to save disk space.
 
 Every [dataset](./datasets.md) consists of one or more indexes. All indexes
 contain the same files, but represent them in different ways to speed up different

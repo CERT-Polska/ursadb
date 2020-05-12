@@ -10,7 +10,7 @@ Created in [CERT.PL](https://cert.pl). Originally by Jarosław Jedynak ([tailcal
 
 See [installation instructions](./INSTALL.md)
 
-## Quick start
+## Quickstart
 
 1. Create new database:
 ```
@@ -30,18 +30,17 @@ $ ursacli
 ursadb>
 ```
 
-4. Index some files:
+4. [Index some files](./docs/indexing.md):
 ```
-ursadb> index "/opt/samples";
+ursadb> index "/opt/samples" with [gram3, text4, wide8, hash4];
 ```
 
-5. Now you can perform queries (e.g. match all files with three null bytes):
+5. Now you can perform queries. For example, match all files with three null bytes:
 ```
 ursadb> select {00 00 00};
 ```
 
-Check out the [syntax](./docs/syntax.md) section in documentation to learn more
-about available commands.
+Read the [syntax](./docs/syntax.md) documentation to learn more about available commands.
 
 ## Contact
 If you have any problems, bugs or feature requests related to UrsaDB, you're encouraged to create a GitHub issue. If you have other questions or want to contact the developers directly, you can email:
@@ -50,5 +49,5 @@ If you have any problems, bugs or feature requests related to UrsaDB, you're enc
 * Michał Leszczyński (monk@cert.pl)
 * CERT.PL (info@cert.pl)
 
-## Founding acknowledgement
+## Funding acknowledgement
 ![Co-financed by the Connecting Europe Facility by of the European Union](https://www.cert.pl/wp-content/uploads/2019/02/en_horizontal_cef_logo-1.png)

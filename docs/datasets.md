@@ -10,16 +10,16 @@ Dataset is a collection of one or more indexes (read also about
 ursadb understands, and most commands work on one or more datasets.
 For example, it's easy to remove a dataset from ursadb
 with `dataset "dataset_id" drop` command, but removing a single file from
-indexes in dataset is very hard (in fact, not implemented).
+an index (or dataset) is very hard (in fact, not implemented).
 
 ![](./dataset.png)
 
 When indexing new files, they are initially saved as very small datasets -
 usually smaller than 1000 files. That's because indexer can't fit more files
 in memory when indexing. But having too many small datasets is unhealthy for
-mquery. Querying 1000 or 10000 datasets has much more overhead than querying 10 ones.
+ursadb. Querying 1000 or 10000 datasets has much more overhead than querying 10 ones.
 
-In theory you can merge all your datasets into one (using `compact all;` command
+In theory, you can merge all your datasets into one (using `compact all;` command
 repeatedly). This will work, but it's not recommended. That's because
 queries on really huge datasets can consume a lot of RAM (especially with
 wildcards), and because you can't benefit from streaming partial results.
@@ -40,7 +40,7 @@ You can add tags when [indexing new files](./indexing.md), or with ursacli:
 
 ```
 ursacli
-ursadb> dataset "dataset_id" taint "tag_name"
+ursadb> dataset "dataset_id" taint "tag_name";
 ```
 
 For docker-compose deployments:
@@ -54,7 +54,7 @@ You can also remove them in the same way:
 
 ```
 ursacli
-ursadb> dataset "dataset_id" untaint "tag_name"
+ursadb> dataset "dataset_id" untaint "tag_name";
 ```
 
 ### adding and removing files
@@ -65,11 +65,14 @@ To remove a dataset, use ursacli:
 
 ```
 ursacli
-ursadb> dataset "dataset_id" drop
+ursadb> dataset "dataset_id" drop;
 ```
 
-Removing single files from indexes is not implemented. If you really need it,
-consider:
- - if all unnecessary files have similar filenames, use `RegexBlacklistPlugin` in mquery, for example to exclude all `pcap` files
- - drop appropriate dataset and reindex your collection without unnecessary files
- - submit a PR to ursadb, or at least create an issue and explain your problem
+Removal of single files from indexes is not implemented. If you accidentally indexed files you
+don't need anymore, your options are:
+
+ - keep them in the index, and ignore nonexistent files in query results
+ - if you use mquery, and all unnecessary files have similar filenames, use `RegexBlacklistPlugin`,
+   for example, set a filter to `[.]pcap$` to exclude all `.pcap` files.
+ - drop all affected datasets and reindex your collection without unnecessary files.
+ - submit a PR to ursadb, or at least create an issue and explain your problem.

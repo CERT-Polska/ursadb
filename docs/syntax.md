@@ -16,13 +16,22 @@ Available commands:
 - [`config get`](#config-get)
 - [`config set`](#config-set)
 
-All responses from the database use JSON format.
+All responses from the database use the JSON format.
 
 ## index
 
+Examples:
+
+- `index "/opt/something";`
+- `index "/opt/something" "/opt/foobar";`
+- `index "/opt/something" with [gram3, text4, hash4, wide8];`
+- `index from list "/tmp/file-list.txt";`
+- `index "/opt" with taints ["kot"];`
+- `index "/opt" nocheck;`
+
 ### basic indexing
 
-Directory can be indexed recursively with `index` command:
+A directory can be indexed recursively with `index` command:
 
 ```
 index "/opt/something";
@@ -40,7 +49,7 @@ By default, `gram3` index will be used (this is probably [not what you want](./i
 index "/opt/something" with [gram3, text4, hash4, wide8];
 ```
 
-### reading a list of files from file
+### read a list of files from file
 
 It's also possible to read a file containing a list of targets to be indexed,
 each one separated by a newline.
@@ -80,7 +89,7 @@ of this (for performance or other reasons) with `nocheck` modifier.
 index "/opt" nocheck
 ```
 
-Obviously care should be taken in this case.
+Of course, care should be taken in this case.
 
 ### Response format
 
@@ -103,12 +112,20 @@ Examples:
 - `select "abc" & "bcd";`
 - `select "abc" | "bcd";`
 - `select min 2 of ("abcd", "bcdf", "cdef");`
+- `select "a\x??c";`
+- `select {61 ?? 63};`
+- `select {61 3? 63};`
+- `select { (61 | 62 | 63) };`
+- `select with taints ["tag_name"] {11 22 33};`
+- `select with datasets ["tag_name"] {11 22 33};`
+- `select into iterator {11 22 33};`
+
 
 ### Strings ("primitives")
 
 Select queries can specify ordinary strings, hex strings and wide strings.
 
-Query for ASCII bytes `abc`:
+To find files with ASCII bytes `abc`:
 ```
 select "abc";
 ```
@@ -156,7 +173,7 @@ is equivalent to:
 select ("abcd" & "bcdf") | ("abcd" & "cdef") | ("bcdf" & "cdef");
 ```
 
-Note that `min N of (...)` is executed more efficiently than latter "combinatorial" example. Such syntax coresponds directly to yara's
+Note that `min N of (...)` is executed more efficiently than the latter "combinatorial" example. Such syntax corresponds directly to Yara's
 "[sets of strings](https://yara.readthedocs.io/en/v3.4.0/writingrules.html#sets-of-strings)" feature.
 
 This operator accepts arbitrary expressions as it's arguments, e.g.:
@@ -185,13 +202,13 @@ Wildcards can be partial:
 ```
 select "a\x3?c";
 # or
-select {61 3? 63;
+select {61 3? 63};
 ```
 
 You can also use alternatives (currently limited to a single byte):
 
 ```
-select { (61 | 62 | 63) }
+select { (61 | 62 | 63) };
 ```
 
 ### Filtering results
@@ -199,13 +216,13 @@ select { (61 | 62 | 63) }
 You might want to only select files in datasets with a certain tag:
 
 ```
-select with inta ["tag_name"] {11 22 33};
+select with taints ["tag_name"] {11 22 33};
 ```
 
 You can also select files in a certain dataset:
 
 ```
-select with datasets ["dataset_id"] {11 22 33}
+select with datasets ["dataset_id"] {11 22 33};
 ```
 
 ### Response format
@@ -225,11 +242,11 @@ select with datasets ["dataset_id"] {11 22 33}
 
 ## Select into
 
-When select result can be large, it's a good idea to save it to a temporary
+When a select result can be large, it's a good idea to save it to a temporary
 iterator:
 
 ```
-select into iterator {11 22 33}
+select into iterator {11 22 33};
 ```
 
 Files can be read later incrementally with `iterator pop` command.
@@ -253,7 +270,7 @@ Files can be read later incrementally with `iterator pop` command.
 Use to read iterator created with `iterator pop` command:
 
 ```
-iterator "iterator_id" pop 3
+iterator "iterator_id" pop 3;
 ```
 
 ### Response format
@@ -276,7 +293,7 @@ iterator "iterator_id" pop 3
 
 ## Status
 
-Query for the status of tasks running in the database:
+To check the status of tasks running in the database:
 ```
 status;
 ```
@@ -333,7 +350,7 @@ topology;
 
 ## Reindex
 
-Add new index type to the existing dataset.
+Add new index type to an existing dataset.
 
 For example:
 ```
@@ -357,20 +374,21 @@ will change the type of existing dataset `bc43a921` to [`gram3`, `hash4`].
 ## Compact
 Force database compacting.
 
-In order to force compacting of all datasets into a single one:
+To force compacting of all datasets into a single one:
 ```
 compact all;
 ```
 
-In order to force smart compact (database will decide which datasets do need compacting, if any):
+You can also let the database decide if it needs compacting or not
+(recommended option):
 ```
 compact smart;
 ```
 
 These commands will never create a dataset with more than `merge_max_files` files,
 and will never compact more than `merge_max_datasets` at once.
-To ensure that the database is in a true minimal state, you may need to run compact
-command multiple times.
+To ensure that the database is in a true minimal state, you may need to run
+the compact command multiple times.
 
 ### Response format
 

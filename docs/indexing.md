@@ -27,8 +27,12 @@ There are more variations of this command. For example you can:
  - Tag all indexed samples with arbitrary metadata.
  - Disable safety measures that protect you from indexing the same file twice.
 
-See [query syntax documentation](./syntax.md)
+See [query syntax documentation](./syntax.md#index)
 
 All indexing is part of a single transaction, so when the server crashes indexing
-will have to be restarted. To avoid this problem, use `util.index` script
-shipped with mquery.
+will have to be restarted. This is intentional - because of this it's always possible
+to tell which files have been indexed, and the database is in the consistend state.
+But it makes indexing really large collections harder.
+
+To avoid this problem, use `utils/index.py` script shipped with
+[mquery](https://github.com/CERT-Polska/mquery).
