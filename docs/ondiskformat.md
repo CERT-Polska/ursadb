@@ -1,16 +1,16 @@
-# on-disk format
+# On-disk format
 
 Ursadb tries to keep its on-disk format simple. There are 7 types of files:
 
-- [`dataset`](#dataset) file (json)
-- [`database`](#database) file (json)
-- [`index`](#index) file (binary)
-- [`names`](#names) file (plaintext)
-- [`namecache`](#namecache) file (binary)
-- [`itermeta`](#itermeta) file (json)
-- [`iterator`](#iterator) file (plaintext)
+- [`dataset`](#Dataset) file (json)
+- [`database`](#Database) file (json)
+- [`index`](#Index) file (binary)
+- [`names`](#Names) file (plaintext)
+- [`namecache`](#Namecache) file (binary)
+- [`itermeta`](#Itermeta) file (json)
+- [`iterator`](#Iterator) file (plaintext)
 
-## database
+## Database
 
 Contains references to all the other files in ursadb.
 If something is not (directly or indirectly) referenced from the database file,
@@ -33,9 +33,11 @@ Example:
 }
 ```
 
-## dataset
+## Dataset
 
 Contains all necesary information about a [dataset](./datasets.md).
+Most importantly, it contains references to all indexes in this dataset,
+and a list of filenames tracked by this dataset.
 
 Example:
 ```
@@ -49,7 +51,7 @@ Example:
 }
 ```
 
-## index
+## Index
 
 A binary file. Contains a header with this structure:
 
@@ -132,7 +134,7 @@ if __name__ == '__main__':
     parse(sys.argv[1])
 ```
 
-## names
+## Names
 
 Newline-separated list of filenames in the database. This file can be safely
 edited or changed with any editor, for example when moving the collection to a
@@ -141,7 +143,7 @@ different folder. It's only important to:
  - ensure the database is turned off
  - remove the namecache file later
 
-## namecache
+## Namecache
 
 Contains an array of `uint64_t` offsets in the `names` file.
 This is used to map file IDs to names for queries, without loading all the file
@@ -149,9 +151,9 @@ names into memory.
 If this file doesn't exist or was removed, it'll be regenerated when the database
 starts.
 
-## itermeta
+## Itermeta
 
-Contains information about position of a given iterator. For example:
+Contains information about the current position of a given iterator. For example:
 
 ```
 {
@@ -162,7 +164,7 @@ Contains information about position of a given iterator. For example:
 }
 ```
 
-## iterator
+## Iterator
 
 Newline-separated list of files returned by the specified iterator.
-`iterator pop` command will read filenames from this file and return them.
+`iterator pop` command will read filenames from this file in order and return them.

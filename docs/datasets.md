@@ -3,10 +3,10 @@
 **TL;DR:** Every dataset represents a collection of indexed files. Datasets can be
 tagged and merged. Avoid too small datasets (<1000 files) or too many datasets (>100).
 
-Internally all files are indexed by ursadb and stored in datasets.
+Internally ursadb keeps track of all indexed files using datasets.
 
 Dataset is a collection of one or more indexes (read also about
-[index types](./indextypes.md)) It's the smallest collection of files
+[index types](./indextypes.md)). It's the smallest collection of files
 ursadb understands, and most commands work on one or more datasets.
 For example, it's easy to remove a dataset from ursadb
 with `dataset "dataset_id" drop` command, but removing a single file from
@@ -26,7 +26,7 @@ wildcards), and because you can't benefit from streaming partial results.
 Empirically, 1M files per dataset is a good upper limit, but historically we've
 used datasets with many millions of samples and they work correctly.
 
-### tags
+### Tags
 
 Datasets can be marked with arbitrary tags. Datasets with different tags will
 never merge with each other. Uses for tags that you may consider:
@@ -36,7 +36,8 @@ never merge with each other. Uses for tags that you may consider:
 - add `tlp:white` tags for public samples, to easily find publicly accessible
     instances of the sample you're interested in.
 
-You can add tags when [indexing new files](./indexing.md), or with ursacli:
+You can add tags when [indexing new files](./indexing.md), or with ursacli, using
+`taint` subcommand of `dataset`.
 
 ```
 ursacli
@@ -50,14 +51,14 @@ For docker-compose deployments:
 docker-compoes exec ursadb ursacli -c 'dataset "dataset_id" taint "tag_name";'
 ```
 
-You can also remove them in the same way:
+You can also remove them in the same way, using `untaint`:
 
 ```
 ursacli
 ursadb> dataset "dataset_id" untaint "tag_name";
 ```
 
-### adding and removing files
+### Add and remove files
 
 To add dataset with new files, [index them](./indexing.md).
 

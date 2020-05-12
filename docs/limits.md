@@ -1,4 +1,4 @@
-# limits
+# Limits
 
 There are not many hard limits in ursadb:
 

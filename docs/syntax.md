@@ -18,6 +18,31 @@ Available commands:
 
 All responses from the database use the JSON format.
 
+Additionally, all successful commands return response in the following format:
+
+```json
+{
+    "result": {
+        // json with type-specific information
+    },
+    "type": "result-type"
+}
+```
+
+All failed commands return response in the following format:
+
+```json
+{
+    // "message" key, instead of "result".
+    "message": "Human-readable error message",
+    // True if it makes sense to retry the same command later,
+    // for example when lock was denied.
+    "retry": false,
+    // Type is always "error"
+    "type": "error"
+}
+```
+
 ## index
 
 Examples:
@@ -93,7 +118,7 @@ Of course, care should be taken in this case.
 
 ### Response format
 
-```
+```json
 {
     "result": {
         "status": "ok"
@@ -227,7 +252,7 @@ select with datasets ["dataset_id"] {11 22 33};
 
 ### Response format
 
-```
+```json
 {
     "result": {
         "files": [
@@ -253,7 +278,7 @@ Files can be read later incrementally with `iterator pop` command.
 
 ### Response format
 
-```
+```json
 {
     "result": {
         "file_count": 50402,
@@ -275,7 +300,7 @@ iterator "iterator_id" pop 3;
 
 ### Response format
 
-```
+```json
 {
     "result": {
         "files": [
@@ -300,7 +325,7 @@ status;
 
 ### Response format
 
-```
+```json
 {
     "result": {
         "tasks": [
@@ -327,7 +352,7 @@ topology;
 
 ### Response format
 
-```
+```json
 {
     "result": {
         "datasets": {
@@ -361,7 +386,7 @@ will change the type of existing dataset `bc43a921` to [`gram3`, `hash4`].
 
 ### Response format
 
-```
+```json
 {
     "result": {
         "status": "ok"
@@ -392,7 +417,7 @@ the compact command multiple times.
 
 ### Response format
 
-```
+```json
 {
     "result": {
         "status": "ok"
@@ -411,7 +436,7 @@ dataset "dataset_id" taint "tag_name";
 
 ### Response format
 
-```
+```json
 {
     "result": {
         "status": "ok"
@@ -430,7 +455,7 @@ dataset "dataset_id" untaint "tag_name";
 
 ### Response format
 
-```
+```json
 {
     "result": {
         "status": "ok"
@@ -449,7 +474,7 @@ dataset "dataset_id" drop "tag_name";
 
 ### Response format
 
-```
+```json
 {
     "result": {
         "status": "ok"
@@ -468,7 +493,7 @@ config set "merge_max_files" 10000000;
 
 ### Response format
 
-```
+```json
 {
     "result": {
         "status": "ok"
@@ -499,7 +524,7 @@ config get
 
 ### Response format
 
-```
+```json
 {
     "result": {
         "keys": {

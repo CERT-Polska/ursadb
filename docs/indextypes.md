@@ -1,4 +1,4 @@
-# index types
+# Index types
 
 **TL;DR:** Use `[gram3, text4, wide8, hash4]` by default,
 `[gram3, text4, wide8]` if you want to save disk space.
@@ -15,16 +15,14 @@ kinds of searches. Currently there are four types implemented:
 More indexes means more accurate results, but indexing will take longer, and more disk will be used.
 
  - `gram3` is the most basic and important index, it should be used in all situations.
- - `text4` and `wide8` indexes are wery useful for textual data. They improve
-    a lot of yara searches a lot and they don't need a lot of space, so they are
-    almost always a good idea.
- - `hash4` is the most complicated. It's not strictly necessary, and ursadb will work
+ - `text4` and `wide8` indexes are wery useful for textual data. They don't need
+    a lot of space and improve results significantly, so they are almost always a good idea.
+ - `hash4` is the most complicated type. It's not strictly necessary, and ursadb will work
     without it smoothly. But if you have enough disk space and can afford extra
     processing time, it'll reduce the number of false positives (and, in turn, make
     ursadb faster).
 
-
-## details
+## Details
 
 ### gram3 index
 

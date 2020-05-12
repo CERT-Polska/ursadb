@@ -17,8 +17,11 @@ nix-env -i ursadb
 
 ## From dockerhub
 
+Change [index_dir] and [samples_dir] to paths on your filesystem where you want to keep
+index and samples.
+
 ```
-sudo docker run certpl/ursadb
+sudo docker run -v [index_dir]:/var/lib/ursadb:rw -v [samples_dir]:/mnt/samples certpl/ursadb
 ```
 
 ## From dockerfile
@@ -26,7 +29,7 @@ sudo docker run certpl/ursadb
 ```
 git clone https://github.com/CERT-Polska/ursadb.git
 sudo docker image build -t ursadb .
-sudo docker run ursadb
+sudo docker run -v [index_dir]:/var/lib/ursadb:rw -v [samples_dir]:/mnt/samples ursadb
 ```
 
 ## From source
