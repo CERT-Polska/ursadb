@@ -1,3 +1,49 @@
+# Version 1.4.0
+
+One of the bigger releases since the initial version.
+
+### New features
+
+#### QueryGraphs
+
+A big rework of how queries work under the hood. Doesn't change anything at
+the first sight, but they make a lot of more comples optimisations possible.
+Thanks to this, wildcard queries finally become practical.
+[Marvel at their beauty](https://github.com/CERT-Polska/ursadb/blob/71516482bca89d288299fc9b74fa13f04fb53282/libursa/QueryGraph.h)
+
+#### Syntax extensions and new commands
+
+- `nocheck` modifier for index.
+- `select with datasets` filter for select.
+- `index with taints` index and then tag immediately.
+- Alternatives (`(11 | 22 | 33)`) syntax added for selects.
+- `select` now returns performance counters along with results (this is currently
+    intentionally undocumented, and may be subject to change).
+- `drop dataset` command.
+- `config get` and `config set` commands - together with four configuration
+    variables that make the database configurable.
+
+#### Ursacli improvements
+
+- Special treatment of `status` and `topology` commands.
+
+### Performance
+
+- Namecache files are not removed and are referenced in datasets now - so they
+    don't have to be regenerated every time, which makes database (re)start faster.
+- Number of database workers is now tuneable with configuration (`database_workers`)
+
+### Bugfixes
+
+- Bump rlimit when starting mquery to a much higher value. By default linux tries
+    to constrain our database to meagre 1000 files, can you believe that?
+
+### Code quality, tests and CI
+
+- Coverity added to tools used to scan the code.
+- A lot of tests added - including end2end tests that were previously missing.
+- [Documentation](./docs/) added and extended.
+
 # Version 1.3.2
 
 ### Bugfixes
