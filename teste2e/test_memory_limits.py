@@ -24,7 +24,7 @@ def test_no_oom(ursadb: UrsadbTestContext) -> None:
 
 @pytest.mark.parametrize(
     "ursadb",
-    [UrsadbConfig(rlimit_ram=1 * 1024 * 1024 * 1024)],
+    [UrsadbConfig(rlimit_ram=512 * 1024 * 1024)],
     indirect=["ursadb"],
 )
 def test_oom_no_crash(ursadb: UrsadbTestContext) -> None:

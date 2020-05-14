@@ -11,11 +11,10 @@
 #include "spdlog/spdlog.h"
 
 [[noreturn]] void WorkerContext::operator()() {
-    zmq::context_t context(1);
-    zmq::socket_t worker(context, ZMQ_REQ);
+    zmq::socket_t worker(*context, ZMQ_REQ);
 
     worker.setsockopt(ZMQ_IDENTITY, identity.c_str(), identity.length());
-    worker.connect("ipc://backend.ipc");
+    worker.connect("inproc://ursadb-backend");
 
     //  Tell backend we're ready for work
     s_send<NetAction>(&worker, NetAction::Ready);
@@ -48,8 +47,8 @@ void NetworkService::run() {
     uint64_t num_workers = db.config().get(ConfigKey::database_workers());
     for (uint64_t worker_no = 0; worker_no < num_workers; worker_no++) {
         std::string identity = std::to_string(worker_no);
-        wctxs[identity] =
-            std::make_unique<WorkerContext>(identity, db.snapshot(), nullptr);
+        wctxs[identity] = std::make_unique<WorkerContext>(
+            &context, identity, db.snapshot(), nullptr);
         std::thread thread(std::ref(*wctxs[identity].get()));
         thread.detach();
     }

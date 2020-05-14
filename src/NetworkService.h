@@ -29,11 +29,13 @@ class WorkerContext {
    public:
     std::string identity;
     DatabaseSnapshot snap;
+    zmq::context_t *context;
     std::optional<Task> task;
 
     WorkerContext(const WorkerContext &) = delete;
-    WorkerContext(std::string identity, DatabaseSnapshot &&snap, TaskSpec *task)
-        : identity(identity), snap(std::move(snap)) {
+    WorkerContext(zmq::context_t *context, std::string identity,
+                  DatabaseSnapshot &&snap, TaskSpec *task)
+        : identity(identity), snap(std::move(snap)), context(context) {
         if (task != nullptr) {
             this->task = std::make_optional<Task>(task);
         }
@@ -67,7 +69,7 @@ class NetworkService {
           frontend(context, ZMQ_ROUTER),
           backend(context, ZMQ_ROUTER) {
         frontend.bind(bind_address);
-        backend.bind("ipc://backend.ipc");
+        backend.bind("inproc://ursadb-backend");
     }
     [[noreturn]] void run();
 };
