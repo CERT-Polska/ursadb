@@ -86,7 +86,7 @@ class ConfigKey {
     // but currently we recommend to stay on the safe side and don't create
     // datasets larger than 1 million files.
     const static ConfigKey merge_max_files() {
-        return ConfigKey("merge_max_files", 1024 * 1024 * 1024, 1, 4294967295);
+        return ConfigKey("merge_max_files", 2 * 1024 * 1024, 1, 4294967295);
     }
 
     // Compares two ConfigKey instances for equality.
