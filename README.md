@@ -49,6 +49,10 @@ More documentation can be found in the [docs](./docs/) directory.
 You can also read the hosted version here:
 [cert-polska.github.io/ursadb/docs](https://cert-polska.github.io/ursadb/docs).
 
+## Changelog
+
+See the [list of releases](./RELEASES.md).
+
 ## Contact
 If you have any problems, bugs or feature requests related to UrsaDB, you're encouraged to create a GitHub issue. If you have other questions or want to contact the developers directly, you can email:
 
