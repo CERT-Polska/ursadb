@@ -3,7 +3,9 @@
 bool s_send_raw(zmq::socket_t *socket, std::string_view payload,
                 int flags = 0) {
     zmq::message_t message(payload.size());
-    ::memcpy(message.data(), payload.data(), payload.size());
+    if (payload.size()) {
+        ::memcpy(message.data(), payload.data(), payload.size());
+    }
     return socket->send(message, flags);
 }
 
