@@ -103,8 +103,8 @@ loaded dataset consumes a bit over 128MiB. Increasing this number makes
 compacting huge datasets faster, but may run out of ram.
 Recommendation: merge_max_datasets * 128MiB can safely be set to around
 1/4 of RAM dedicated to the database, so for example 8 for 4GiB server
-or 32 for 16GiB server.
-
+or 32 for 16GiB server. Increasing past 10 gives diminishing returns, so
+unless you have a lot of free RAM you can leave it at default.
 
 ### merge_max_files
 
