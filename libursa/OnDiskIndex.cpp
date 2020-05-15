@@ -138,7 +138,7 @@ void OnDiskIndex::on_disk_merge_core(
 
     // Arbitrary number describing how much RAM we want to spend on the run
     // cache during the batched stream pass.
-    constexpr uint64_t MAX_BATCH_BYTES = 2ULL * 1024ULL * 1024ULL * 1024ULL;
+    constexpr uint64_t MAX_BATCH_BYTES = 1024ULL * 1024ULL * 1024ULL;
 
     // Vector used for all merge passes (to avoid unnecessary reallocations).
     std::vector<uint8_t> batch_vector(MAX_BATCH_BYTES);
