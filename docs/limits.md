@@ -11,10 +11,19 @@ These are all absurdly large. But there are other factors: RAM, disk space and C
 
 ## Soft limits
 
+- Disk space - 70% or 140% of collection size.
+- RAM (querying) - `max(8 * dataset.number_of_files for each dataset) bytes`.
+- RAM (compacting) - `4GiB` per operation by default (can run multiple at once).
+- RAM (indexing) - assume `4GiB` when indexing in small (<1000 files) batches.
+- CPU and time - a lot, but still faster than running Yara directly. 
+- Others - may open many files at once, but usually under 100.
+
+For more detailed calculations, read below.
+
 **Disk space**
 
-See documentation about [index types](./indextypes.md). In our collections
-, combined size of all indexes except `hash4` is about 70% of indexed
+See documentation about [index types](./indextypes.md). In our collections,
+combined size of all indexes except `hash4` is about 70% of indexed
 files, and `hash4` index takes another 70% if used. For example, 630 GiB of
 indexed malware, resulted in the following indexes:
 
