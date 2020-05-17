@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.9)
 project(
     ursadb
-    VERSION 1.3.2
+    VERSION 1.4.0
     LANGUAGES CXX C
 )
 
