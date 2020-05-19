@@ -34,6 +34,17 @@ def test_indexing_big(ursadb: UrsadbTestContext):
     check_query(ursadb, '":hmm:"', [])
 
 
+def test_indexing_list(ursadb: UrsadbTestContext):
+    tmpdir = ursadb.tmpdir()
+    (tmpdir / "test").mkdir()
+    (tmpdir / "test" / "file").write_bytes(b"asdfgh")
+
+    (tmpdir / "list.txt").write_text(str(tmpdir / "test"))
+
+    ursadb.check_request(f"index from list \"{str(tmpdir / 'list.txt')}\";")
+    check_query(ursadb, '"asdfgh"', ["file"])
+
+
 def test_gram3_index_works_as_expected(ursadb: UrsadbTestContext):
     store_files(
         ursadb,
