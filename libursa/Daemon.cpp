@@ -85,10 +85,11 @@ Response execute_command(const IndexFromCommand &cmd, Task *task,
     }
 
     if (cmd.ensure_unique()) {
-        snap->index_files(task, cmd.get_index_types(), cmd.taints(), paths);
+        snap->recursive_index_paths(task, cmd.get_index_types(), cmd.taints(),
+                                    paths);
     } else {
-        snap->force_index_files(task, cmd.get_index_types(), cmd.taints(),
-                                paths);
+        snap->force_recursive_index_paths(task, cmd.get_index_types(),
+                                          cmd.taints(), paths);
     }
 
     return Response::ok();
