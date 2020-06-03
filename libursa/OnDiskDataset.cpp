@@ -64,19 +64,27 @@ std::string OnDiskDataset::get_file_name(FileId fid) const {
     return files_index->get_file_name(fid);
 }
 
-QueryResult OnDiskDataset::query(const QueryGraphCollection &graphs,
+QueryResult OnDiskDataset::query(const Query &query,
                                  QueryCounters *counters) const {
-    QueryResult result = QueryResult::everything();
-    for (auto &ndx : indices) {
-        auto subresult{ndx.query(graphs.get(ndx.index_type()), counters)};
-        result.do_and(subresult, &counters->ands());
-    }
-    return result;
+    return query.run(
+        [this](auto &graphs, QueryCounters *counters) {
+            QueryResult result = QueryResult::everything();
+            for (auto &ndx : indices) {
+                if (graphs.count(ndx.index_type()) == 0) {
+                    throw std::runtime_error("Unexpected graph type in query");
+                }
+                auto subresult{
+                    ndx.query(graphs.at(ndx.index_type()), counters)};
+                result.do_and(subresult, &counters->ands());
+            }
+            return result;
+        },
+        counters);
 }
 
-void OnDiskDataset::execute(const QueryGraphCollection &graphs,
-                            ResultWriter *out, QueryCounters *counters) const {
-    QueryResult result = query(graphs, counters);
+void OnDiskDataset::execute(const Query &query, ResultWriter *out,
+                            QueryCounters *counters) const {
+    QueryResult result = this->query(query, counters);
     if (result.is_everything()) {
         files_index->for_each_filename(
             [&out](const std::string &fname) { out->push_back(fname); });
@@ -295,23 +303,4 @@ std::vector<const OnDiskDataset *> OnDiskDataset::get_compact_candidates(
     }
 
     return out;
-}
-
-QueryGraphCollection::QueryGraphCollection(
-    const Query &query, const std::unordered_set<IndexType> &types,
-    const DatabaseConfig &config) {
-    graphs_.reserve(types.size());
-    for (const auto type : types) {
-        graphs_.emplace(type, std::move(query.to_graph(type, config)));
-    }
-}
-
-const QueryGraph &QueryGraphCollection::get(IndexType type) const {
-    const auto it = graphs_.find(type);
-    if (it == graphs_.end()) {
-        throw std::runtime_error(
-            "QueryGraphCollection doesn't contain a graph of the requested "
-            "type");
-    }
-    return it->second;
 }

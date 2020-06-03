@@ -67,7 +67,17 @@ const QString &Query::as_value() const {
     return value;
 }
 
-std::string Query::as_string_repr() const { return "[primitive]"; }
+std::string Query::as_string_repr() const {
+    std::string out = "";
+    for (const auto &token : value) {
+        if (token.num_possible_values() == 1) {
+            out += token.possible_values()[0];
+        } else {
+            out += "?";
+        }
+    }
+    return out;
+}
 
 Query q(QString &&qstr) { return Query(std::move(qstr)); }
 
@@ -197,39 +207,50 @@ QueryGraph to_query_graph(const QString &str, int size,
     return result;
 }
 
-QueryGraph Query::to_graph(IndexType ntype,
-                           const DatabaseConfig &config) const {
+void Query::precompute(const std::unordered_set<IndexType> &types_to_query,
+                       const DatabaseConfig &config) {
     if (type == QueryType::PRIMITIVE) {
-        TokenValidator validator = get_validator_for(ntype);
-        size_t input_len = get_ngram_size_for(ntype);
-        return to_query_graph(value, input_len, config, validator);
+        value_graphs.clear();
+        for (const auto &ntype : types_to_query) {
+            TokenValidator validator = get_validator_for(ntype);
+            size_t input_len = get_ngram_size_for(ntype);
+            auto graph{to_query_graph(value, input_len, config, validator)};
+            value_graphs.emplace(ntype, std::move(graph));
+        }
+    } else {
+        for (auto &query : queries) {
+            query.precompute(types_to_query, config);
+        }
     }
+}
 
-    if (type == QueryType::AND) {
-        QueryGraph result;
+QueryResult Query::run(const QueryPrimitive &primitive,
+                       QueryCounters *counters) const {
+    if (type == QueryType::PRIMITIVE) {
+        return primitive(value_graphs, counters);
+    } else if (type == QueryType::AND) {
+        auto result = QueryResult::everything();
         for (const auto &query : queries) {
-            result.and_(query.to_graph(ntype, config));
+            result.do_and(query.run(primitive, counters), &counters->ands());
         }
         return result;
-    }
-
-    if (type == QueryType::OR) {
-        if (queries.empty()) {
-            return QueryGraph();
-        }
-        QueryGraph result = std::move(queries[0].to_graph(ntype, config));
-        for (size_t i = 1; i < queries.size(); i++) {
-            result.or_(queries[i].to_graph(ntype, config));
+    } else if (type == QueryType::OR) {
+        auto result = QueryResult::empty();
+        for (const auto &query : queries) {
+            result.do_or(query.run(primitive, counters), &counters->ors());
         }
         return result;
-    }
-
-    if (type == QueryType::MIN_OF) {
-        std::vector<QueryGraph> subgraphs;
+    } else if (type == QueryType::MIN_OF) {
+        std::vector<QueryResult> results;
+        std::vector<const QueryResult *> results_ptrs;
+        results.reserve(queries.size());
+        results_ptrs.reserve(queries.size());
         for (const auto &query : queries) {
-            subgraphs.emplace_back(query.to_graph(ntype, config));
+            results.emplace_back(query.run(primitive, counters));
+            results_ptrs.emplace_back(&results.back());
         }
-        return QueryGraph::min_of(count, std::move(subgraphs));
+        return QueryResult::do_min_of(count, results_ptrs, &counters->minofs());
+    } else {
+        throw std::runtime_error("Unexpected query type");
     }
-    throw std::runtime_error("Unknown query type.");
 }

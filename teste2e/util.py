@@ -7,7 +7,7 @@ import os
 import resource
 from pathlib import Path
 import pytest
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Union
 import zmq
 import hashlib
 import shutil
@@ -153,7 +153,7 @@ def match_pattern(value: Any, pattern: Any):
 
 def store_files(
     ursadb: UrsadbTestContext,
-    type: str,
+    type: Union[str, List[str]],
     data: Dict[str, bytes],
     expect_error: bool = False,
     taints: List[str] = [],
@@ -166,17 +166,23 @@ def store_files(
         (tmpdir / name).write_bytes(value)
         filenames.append(str(tmpdir / name))
 
-    filenames = [f.replace('\\', '\\\\').replace('"', '\\"') for f in filenames]
+    filenames = [f.replace("\\", "\\\\").replace('"', '\\"') for f in filenames]
     ursa_names = " ".join(f'"{f}"' for f in filenames)
 
     taints_mod = ""
     if taints:
-        taint_list = ','.join(f'"{t}"' for t in taints)
+        taint_list = ",".join(f'"{t}"' for t in taints)
         taints_mod = f" with taints [{taint_list}]"
 
-    res = ursadb.request(f"index {ursa_names} with [{type}]{taints_mod};")
+    if isinstance(type, str):
+        types = f"[{type}]"
+    else:
+        types = "[" + ", ".join(type) + "]"
+
+    query = f"index {ursa_names} with {types}{taints_mod};"
+    res = ursadb.request(query)
     if ("error" in res) != expect_error:
-        print(f"index {ursa_names} with [{type}]{taints_mod};")
+        print(query)
         print(res)
         assert False
 
@@ -185,6 +191,10 @@ def check_query(ursadb: UrsadbTestContext, query: str, expected: List[str]):
     response = ursadb.check_request(f"select {query};")
     assert response["type"] == "select"
     assert response["result"]["mode"] == "raw"
+    if len(response["result"]["files"]) != len(expected):
+        print("length mismatch")
+        print(response["result"]["files"])
+        print(expected)
     assert len(response["result"]["files"]) == len(expected)
 
     for fpath in response["result"]["files"]:
@@ -205,6 +215,7 @@ def check_query(ursadb: UrsadbTestContext, query: str, expected: List[str]):
 
     for fpath in files["result"]["files"]:
         assert any(fpath.endswith(f"/{fname}") for fname in expected)
+
 
 def get_index_hash(ursadb: UrsadbTestContext, type: str) -> str:
     """ Tries to find sha256 hash of the provided index """
