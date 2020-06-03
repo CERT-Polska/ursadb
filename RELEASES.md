@@ -1,3 +1,13 @@
+# Version 1.4.1
+
+Bugfix release
+
+### Bugfixes
+
+- Handle `index from list` command properly when the target is a directory
+- Improve performance for `wide ascii` queries (more generally, for alternatives).
+
+
 # Version 1.4.0
 
 One of the bigger releases since the initial version.
