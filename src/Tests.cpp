@@ -52,12 +52,10 @@ QString mqs(const std::string &str) {
     return out;
 }
 
-QueryGraph mqg(const std::string &str, IndexType type) {
-    QString out;
-    for (const auto &c : str) {
-        out.emplace_back(QToken::single(c));
-    }
-    return q(std::move(out)).to_graph(type, DatabaseConfig());
+QueryGraph mqg(const std::string &str, IndexType ntype) {
+    TokenValidator validator = get_validator_for(ntype);
+    size_t input_len = get_ngram_size_for(ntype);
+    return to_query_graph(mqs(str), input_len, DatabaseConfig(), validator);
 }
 
 TEST_CASE("packing 3grams", "[internal]") {

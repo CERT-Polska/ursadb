@@ -26,11 +26,6 @@ class OnDiskIndex {
     std::vector<FileId> query_primitive(TriGram trigram,
                                         QueryCounter *counter) const;
     std::pair<uint64_t, uint64_t> get_run_offsets(TriGram trigram) const;
-    bool internal_expand(QString::const_iterator qit, uint8_t *out, size_t pos,
-                         size_t comb_len, const TrigramGenerator &gen,
-                         QueryResult &res) const;
-    QueryResult expand_wildcards(const QString &qstr, size_t len,
-                                 const TrigramGenerator &gen) const;
 
     static void on_disk_merge_core(const std::vector<IndexMergeHelper> &indexes,
                                    RawFile *out, TaskSpec *task);

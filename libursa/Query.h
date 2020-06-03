@@ -1,22 +1,41 @@
 #pragma once
 
+#include <functional>
 #include <ostream>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "DatabaseConfig.h"
 #include "QString.h"
 #include "QueryGraph.h"
+#include "QueryResult.h"
 #include "Utils.h"
 
-enum QueryType { PRIMITIVE = 1, AND = 2, OR = 3, MIN_OF = 4 };
+enum class QueryType { PRIMITIVE = 1, AND = 2, OR = 3, MIN_OF = 4 };
+
+using QueryPrimitive = std::function<QueryResult(
+    const std::unordered_map<IndexType, QueryGraph> &, QueryCounters *counter)>;
 
 class Query {
+   private:
+    Query(const Query &other)
+        : type(other.type), value_graphs(), count(other.count) {
+        queries.reserve(other.queries.size());
+        for (const auto &query : other.queries) {
+            queries.emplace_back(query.clone());
+        }
+        value.reserve(other.value.size());
+        for (const auto &token : other.value) {
+            value.emplace_back(token.clone());
+        }
+    }
+
    public:
     explicit Query(QString &&qstr);
     explicit Query(uint32_t count, std::vector<Query> &&queries);
     explicit Query(const QueryType &type, std::vector<Query> &&queries);
-    Query(const Query &other) = delete;
     Query(Query &&other) = default;
 
     const std::vector<Query> &as_queries() const;
@@ -26,14 +45,22 @@ class Query {
     const QueryType &get_type() const;
     bool operator==(const Query &other) const;
 
-    // Converts this instance of Query to equivalent QueryGraph.
-    QueryGraph to_graph(IndexType ntype, const DatabaseConfig &config) const;
+    QueryResult run(const QueryPrimitive &primitive,
+                    QueryCounters *counters) const;
+    void precompute(const std::unordered_set<IndexType> &types_to_query,
+                    const DatabaseConfig &config);
+
+    Query clone() const { return Query(*this); }
 
    private:
     QueryType type;
-    uint32_t count;              // used for QueryType::MIN_OF
-    QString value;               // used for QueryType::PRIMITIVE
-    std::vector<Query> queries;  // used for QueryType::AND/OR
+    // used for QueryType::PRIMITIVE
+    QString value;
+    std::unordered_map<IndexType, QueryGraph> value_graphs;
+    // used for QueryType::MIN_OF
+    uint32_t count;
+    // used for QueryType::AND/OR/MIN_OF
+    std::vector<Query> queries;
 };
 
 // Creates a literal query. Literals can contain wildcards and alternatives.

@@ -15,17 +15,6 @@
 #include "ResultWriter.h"
 #include "Task.h"
 
-class QueryGraphCollection {
-    std::unordered_map<IndexType, QueryGraph> graphs_;
-
-   public:
-    QueryGraphCollection(const Query &query,
-                         const std::unordered_set<IndexType> &types,
-                         const DatabaseConfig &config);
-
-    const QueryGraph &get(IndexType type) const;
-};
-
 class OnDiskDataset {
     std::string name;
     fs::path db_base;
@@ -37,8 +26,7 @@ class OnDiskDataset {
         return taints == other.taints;
     }
     std::string get_file_name(FileId fid) const;
-    QueryResult query(const QueryGraphCollection &graphs,
-                      QueryCounters *counters) const;
+    QueryResult query(const Query &query, QueryCounters *counters) const;
     const OnDiskIndex &get_index_with_type(IndexType index_type) const;
     void drop_file(const std::string &fname) const;
 
@@ -54,7 +42,7 @@ class OnDiskDataset {
     }
     void toggle_taint(const std::string &taint);
     bool has_all_taints(const std::set<std::string> &taints) const;
-    void execute(const QueryGraphCollection &graphs, ResultWriter *out,
+    void execute(const Query &query, ResultWriter *out,
                  QueryCounters *counters) const;
     uint64_t get_file_count() const { return files_index->get_file_count(); }
     void for_each_filename(std::function<void(const std::string &)> cb) const {
