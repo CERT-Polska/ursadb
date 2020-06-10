@@ -1,3 +1,11 @@
+# Version 1.4.2 (2020-06-10)
+
+Bugfix release
+
+### Bugfixes
+
+- Handle `min ... of` correctly when reducing to `and` (#157).
+
 # Version 1.4.1
 
 Bugfix release
@@ -6,7 +14,6 @@ Bugfix release
 
 - Handle `index from list` command properly when the target is a directory
 - Improve performance for `wide ascii` queries (more generally, for alternatives).
-
 
 # Version 1.4.0
 
