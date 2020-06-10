@@ -45,25 +45,20 @@ QueryResult QueryResult::do_min_of_real(
         return QueryResult::empty();
     }
 
-    // Special case optimisation for cutoff==1 and a single source.
-    if (cutoff == 1 && nontrivial_sources.size() == 1) {
-        return QueryResult(nontrivial_sources[0]->clone());
-    }
-
     // Special case optimisation - reduction to AND.
     if (cutoff == static_cast<int>(nontrivial_sources.size())) {
-        QueryResult out{QueryResult::everything()};
-        for (const auto &src : nontrivial_sources) {
-            out.results.do_and(*src);
+        QueryResult out{nontrivial_sources[0]->clone()};
+        for (int i = 1; i < nontrivial_sources.size(); i++) {
+            out.results.do_and(*nontrivial_sources[i]);
         }
         return out;
     }
 
     // Special case optimisation - reduction to OR.
     if (cutoff == 1) {
-        QueryResult out{QueryResult::empty()};
-        for (const auto &src : nontrivial_sources) {
-            out.results.do_or(*src);
+        QueryResult out{nontrivial_sources[0]->clone()};
+        for (int i = 1; i < nontrivial_sources.size(); i++) {
+            out.results.do_or(*nontrivial_sources[i]);
         }
         return out;
     }
