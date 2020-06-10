@@ -43,6 +43,12 @@ def test_select_with_datasets(ursadb: UrsadbTestContext):
     check_query(ursadb, f'with datasets ["{dsname}"] "test"', ["first"])
 
 
+def test_select_minof(ursadb: UrsadbTestContext):
+    store_files(ursadb, "gram3", {"aaaa": b"aaaa", "aaab": b"aaab", "aaac": b"aaac"})
+
+    check_query(ursadb, f'min 2 of ("aaa", "aab")', ["aaab"])
+
+
 def test_select_ascii_wide(ursadb: UrsadbTestContext):
     # ensure that `ascii wide` strings don't produce too large results
     store_files(
