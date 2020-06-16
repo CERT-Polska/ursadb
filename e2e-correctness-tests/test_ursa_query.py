@@ -4,31 +4,40 @@ import json
 import os
 import logging
 
+current_path = os.path.abspath(os.path.dirname(__file__))
+testdir = current_path + "/testdata/"
+
 
 class TestUrsaQuery(unittest.TestCase):
     def test_ursa_query(self):
-        logging.info("Create files")
-        with open("/mnt/samples/file1.txt", "w") as f:
-            f.write("hello")
-        with open("/mnt/samples/file2.txt", "w") as f:
-            f.write("hello")
+
+        ursa_query_files = [f for f in os.listdir(testdir)]
 
         context = zmq.Context()
         socket = context.socket(zmq.REQ)
-        socket.connect("tcp://ursadb:9281")
-
+        logging.info("Connecting...")
+        socket.connect("tcp://0.0.0.0:9281")
+        logging.info("Connected...")
         socket.send_string(
-            'index "/mnt/samples" with [gram3, text4, hash4, wide8];'
+            'index "/opt/samples" with [gram3, text4, hash4, wide8];'
         )
-        assert json.loads(socket.recv_string()).get("result").get("status") == "ok"
 
-        socket2 = context.socket(zmq.REQ)
-        socket2.connect("tcp://ursadb:9281")
-        socket2.send_string(
-            'select {68656c6c6f};'
-        )
-        resp = json.loads(socket2.recv_string()).get("result").get("files")
-        logging.info(resp)
+        assert json.loads(socket.recv_string()).get("result").get("status") == "ok"
+        logging.info("Files indexed.")
+
+        for file in ursa_query_files:
+            with open(testdir + file) as f:
+                data = f.read()
+
+            socket.send_string(
+                data
+            )
+            logging.info("Query made.")
+            logging.info(data)
+            resp = json.loads(socket.recv_string()).get("result").get("files")
+            logging.info(resp)
+            assert len(resp) == 1
+            assert file in resp[0]
 
 
 if __name__ == "__main__":
