@@ -15,7 +15,7 @@ class TestUrsaQuery(unittest.TestCase):
 
         context = zmq.Context()
         socket = context.socket(zmq.REQ)
-        logging.info("Connecting...")
+        logging.info("Connecting to UrsaDB...")
         socket.connect("tcp://0.0.0.0:9281")
         logging.info("Connected...")
         socket.send_string(
@@ -23,21 +23,30 @@ class TestUrsaQuery(unittest.TestCase):
         )
 
         assert json.loads(socket.recv_string()).get("result").get("status") == "ok"
-        logging.info("Files indexed.")
-
-        for file in ursa_query_files:
-            with open(testdir + file) as f:
+        failures = []
+        for query_file in ursa_query_files:
+            logging.info("Query for: " + str(query_file))
+            with open(testdir + query_file) as f:
                 data = f.read()
 
+            logging.info("Query: " + str(data))
             socket.send_string(
                 data
             )
-            logging.info("Query made.")
-            logging.info(data)
-            resp = json.loads(socket.recv_string()).get("result").get("files")
-            logging.info(resp)
-            assert len(resp) == 1
-            assert file in resp[0]
+
+            try:
+                resp = json.loads(socket.recv_string()).get("result").get("files")
+                logging.info("Files: " + str(resp))
+            except:
+                logging.info("No files found!")
+                failures.append(query_file)
+
+            if len(resp) != 1:
+                logging.info("Test failed for " + str(query_file) + ". "\
+                             + str(len(resp)) + " files found: " + str(resp))
+                failures.append(query_file)
+
+        assert len(failures) == 0
 
 
 if __name__ == "__main__":
