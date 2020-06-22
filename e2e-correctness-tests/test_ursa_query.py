@@ -41,10 +41,11 @@ class TestUrsaQuery(unittest.TestCase):
                 logging.info("No files found!")
                 failures.append(query_file)
 
-            if len(resp) != 1:
-                logging.info("Test failed for " + str(query_file) + ". "\
+            if resp and (len(resp) != 1 or (query_file not in resp[0])):
+                logging.info("Test failed for " + str(query_file) + ". "
                              + str(len(resp)) + " files found: " + str(resp))
                 failures.append(query_file)
+            resp = None
 
         assert len(failures) == 0
 
