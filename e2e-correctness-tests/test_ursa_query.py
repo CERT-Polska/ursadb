@@ -11,7 +11,7 @@ testdir = current_path + "/testdata/"
 class TestUrsaQuery(unittest.TestCase):
     def test_ursa_query(self):
 
-        ursa_query_files = [f for f in os.listdir(testdir)]
+        ursa_query_files = [f for f in os.listdir(testdir) if ".txt" in f]
 
         context = zmq.Context()
         socket = context.socket(zmq.REQ)
@@ -24,6 +24,7 @@ class TestUrsaQuery(unittest.TestCase):
 
         assert json.loads(socket.recv_string()).get("result").get("status") == "ok"
         failures = []
+        resp = None
         for query_file in ursa_query_files:
             logging.info("Query for: " + str(query_file))
             with open(testdir + query_file) as f:
