@@ -5,7 +5,7 @@ import os
 import logging
 
 current_path = os.path.abspath(os.path.dirname(__file__))
-testdir = current_path + "/testdata/"
+testdir = current_path + "/yararules/"
 
 
 class TestUrsaQuery(unittest.TestCase):
@@ -24,7 +24,7 @@ class TestUrsaQuery(unittest.TestCase):
 
         assert json.loads(socket.recv_string()).get("result").get("status") == "ok"
         failures = []
-        resp = None
+
         for query_file in ursa_query_files:
             logging.info("Query for: " + str(query_file))
             with open(testdir + query_file) as f:
@@ -35,18 +35,17 @@ class TestUrsaQuery(unittest.TestCase):
                 data
             )
 
-            try:
-                resp = json.loads(socket.recv_string()).get("result").get("files")
-                logging.info("Files: " + str(resp))
-            except:
-                logging.info("No files found!")
-                failures.append(query_file)
+            resp = json.loads(socket.recv_string()).get("result").get("files")
+            logging.info("Files: " + str(resp))
 
-            if resp and (len(resp) != 1 or (query_file not in resp[0])):
+            if (query_file[:-4] == "negative") and (len(resp) != 0):
                 logging.info("Test failed for " + str(query_file) + ". "
                              + str(len(resp)) + " files found: " + str(resp))
                 failures.append(query_file)
-            resp = None
+            elif resp and ((len(resp) != 1) or (query_file[:-4] not in resp[0])):
+                logging.info("Test failed for " + str(query_file) + ". "
+                             + str(len(resp)) + " files found: " + str(resp))
+                failures.append(query_file)
 
         assert len(failures) == 0
 

@@ -4,7 +4,7 @@ from yaraparse import parse_yara
 from yaraparse import combine_rules
 
 current_path = os.path.abspath(os.path.dirname(__file__))
-testdir = current_path + "/testdata/"
+testdir = current_path + "/yararules/"
 
 
 def main() -> None:
@@ -41,7 +41,7 @@ def write_rules_to_file(data, result_txt):
         with open(result_txt, "w") as fp:
             result = combine_rules(rules).query
             print(result)
-            fp.write("select " + result[2:-2] + "\n")
+            fp.write("select " + result[2:-2] + ";" "\n")
     except Exception as e:
         with open(result_txt, "w") as fp:
             fp.write(str(e) + "\n")

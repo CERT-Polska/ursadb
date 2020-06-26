@@ -1,0 +1,4 @@
+rule negative {
+    strings: $a = "negative"
+    condition: all of them
+}
