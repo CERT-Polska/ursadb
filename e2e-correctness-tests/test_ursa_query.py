@@ -42,7 +42,7 @@ class TestUrsaQuery(unittest.TestCase):
                 logging.info("Test failed for " + str(query_file) + ". "
                              + str(len(resp)) + " files found: " + str(resp))
                 failures.append(query_file)
-            elif resp and ((len(resp) != 1) or (query_file[:-4] not in resp[0])):
+            elif (query_file[:-4] != "negative") and ((len(resp) != 1) or (query_file[:-4] not in resp[0])):
                 logging.info("Test failed for " + str(query_file) + ". "
                              + str(len(resp)) + " files found: " + str(resp))
                 failures.append(query_file)
