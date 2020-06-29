@@ -201,18 +201,13 @@ def urisfy_regex(
             if or_strings and all(s is not None for s in or_strings):
                 or_ursa_strings = [
                     ursify_plain_string(
-                        s,
-                        is_ascii=is_ascii,
-                        is_wide=is_wide,
-                        is_nocase=is_nocase,
+                        s, is_ascii=is_ascii, is_wide=is_wide, is_nocase=is_nocase,
                     )
                     for s in or_strings
                 ]
                 strings.append(UrsaExpression.or_(*or_ursa_strings))
 
-        if joined_string and (
-            type(unit) is not RegexpText or i == len(units) - 1
-        ):
+        if joined_string and (type(unit) is not RegexpText or i == len(units) - 1):
             strings.append(
                 ursify_plain_string(
                     joined_string,
@@ -276,7 +271,6 @@ def ursify_xor_string(string: PlainString) -> UrsaExpression:
     text_ascii = string.pure_text
     xored_strings: List[UrsaExpression] = []
 
-    # TODO implement modifier ranges - https://github.com/CERT-Polska/mquery/issues/100
     for xor_key in range(256):
         xored_ascii = xor(text_ascii, bytes([xor_key]))
         xored_wide = bytes(x ^ xor_key for y in text_ascii for x in [y, 0])
@@ -309,9 +303,7 @@ def ursify_string(string: String) -> Optional[UrsaExpression]:
 
 
 class RuleParseEngine:
-    def __init__(
-        self, strings: Dict[str, str], rules: Dict[str, YaraRuleData]
-    ) -> None:
+    def __init__(self, strings: Dict[str, str], rules: Dict[str, YaraRuleData]) -> None:
         self.strings = strings
         self.rules = rules
 
@@ -335,14 +327,10 @@ class RuleParseEngine:
         else:
             return None
 
-    def pare_expr(
-        self, condition: ParenthesesExpression
-    ) -> Optional[UrsaExpression]:
+    def pare_expr(self, condition: ParenthesesExpression) -> Optional[UrsaExpression]:
         return self.traverse(condition.enclosed_expr)
 
-    def str_expr(
-        self, condition: StringExpression
-    ) -> Optional[UrsaExpression]:
+    def str_expr(self, condition: StringExpression) -> Optional[UrsaExpression]:
         return ursify_string(self.strings[condition.id])
 
     def expand_string_wildcard(
@@ -416,15 +404,11 @@ class RuleParseEngine:
         fixed_id = "$" + condition.id[1:]
         return ursify_string(self.strings[fixed_id])
 
-    def int_lit_expr(
-        self, condition: IntLiteralExpression
-    ) -> Optional[UrsaExpression]:
+    def int_lit_expr(self, condition: IntLiteralExpression) -> Optional[UrsaExpression]:
         # nothing to be done here
         return None
 
-    def str_at_expr(
-        self, condition: StringAtExpression
-    ) -> Optional[UrsaExpression]:
+    def str_at_expr(self, condition: StringAtExpression) -> Optional[UrsaExpression]:
         return ursify_string(self.strings[condition.id])
 
     def id_expr(self, condition: IdExpression) -> Optional[UrsaExpression]:
@@ -490,9 +474,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Debug the yara parser.")
     parser.add_argument("filename", help=".yar file to parse")
     parser.add_argument(
-        "--combine",
-        action="store_true",
-        help="Combine rules into one expression",
+        "--combine", action="store_true", help="Combine rules into one expression",
     )
 
     args = parser.parse_args()
