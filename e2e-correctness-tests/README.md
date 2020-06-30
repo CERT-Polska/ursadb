@@ -18,7 +18,7 @@ Check if queries are properly generated to exclude any other errors.
 
 ## Running tests
 
-1. Put malware files you want to run the tests on in /opt/samples directory. The names
+1. Put malware files you want to run the tests on in testfiles directory. The names
 of the files should be the same as the names of corresponding yara rule files.
 Then run:
 ```

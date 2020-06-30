@@ -6,6 +6,7 @@ import logging
 
 current_path = os.path.abspath(os.path.dirname(__file__))
 testdir = current_path + "/yararules/"
+filedir = current_path + "/testfiles/"
 
 
 class TestUrsaQuery(unittest.TestCase):
@@ -20,7 +21,7 @@ class TestUrsaQuery(unittest.TestCase):
         logging.info("Connecting to UrsaDB...")
         socket.connect("tcp://0.0.0.0:9281")
         logging.info("Connected...")
-        socket.send_string('index "/opt/samples" ' "with [gram3, text4, hash4, wide8];")
+        socket.send_string('index "' + filedir + '" ' "with [gram3, text4, hash4, wide8];")
         assert json.loads(socket.recv_string()).get("result").get("status") == "ok"
 
         failures = []
