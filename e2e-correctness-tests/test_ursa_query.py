@@ -11,7 +11,6 @@ filedir = current_path + "/testfiles/"
 
 class TestUrsaQuery(unittest.TestCase):
     def test_ursa_query(self):
-
         ursa_query_files = [f for f in os.listdir(testdir) if ".txt" in f]
 
         assert ursa_query_files
@@ -36,7 +35,7 @@ class TestUrsaQuery(unittest.TestCase):
             resp = json.loads(socket.recv_string()).get("result").get("files")
             logging.info("Files: " + str(resp))
 
-            if (query_file[:-4] == "negative") and (len(resp) != 0):
+            if (query_file.startswith('negative')) and (len(resp) != 0):
                 logging.info(
                     "Test failed for "
                     + str(query_file)
@@ -46,7 +45,7 @@ class TestUrsaQuery(unittest.TestCase):
                     + str(resp)
                 )
                 failures.append(query_file)
-            elif (query_file[:-4] != "negative") and (
+            elif (not query_file.startswith('negative')) and (
                 (len(resp) != 1) or (query_file[:-4] not in resp[0])
             ):
                 logging.info(

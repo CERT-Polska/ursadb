@@ -2,8 +2,10 @@
 
 Tests for Ursadb database.
 
+Required: pyzmq, pytest, yaramod
 ## Generation of queries
-To generate queries based on yara rules put all rules in the yararules folder.
+
+To generate queries based on Yara rules put all rules in the yararules folder.
 Then run from main e2e tests directory to generate queries from all files:
 ```
 python3 generate_queries.py
@@ -22,5 +24,5 @@ Check if queries are properly generated to exclude any other errors.
 of the files should be the same as the names of corresponding yara rule files.
 Then run:
 ```
-python3 -m pytest --log-cli-level=INFO
+pytest --log-cli-level=INFO
 ```
