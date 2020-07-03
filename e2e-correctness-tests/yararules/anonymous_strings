@@ -1,4 +1,0 @@
-rule anonymous_strings {
-    strings: $a = "dummy1"
-    condition: all of them
-}

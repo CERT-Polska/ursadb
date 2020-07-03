@@ -1,4 +1,4 @@
 rule negative {
-    strings: $a = "negative"
+    strings: $a = "costam"
     condition: all of them
 }

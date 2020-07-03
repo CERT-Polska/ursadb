@@ -3,15 +3,16 @@ import zmq  # type: ignore
 import json
 import os
 import logging
+import yara
 
 current_path = os.path.abspath(os.path.dirname(__file__))
-testdir = current_path + "/yararules/"
-filedir = current_path + "/testfiles/"
+yara_dir = current_path + "/yararules/"
+samples_dir = current_path + "/samples/"
 
 
 class TestUrsaQuery(unittest.TestCase):
     def test_ursa_query(self):
-        ursa_query_files = [f for f in os.listdir(testdir) if ".txt" in f]
+        ursa_query_files = [f for f in os.listdir(yara_dir) if ".txt" in f]
 
         assert ursa_query_files
 
@@ -20,45 +21,53 @@ class TestUrsaQuery(unittest.TestCase):
         logging.info("Connecting to UrsaDB...")
         socket.connect("tcp://0.0.0.0:9281")
         logging.info("Connected...")
-        socket.send_string('index "' + filedir + '" ' "with [gram3, text4, hash4, wide8];")
+        socket.send_string('index "' + samples_dir + '" ' "with [gram3, text4, hash4, wide8];")
         assert json.loads(socket.recv_string()).get("result").get("status") == "ok"
 
         failures = []
         for query_file in ursa_query_files:
+            logging.info("---------------------------------------------------------")
             logging.info("Query for: " + str(query_file))
-            with open(testdir + query_file) as f:
+            with open(yara_dir + query_file) as f:
                 data = f.read()
 
             logging.info("Query: " + str(data))
             socket.send_string(data)
 
-            resp = json.loads(socket.recv_string()).get("result").get("files")
-            logging.info("Files: " + str(resp))
+            resp_files = json.loads(socket.recv_string()).get("result").get("files")
+            logging.info("Files: " + str(resp_files))
 
-            if (query_file.startswith('negative')) and (len(resp) != 0):
-                logging.info(
-                    "Test failed for "
-                    + str(query_file)
-                    + ". "
-                    + str(len(resp))
-                    + " files found: "
-                    + str(resp)
-                )
-                failures.append(query_file)
-            elif (not query_file.startswith('negative')) and (
-                (len(resp) != 1) or (query_file[:-4] not in resp[0])
-            ):
-                logging.info(
-                    "Test failed for "
-                    + str(query_file)
-                    + ". "
-                    + str(len(resp))
-                    + " files found: "
-                    + str(resp)
-                )
-                failures.append(query_file)
+            yara_matches = get_yara_matches(query_file[:-4])
+            logging.info("Yara matches "+"("+str(len(yara_matches))+")"+" : " + str(yara_matches))
 
-        assert len(failures) == 0
+            if yara_matches != resp_files:
+                failures.append(query_file[:-4])
+                logging.info(
+                        "Test failed for "
+                        + str(query_file)
+                        + ". "
+                        + str(len(resp_files))
+                        + " files found: "
+                        + str(resp_files)
+                    )
+
+        if failures:
+            logging.info("---------------------------------------------------------")
+            logging.info("Test failed for: " + str(failures))
+            logging.info("---------------------------------------------------------")
+        assert not failures
+
+
+def get_yara_matches(yara_rule):
+    rule = yara.compile(filepath=yara_dir + yara_rule)
+    samples = [f for f in os.listdir(samples_dir)]
+    matches = []
+    for sample in samples:
+        match = rule.match(samples_dir + sample)
+        if match:
+            matches.append(samples_dir + sample)
+
+    return matches
 
 
 if __name__ == "__main__":

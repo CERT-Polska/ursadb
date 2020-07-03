@@ -1,1 +1,1 @@
-select (min 1 of ({6e65676174697665}));
+select (min 1 of ({636f7374616d}));

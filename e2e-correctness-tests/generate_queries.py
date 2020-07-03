@@ -3,7 +3,7 @@ import os
 from yaraparse import parse_yara, combine_rules
 
 current_path = os.path.abspath(os.path.dirname(__file__))
-testdir = current_path + "/yararules/"
+yara_dir = current_path + "/yararules/"
 
 
 def main() -> None:
@@ -19,17 +19,17 @@ def main() -> None:
         process_rule(args.file_name)
 
     else:
-        yara_files = [f for f in os.listdir(testdir) if ".txt" not in f]
+        yara_files = [f for f in os.listdir(yara_dir) if ".txt" not in f]
 
         for file in yara_files:
             process_rule(file)
 
 
 def process_rule(in_file):
-    with open(testdir + in_file) as f:
+    with open(yara_dir + in_file) as f:
         data = f.read()
 
-    result_txt = testdir + in_file + ".txt"
+    result_txt = yara_dir + in_file + ".txt"
     write_rules_to_file(data, result_txt)
 
 
