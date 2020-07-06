@@ -4,14 +4,22 @@ import json
 import os
 import logging
 import yara
+from zipfile import ZipFile
+import requests
 
 current_path = os.path.abspath(os.path.dirname(__file__))
 yara_dir = current_path + "/yararules/"
 samples_dir = current_path + "/samples/"
+samples_source = "https://store.tailcall.net/ursadb-samples_a9a4b06df37886c27e782db19cea587e98c63011cada4d2fd67a2ae34458aba1.zip"
+downloaded_zip = "malware.zip"
+zip_password = os.environ['MALWARE_PASSWORD']
 
 
 class TestUrsaQuery(unittest.TestCase):
     def test_ursa_query(self):
+        logging.info("Downloading samples...")
+        download_samples(samples_source, samples_dir, zip_password)
+
         ursa_query_files = [f for f in os.listdir(yara_dir) if ".txt" in f]
 
         assert ursa_query_files
@@ -58,6 +66,22 @@ class TestUrsaQuery(unittest.TestCase):
         assert not failures
 
 
+def download_samples(samples_source, samples_dir, zip_password):
+    r = requests.get(samples_source, allow_redirects=True)
+
+    with open(samples_dir + downloaded_zip, 'wb') as f:
+        logging.info("Downloading malware zip file ...")
+        f.write(r.content)
+        logging.info("Downloading finished.")
+
+    with ZipFile(samples_dir + downloaded_zip, 'r') as zip:
+        zip.printdir()
+        logging.info("Extracting malware zip file ...")
+        zip.extractall(pwd=zip_password.encode())
+        logging.info("Extracting finished.")
+        os.remove(samples_dir + downloaded_zip)
+
+
 def get_yara_matches(yara_rule):
     rule = yara.compile(filepath=yara_dir + yara_rule)
     samples = [f for f in os.listdir(samples_dir)]
@@ -72,3 +96,4 @@ def get_yara_matches(yara_rule):
 
 if __name__ == "__main__":
     unittest.main()
+

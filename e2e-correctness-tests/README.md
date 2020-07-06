@@ -20,7 +20,10 @@ Check if queries are properly generated to exclude any other errors.
 
 ## Running tests
 
-1. Put malware files you want to run the tests against in samples directory.
+Set password for unzipping malware files:
+```
+export MALWARE_PASSWORD = "your_password"
+```
 
 Then run:
 ```
