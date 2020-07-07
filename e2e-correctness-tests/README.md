@@ -22,7 +22,7 @@ Check if queries are properly generated to exclude any other errors.
 
 Set password for unzipping malware files:
 ```
-export MALWARE_PASSWORD = "your_password"
+export MALWARE_PASSWORD="your_password"
 ```
 
 Then run:

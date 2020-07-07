@@ -6,6 +6,7 @@ import logging
 import yara
 from zipfile import ZipFile
 import requests
+import hashlib
 
 current_path = os.path.abspath(os.path.dirname(__file__))
 yara_dir = current_path + "/yararules/"
@@ -18,7 +19,8 @@ zip_password = os.environ['MALWARE_PASSWORD']
 class TestUrsaQuery(unittest.TestCase):
     def test_ursa_query(self):
         logging.info("Downloading samples...")
-        download_samples(samples_source, samples_dir, zip_password)
+        if not os.listdir(samples_dir):
+            download_samples(samples_source, samples_dir, zip_password)
 
         ursa_query_files = [f for f in os.listdir(yara_dir) if ".txt" in f]
 
@@ -73,6 +75,11 @@ def download_samples(samples_source, samples_dir, zip_password):
         logging.info("Downloading malware zip file ...")
         f.write(r.content)
         logging.info("Downloading finished.")
+        # source_hash = hashfile(samples_source)
+        # downloaded_hash = hashfile(samples_dir + downloaded_zip)
+        #
+        # if source_hash == downloaded_hash:
+        #     logging.info(f"Both hashes are the same: {source_hash}")
 
     with ZipFile(samples_dir + downloaded_zip, 'r') as zip:
         zip.printdir()
@@ -80,6 +87,22 @@ def download_samples(samples_source, samples_dir, zip_password):
         zip.extractall(pwd=zip_password.encode())
         logging.info("Extracting finished.")
         os.remove(samples_dir + downloaded_zip)
+
+
+def hashfile(file):
+    BUF_SIZE = 65536
+    sha256 = hashlib.sha256()
+
+    with open(file, 'rb') as f:
+        while True:
+            data = f.read(BUF_SIZE)
+
+            if not data:
+                break
+
+            sha256.update(data)
+
+    return sha256.hexdigest()
 
 
 def get_yara_matches(yara_rule):
