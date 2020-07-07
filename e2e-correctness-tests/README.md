@@ -2,7 +2,6 @@
 
 Tests for Ursadb database.
 
-Required: pyzmq, pytest, yaramod, yara-python
 ## Generation of queries
 
 To generate queries based on Yara rules put all rules in the yararules directory.
