@@ -41,6 +41,17 @@ class ConfigKey {
         };
     }
 
+    // Maximum memory, in mebibytes, the database is allowed to use. Tasks will
+    // be rejected if it would cause the db to exceed this limit. This only
+    // includes big allocations, and doesn't take other processes in the system
+    // into account, so it shouldn't be set to physical RAM size of the system.
+    // Recommendation: Change the default. Estimate the absolute maximum the
+    // machine can handle. Ursa will never use more memory than minimum, so it
+    // only limits the number of tasks that will be processed in parallel.
+    const static ConfigKey database_max_memory() {
+        return ConfigKey("database_max_memory", 4294967296, 2048, 4294967296);
+    }
+
     // Maximum number of values a first or last character in sequence can take
     // to be considered when planning a query. The default is a conservative 1,
     // so query plam will never start or end with a wildcard.
