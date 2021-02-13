@@ -15,7 +15,7 @@ kinds of searches. Currently there are four types implemented:
 More indexes means more accurate results, but indexing will take longer, and more disk will be used.
 
  - `gram3` is the most basic and important index, it should be used in all situations.
- - `text4` and `wide8` indexes are wery useful for textual data. They don't need
+ - `text4` and `wide8` indexes are very useful for textual data. They don't need
     a lot of space and improve results significantly, so they are almost always a good idea.
  - `hash4` is the most complicated type. It's not strictly necessary, and ursadb will work
     without it smoothly. But if you have enough disk space and can afford extra
@@ -56,7 +56,7 @@ When querying for string `TEST MALWARE`, the database will query trigram index i
 The drawing presents how trigrams are mapped to file contents.
 ![](gram2.png)
 
-Such searching technique sometimes may yield false positives, but it's never going to yield any true negatives. Thus, it may be appropriate for quick filtering (see [mquery project](https://github.com/CERT-Polska/mquery) - we use UrsaDB there in order to accelerate the process of malware searching).
+Such searching technique sometimes may yield false positives, but it's never going to yield any false negatives. Thus, it may be appropriate for quick filtering (see [mquery project](https://github.com/CERT-Polska/mquery) - we use UrsaDB there in order to accelerate the process of malware searching).
 
 ### text4 index
 
