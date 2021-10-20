@@ -254,6 +254,7 @@ int main(int argc, char *argv[]) {
 
         std::vector<std::string> found_sample_paths = collect_file_paths(arg_samples_path);
         sort(found_sample_paths.begin(), found_sample_paths.end());
+        spdlog::info("found {} files to index", found_sample_paths.size());
 
         std::vector<std::vector<std::string>> batches;
         std::vector<std::string>::iterator batch_start;
@@ -266,6 +267,7 @@ int main(int argc, char *argv[]) {
             copy(batch_start, batch_end, std::back_inserter(batch));
             batches.push_back(batch);
         }
+        spdlog::info("prepared {} batches to process", batches.size());
 
         auto job_count = 0;
         auto job_queue_lock = LockBox<std::queue<Job>>(std::queue<Job>());
