@@ -55,77 +55,17 @@ class LockBox {
     }
 };
 
-class SnapshotLease {
-   private:
-    uint64_t _id;
+using Job = std::tuple<std::shared_ptr<LockBox<Database>>, IndexCommand>;
 
-   public:
-    std::shared_ptr<DatabaseSnapshot> snap;
-    SnapshotLease(std::shared_ptr<DatabaseSnapshot> snap, uint64_t id)
-       : snap(snap), _id(id) {}
-
-    SnapshotLease() : snap(nullptr), _id(-1) {}
-
-    DatabaseSnapshot& operator* () {
-        return *this->snap;
-    }
-
-    uint64_t id() {
-        return this->_id;
-    }
-};
-
-class DatabaseContext {
-   private:
-    std::map<uint64_t, std::shared_ptr<DatabaseSnapshot>> snaps;
-    uint64_t counter;
-
-   public:
-    Database db;
-    DatabaseContext(Database db)
-        : db(std::move(db)), counter(0) {}
-
-    SnapshotLease lease_snapshot() {
-        auto id = counter++;
-        auto snap = std::make_shared<DatabaseSnapshot>(db.snapshot());
-        this->snaps[id] = snap;
-        return SnapshotLease(snap, id);
-    }
-
-    void return_snapshot(SnapshotLease lease) {
-        if (lease.id() == -1) {
-            spdlog::critical("invalid lease id");
-        } else {
-            this->snaps.erase(lease.id());
-        }
-    }
-
-    std::set<DatabaseSnapshot *> leased_snapshots() {
-        auto ret = std::set<DatabaseSnapshot *>();
-
-        for (auto [ id, lease ] : this->snaps) {
-            ret.insert(lease.get());
-        }
-
-        return ret;
-    }
-
-    uint64_t size() {
-        return this->snaps.size();
-    }
-};
-
-using Job = std::tuple<std::shared_ptr<LockBox<DatabaseContext>>, IndexCommand>;
-
-using JobResult = std::tuple<SnapshotLease, std::unique_ptr<Task>, Response>;
+using JobResult = std::tuple<std::unique_ptr<DatabaseSnapshot>, std::unique_ptr<Task>, Response>;
 
 JobResult process_job(Job job) {
-    auto [ ctx_lock, cmd ] = std::move(job);
+    auto [ db_lock, cmd ] = std::move(job);
 
-    SnapshotLease snap;
+    std::unique_ptr<DatabaseSnapshot> snap;
     {
-        auto ctx = ctx_lock->acquire();
-        snap = ctx->lease_snapshot();
+        auto db = db_lock->acquire();
+        snap = std::make_unique<DatabaseSnapshot>(db->snapshot());
     }
 
     std::vector<DatabaseLock> locks = dispatch_locks(cmd, &*snap);
@@ -134,8 +74,8 @@ JobResult process_job(Job job) {
     task_id << "index " << cmd.get_paths().size() << " files, starting with " << cmd.get_paths()[0];
     TaskSpec* spec;
     {
-        auto ctx = ctx_lock->acquire();
-        spec = ctx->db.allocate_task(task_id.str(), "n/a", locks);
+        auto db = db_lock->acquire();
+        spec = db->allocate_task(task_id.str(), "n/a", locks);
     }
     std::unique_ptr<Task> task = std::make_unique<Task>(spec);
 
@@ -249,8 +189,7 @@ int main(int argc, char *argv[]) {
     migrate_version(arg_db_path);
 
     try {
-        auto db = Database(arg_db_path);
-        auto ctx_lock = std::shared_ptr<LockBox<DatabaseContext>>(new LockBox<DatabaseContext>(DatabaseContext(std::move(db))));
+        auto db_lock = std::shared_ptr<LockBox<Database>>(new LockBox<Database>(std::move(Database(arg_db_path))));
 
         std::vector<std::string> found_sample_paths = collect_file_paths(arg_samples_path);
         sort(found_sample_paths.begin(), found_sample_paths.end());
@@ -274,7 +213,7 @@ int main(int argc, char *argv[]) {
         auto result_queue_lock = LockBox<std::queue<JobResult>>(std::queue<JobResult>());
         for (auto batch : batches) {
             IndexCommand cmd = IndexCommand(batch, types, taints, true);
-            Job job = std::make_tuple(ctx_lock, cmd);
+            Job job = std::make_tuple(db_lock, cmd);
 
             {
                 auto job_queue = job_queue_lock.acquire();
@@ -358,68 +297,24 @@ int main(int argc, char *argv[]) {
             }();
 
             {
-                auto ctx = ctx_lock->acquire();
-                ctx->db.commit_task(task->spec(), task->changes());
-                ctx->return_snapshot(std::move(snap));
+                auto db = db_lock->acquire();
+                db->commit_task(task->spec(), task->changes());
 
-                auto snaps = ctx->leased_snapshots();
-                ctx->db.collect_garbage(snaps);
+                // we could collect garbage here.
+                // however, garbage is not created during indexing.
+                // so we'll let garbage accumulate in this index-only process.
             }
 
             result_count += 1;
+            spdlog::info("ALL: {}/{} complete", result_count, job_count);
         }
 
         for (auto &t : threads) {
             t.join();
         }
 
-        // compact database
-        {
-            CompactCommand cmd = CompactCommand(CompactType::Smart);
-
-            SnapshotLease snap;
-            {
-                auto ctx = ctx_lock->acquire();
-                snap = ctx->lease_snapshot();
-            }
-
-            std::vector<DatabaseLock> locks = dispatch_locks(cmd, &*snap);
-
-            TaskSpec* spec;
-            {
-                auto ctx = ctx_lock->acquire();
-                spec = ctx->db.allocate_task("compact: smart", "n/a", locks);
-            }
-            std::unique_ptr<Task> task = std::make_unique<Task>(spec);
-
-            spdlog::info("JOB: {}: start: compact: smart", spec->id());
-            Response resp = dispatch_command(cmd, &*task, &*snap);
-            spdlog::info("RESP: {}", resp.to_string());
-
-            uint64_t task_ms = get_milli_timestamp() - task->spec().epoch_ms();
-            spdlog::info("JOB: {}: done ({}ms): compact: smart", task->spec().id(), task_ms);
-
-            {
-                auto ctx = ctx_lock->acquire();
-                ctx->db.commit_task(task->spec(), task->changes());
-            }
-        }
-
-        // collect garbage
-        {
-            auto ctx = ctx_lock->acquire();
-
-            spdlog::info("JOB: -1: start: collect garbage");
-
-            auto ts1 = get_milli_timestamp();
-            auto empty = std::set<DatabaseSnapshot*>();
-            ctx->db.collect_garbage(empty);
-            auto ts2 = get_milli_timestamp();
-
-            uint64_t task_ms = ts2 - ts1;
-            spdlog::info("JOB: -1: done ({}ms): collect garbage", task_ms);
-        }
-
+        // we could also collect garbage here.
+        // again, garbage is not created during indexing.
     } catch (const std::runtime_error &ex) {
         spdlog::error("Runtime error: {}", ex.what());
         return 1;
