@@ -81,14 +81,14 @@ int main(int argc, char *argv[]) {
             std::set<DatabaseSnapshot *> empty;
             db.collect_garbage(empty);
 
+            auto post_dataset_count = db.working_sets().size();
             if (arg_single_compact) {
-                spdlog::info("DONE: single compaction");
+                spdlog::info("DONE: single compaction: {} -> {} datasets", pre_dataset_count, post_dataset_count);
                 break;
             }
 
-            auto post_dataset_count = db.working_sets().size();
             if (post_dataset_count == pre_dataset_count) {
-                spdlog::info("DONE: fixed point: {} datasets", post_dataset_count);
+                spdlog::info("DONE: fixed point: {} -> {} datasets", pre_dataset_count, post_dataset_count);
                 break;
             } else {
                 spdlog::info("ROUND: {}: {} -> {} datasets", ++round, pre_dataset_count, post_dataset_count);
