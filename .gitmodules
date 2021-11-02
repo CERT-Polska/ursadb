@@ -3,7 +3,7 @@
 	url = https://github.com/gabime/spdlog.git
 [submodule "extern/libzmq"]
 	path = extern/libzmq
-	url = git@github.com:zeromq/libzmq.git
+	url = https://github.com/zeromq/libzmq.git
 [submodule "extern/cppzmq"]
 	path = extern/cppzmq
 	url = https://github.com/zeromq/cppzmq.git
