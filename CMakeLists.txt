@@ -91,6 +91,7 @@ install(TARGETS
         ursadb
         ursadb_new
         ursadb_index
+        ursadb_compact
         ursadb_trim
         ursadb_test
         ursadb_bench
