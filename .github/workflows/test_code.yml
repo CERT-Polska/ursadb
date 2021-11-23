@@ -34,9 +34,9 @@ jobs:
     - name: install dependencies
       run: sudo apt-get install -y clang-tidy
     - name: find changed files
-      run: find . -name "*.cpp" > /tmp/filestocheck && cat /tmp/filestocheck
+      run: git diff origin/master --name-only "*.cpp" > /tmp/filestocheck && cat /tmp/filestocheck
     - name: clang-tidy
-      run: clang-tidy $(cat /tmp/filestocheck) -checks="bugprone-*,google-*,modernize-*,performance-*,readability-*" -fix -- -std=c++17 -I extern/ -I extern/spdlog/include/ -I.
+      run: if [ -s /tmp/filestocheck ]; then clang-tidy $(cat /tmp/filestocheck) -checks="bugprone-*,google-*,modernize-*,performance-*,readability-*" -fix -- -std=c++17 -I extern/ -I extern/spdlog/include/ -I.; fi
     - name: FYI git diff
       run: git diff
       if: ${{ always() }}
