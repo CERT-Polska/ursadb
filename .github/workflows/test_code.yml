@@ -32,7 +32,7 @@ jobs:
     - name: checkout master
       run: git fetch origin master
     - name: install dependencies
-      run: sudo apt-get install -y clang-tidy
+      run: sudo apt-get install -y clang-tidy libzmq3-dev
     - name: find changed files
       run: git diff origin/master --name-only "*.cpp" > /tmp/filestocheck && cat /tmp/filestocheck
     - name: clang-tidy
