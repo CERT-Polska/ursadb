@@ -12,11 +12,9 @@
 #include "libursa/Utils.h"
 #include "spdlog/spdlog.h"
 
-using namespace fmt;
-using namespace std;
 namespace fs = std::experimental::filesystem;
 
-void print_usage(std::string exec_name) {
+void print_usage(const std::string &exec_name) {
     // clang-format off
     fmt::print(stderr, "Usage: {} [option] /path/to/database\n", exec_name);
     fmt::print(stderr, "    [-1]     compact a single round, default: false\n");
@@ -26,7 +24,6 @@ void print_usage(std::string exec_name) {
 int main(int argc, char *argv[]) {
     // path to index
     std::string arg_db_path;
-
     bool arg_single_compact = false;
 
     int c;
@@ -48,9 +45,8 @@ int main(int argc, char *argv[]) {
         spdlog::error("Incorrect positional arguments provided.");
         print_usage(argc >= 1 ? argv[0] : "ursadb_compact");
         return 1;
-    } else {
-        arg_db_path = std::string(argv[optind]);
     }
+    arg_db_path = std::string(argv[optind]);
 
     spdlog::info("UrsaDB v{}: {}", get_version_string(), arg_db_path);
     fix_rlimit();
@@ -92,11 +88,9 @@ int main(int argc, char *argv[]) {
                 spdlog::info("DONE: fixed point: {} -> {} datasets",
                              pre_dataset_count, post_dataset_count);
                 break;
-            } else {
-                spdlog::info("ROUND: {}: {} -> {} datasets", ++round,
-                             pre_dataset_count, post_dataset_count);
-                continue;
             }
+            spdlog::info("ROUND: {}: {} -> {} datasets", ++round,
+                         pre_dataset_count, post_dataset_count);
         }
     } catch (const std::runtime_error &ex) {
         spdlog::error("Runtime error: {}", ex.what());

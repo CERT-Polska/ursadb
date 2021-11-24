@@ -8,19 +8,20 @@
 #include <vector>
 // required for GCC:
 // https://intellij-support.jetbrains.com/hc/en-us/community/posts/115000792304-C-17-cannot-include-filesystem-
+#include <chrono>
 #include <experimental/filesystem>
+#include <thread>
 #include <zmq.hpp>
 
 #include "Environment.h"
 #include "libursa/Command.h"
+#include "libursa/Core.h"
 #include "libursa/Daemon.h"
 #include "libursa/Database.h"
 #include "libursa/DatabaseUpgrader.h"
 #include "libursa/Utils.h"
 #include "spdlog/spdlog.h"
 
-using namespace fmt;
-using namespace std;
 namespace fs = std::experimental::filesystem;
 
 template <typename T>
@@ -31,7 +32,7 @@ class UnlockedBox {
    public:
     T *obj;
 
-    UnlockedBox(std::mutex &mutex, T *obj) : lock(mutex), obj(obj) {}
+    UnlockedBox(std::mutex *mutex, T *obj) : lock(*mutex), obj(obj) {}
 
     T *operator->() { return this->obj; }
 };
@@ -43,9 +44,11 @@ class LockBox {
     std::mutex mutex;
 
    public:
-    LockBox(T obj) : obj(std::move(obj)) {}
+    explicit LockBox(T &&obj) : obj(std::move(obj)) {}
 
-    UnlockedBox<T> acquire() { return UnlockedBox<T>(this->mutex, &this->obj); }
+    UnlockedBox<T> acquire() {
+        return UnlockedBox<T>(&this->mutex, &this->obj);
+    }
 };
 
 using Job = std::tuple<std::shared_ptr<LockBox<Database>>, IndexCommand>;
@@ -81,10 +84,10 @@ JobResult process_job(Job job) {
 }
 
 // collect all the absolute, canonical files in the given directory (recursive).
-std::vector<std::string> collect_file_paths(std::string path) {
+std::vector<std::string> collect_file_paths(const std::string &path) {
     std::vector<std::string> ret;
 
-    for (auto entry : fs::recursive_directory_iterator(path)) {
+    for (const auto &entry : fs::recursive_directory_iterator(path)) {
         if (fs::is_regular_file(entry.path())) {
             ret.push_back(fs::canonical(entry.path()).string());
         }
@@ -93,7 +96,7 @@ std::vector<std::string> collect_file_paths(std::string path) {
     return ret;
 }
 
-void print_usage(std::string exec_name) {
+void print_usage(const std::string &exec_name) {
     // clang-format off
     fmt::print(stderr, "Usage: {} [option] /path/to/database /path/to/index\n", exec_name);
     fmt::print(stderr, "    [-w <workers>]     number of workers to use, default: 4\n");
@@ -152,12 +155,12 @@ int main(int argc, char *argv[]) {
         spdlog::error("Incorrect positional arguments provided.");
         print_usage(argc >= 1 ? argv[0] : "ursadb_index");
         return 1;
-    } else {
-        arg_db_path = std::string(argv[optind]);
-        arg_samples_path = std::string(argv[optind + 1]);
     }
 
-    if (arg_types.size() == 0) {
+    arg_db_path = std::string(argv[optind]);
+    arg_samples_path = std::string(argv[optind + 1]);
+
+    if (arg_types.empty()) {
         arg_types.insert(std::string("gram3"));
         arg_types.insert(std::string("text4"));
         arg_types.insert(std::string("wide8"));
@@ -168,12 +171,12 @@ int main(int argc, char *argv[]) {
     spdlog::info("samples: {}", arg_samples_path);
     spdlog::info("workers: {}", arg_workers);
     std::vector<IndexType> types;
-    for (auto arg_type : arg_types) {
+    for (const auto &arg_type : arg_types) {
         spdlog::info("type: {}", arg_type);
         types.push_back(*index_type_from_string(arg_type));
     }
     std::set<std::string> taints;
-    for (auto arg_tag : arg_tags) {
+    for (const auto &arg_tag : arg_tags) {
         spdlog::info("tag: {}", arg_tag);
         taints.insert(arg_tag);
     }
@@ -207,10 +210,10 @@ int main(int argc, char *argv[]) {
         spdlog::info("prepared {} batches to process", batches.size());
 
         auto job_count = 0;
-        auto job_queue_lock = LockBox<std::queue<Job>>(std::queue<Job>());
-        auto result_queue_lock =
-            LockBox<std::queue<JobResult>>(std::queue<JobResult>());
-        for (auto batch : batches) {
+        auto job_queue_lock{LockBox<std::queue<Job>>(std::queue<Job>())};
+        auto result_queue_lock{
+            LockBox<std::queue<JobResult>>(std::queue<JobResult>())};
+        for (const auto &batch : batches) {
             IndexCommand cmd = IndexCommand(batch, types, taints, true);
             Job job = std::make_tuple(db_lock, cmd);
 
@@ -225,7 +228,7 @@ int main(int argc, char *argv[]) {
         // thread pool that pulls from job_queue,
         // invokes process_job, and
         // places result in result_queue.
-        vector<std::thread> threads;
+        std::vector<std::thread> threads;
         for (auto i = 0; i < arg_workers; i++) {
             threads.push_back(std::thread([&job_queue_lock,
                                            &result_queue_lock]() {
@@ -282,7 +285,7 @@ int main(int argc, char *argv[]) {
                 is_empty = result_queue->empty();
             }
             if (is_empty) {
-                sleep(0.1);
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 // poll again shortly
                 continue;
             }
