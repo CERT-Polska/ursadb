@@ -2,16 +2,15 @@
 
 #include <set>
 #include <vector>
-
 #include <zmq.hpp>
-#include "spdlog/spdlog.h"
 
 #include "Environment.h"
-#include "libursa/Utils.h"
-#include "libursa/Daemon.h"
 #include "libursa/Command.h"
+#include "libursa/Daemon.h"
 #include "libursa/Database.h"
 #include "libursa/DatabaseUpgrader.h"
+#include "libursa/Utils.h"
+#include "spdlog/spdlog.h"
 
 using namespace fmt;
 using namespace std;
@@ -61,14 +60,14 @@ int main(int argc, char *argv[]) {
     try {
         Database db(arg_db_path);
 
-        while (true)  {
+        while (true) {
             auto pre_dataset_count = db.working_sets().size();
 
             CompactCommand cmd = CompactCommand(CompactType::Smart);
             DatabaseSnapshot snap = db.snapshot();
             std::vector<DatabaseLock> locks = dispatch_locks(cmd, &snap);
 
-            TaskSpec* spec = db.allocate_task("compact: smart", "n/a", locks);
+            TaskSpec *spec = db.allocate_task("compact: smart", "n/a", locks);
             Task task(spec);
 
             spdlog::info("JOB: {}: start: compact: smart", spec->id());
@@ -76,22 +75,26 @@ int main(int argc, char *argv[]) {
             spdlog::info("RESP: {}", resp.to_string());
             db.commit_task(task.spec(), task.changes());
             uint64_t task_ms = get_milli_timestamp() - task.spec().epoch_ms();
-            spdlog::info("JOB: {}: done ({}ms): compact: smart", task.spec().id(), task_ms);
+            spdlog::info("JOB: {}: done ({}ms): compact: smart",
+                         task.spec().id(), task_ms);
 
             std::set<DatabaseSnapshot *> empty;
             db.collect_garbage(empty);
 
             auto post_dataset_count = db.working_sets().size();
             if (arg_single_compact) {
-                spdlog::info("DONE: single compaction: {} -> {} datasets", pre_dataset_count, post_dataset_count);
+                spdlog::info("DONE: single compaction: {} -> {} datasets",
+                             pre_dataset_count, post_dataset_count);
                 break;
             }
 
             if (post_dataset_count == pre_dataset_count) {
-                spdlog::info("DONE: fixed point: {} -> {} datasets", pre_dataset_count, post_dataset_count);
+                spdlog::info("DONE: fixed point: {} -> {} datasets",
+                             pre_dataset_count, post_dataset_count);
                 break;
             } else {
-                spdlog::info("ROUND: {}: {} -> {} datasets", ++round, pre_dataset_count, post_dataset_count);
+                spdlog::info("ROUND: {}: {} -> {} datasets", ++round,
+                             pre_dataset_count, post_dataset_count);
                 continue;
             }
         }

@@ -1,47 +1,42 @@
 #include <unistd.h>
 
-#include <set>
 #include <mutex>
+#include <optional>
 #include <queue>
+#include <set>
 #include <thread>
 #include <vector>
-#include <optional>
-// required for GCC: 
+// required for GCC:
 // https://intellij-support.jetbrains.com/hc/en-us/community/posts/115000792304-C-17-cannot-include-filesystem-
 #include <experimental/filesystem>
-
 #include <zmq.hpp>
-#include "spdlog/spdlog.h"
 
 #include "Environment.h"
-#include "libursa/Utils.h"
-#include "libursa/Daemon.h"
 #include "libursa/Command.h"
+#include "libursa/Daemon.h"
 #include "libursa/Database.h"
 #include "libursa/DatabaseUpgrader.h"
+#include "libursa/Utils.h"
+#include "spdlog/spdlog.h"
 
 using namespace fmt;
 using namespace std;
 namespace fs = std::experimental::filesystem;
 
-template<typename T>
+template <typename T>
 class UnlockedBox {
    private:
     std::lock_guard<std::mutex> lock;
 
    public:
-    T* obj;
+    T *obj;
 
-    UnlockedBox(std::mutex& mutex, T* obj) 
-        : lock(mutex), obj(obj) {}
+    UnlockedBox(std::mutex &mutex, T *obj) : lock(mutex), obj(obj) {}
 
-    T* operator-> ()
-    {
-        return this->obj;
-    }
+    T *operator->() { return this->obj; }
 };
 
-template<typename T>
+template <typename T>
 class LockBox {
    private:
     T obj;
@@ -50,17 +45,16 @@ class LockBox {
    public:
     LockBox(T obj) : obj(std::move(obj)) {}
 
-    UnlockedBox<T> acquire() {
-        return UnlockedBox<T>(this->mutex, &this->obj);
-    }
+    UnlockedBox<T> acquire() { return UnlockedBox<T>(this->mutex, &this->obj); }
 };
 
 using Job = std::tuple<std::shared_ptr<LockBox<Database>>, IndexCommand>;
 
-using JobResult = std::tuple<std::unique_ptr<DatabaseSnapshot>, std::unique_ptr<Task>, Response>;
+using JobResult = std::tuple<std::unique_ptr<DatabaseSnapshot>,
+                             std::unique_ptr<Task>, Response>;
 
 JobResult process_job(Job job) {
-    auto [ db_lock, cmd ] = std::move(job);
+    auto [db_lock, cmd] = std::move(job);
 
     std::unique_ptr<DatabaseSnapshot> snap;
     {
@@ -71,8 +65,9 @@ JobResult process_job(Job job) {
     std::vector<DatabaseLock> locks = dispatch_locks(cmd, &*snap);
 
     std::ostringstream task_id;
-    task_id << "index " << cmd.get_paths().size() << " files, starting with " << cmd.get_paths()[0];
-    TaskSpec* spec;
+    task_id << "index " << cmd.get_paths().size() << " files, starting with "
+            << cmd.get_paths()[0];
+    TaskSpec *spec;
     {
         auto db = db_lock->acquire();
         spec = db->allocate_task(task_id.str(), "n/a", locks);
@@ -83,7 +78,6 @@ JobResult process_job(Job job) {
     Response resp = dispatch_command(cmd, &*task, &*snap);
 
     return std::make_tuple(std::move(snap), std::move(task), resp);
-
 }
 
 // collect all the absolute, canonical files in the given directory (recursive).
@@ -189,15 +183,19 @@ int main(int argc, char *argv[]) {
     migrate_version(arg_db_path);
 
     try {
-        auto db_lock = std::shared_ptr<LockBox<Database>>(new LockBox<Database>(std::move(Database(arg_db_path))));
+        auto db_lock = std::shared_ptr<LockBox<Database>>(
+            new LockBox<Database>(std::move(Database(arg_db_path))));
 
-        std::vector<std::string> found_sample_paths = collect_file_paths(arg_samples_path);
+        std::vector<std::string> found_sample_paths =
+            collect_file_paths(arg_samples_path);
         sort(found_sample_paths.begin(), found_sample_paths.end());
         spdlog::info("found {} files to index", found_sample_paths.size());
 
         std::vector<std::vector<std::string>> batches;
         std::vector<std::string>::iterator batch_start;
-        for (batch_start = found_sample_paths.begin(); batch_start < found_sample_paths.end(); batch_start += arg_batch_size) {
+        for (batch_start = found_sample_paths.begin();
+             batch_start < found_sample_paths.end();
+             batch_start += arg_batch_size) {
             auto batch_end = batch_start + arg_batch_size;
             if (batch_end > found_sample_paths.end()) {
                 batch_end = found_sample_paths.end();
@@ -210,7 +208,8 @@ int main(int argc, char *argv[]) {
 
         auto job_count = 0;
         auto job_queue_lock = LockBox<std::queue<Job>>(std::queue<Job>());
-        auto result_queue_lock = LockBox<std::queue<JobResult>>(std::queue<JobResult>());
+        auto result_queue_lock =
+            LockBox<std::queue<JobResult>>(std::queue<JobResult>());
         for (auto batch : batches) {
             IndexCommand cmd = IndexCommand(batch, types, taints, true);
             Job job = std::make_tuple(db_lock, cmd);
@@ -223,52 +222,54 @@ int main(int argc, char *argv[]) {
             job_count += 1;
         }
 
-        // thread pool that pulls from job_queue, 
+        // thread pool that pulls from job_queue,
         // invokes process_job, and
         // places result in result_queue.
         vector<std::thread> threads;
         for (auto i = 0; i < arg_workers; i++) {
-            threads.push_back(std::thread(
-                [&job_queue_lock, &result_queue_lock](){
-                    while (true) {
-                        Job* job = [&job_queue_lock](){
-                            auto job_queue = job_queue_lock.acquire();
+            threads.push_back(std::thread([&job_queue_lock,
+                                           &result_queue_lock]() {
+                while (true) {
+                    Job *job = [&job_queue_lock]() {
+                        auto job_queue = job_queue_lock.acquire();
 
-                            if (job_queue->empty()) {
-                                return static_cast<Job *>(nullptr);
-                            }
-
-                            auto job = job_queue->front();
-                            job_queue->pop();
-                            return new Job(job);
-                        }();
-
-                        if (job == nullptr) {
-                            // case: thread pool is empty
-                            // ASSUMPTION: the queue is pre-filled before spawning workers,
-                            // so the queue size only decreases.
-                            // therefore, if the queue was empty before, it will empty in the future,
-                            // and the worker will never have work to do.
-                            // worker is done.
-                            break;
+                        if (job_queue->empty()) {
+                            return static_cast<Job *>(nullptr);
                         }
 
-                        // case: we  have a job
-                        auto [ snap, task, resp ] = process_job(*job);
-                        spdlog::info("RESP: {}", resp.to_string());
+                        auto job = job_queue->front();
+                        job_queue->pop();
+                        return new Job(job);
+                    }();
 
-                        uint64_t task_ms = get_milli_timestamp() - task->spec().epoch_ms();
-                        spdlog::info("JOB: {}: done ({}ms): {}", task->spec().id(), task_ms, task->spec().request_str());
+                    if (job == nullptr) {
+                        // case: thread pool is empty
+                        // ASSUMPTION: the queue is pre-filled before spawning
+                        // workers, so the queue size only decreases. therefore,
+                        // if the queue was empty before, it will empty in the
+                        // future, and the worker will never have work to do.
+                        // worker is done.
+                        break;
+                    }
 
-                        JobResult res = std::make_tuple(std::move(snap), std::move(task), resp);
+                    // case: we  have a job
+                    auto [snap, task, resp] = process_job(*job);
+                    spdlog::info("RESP: {}", resp.to_string());
 
-                        {
-                            auto result_queue = result_queue_lock.acquire();
-                            result_queue->push(std::move(res));
-                        }
+                    uint64_t task_ms =
+                        get_milli_timestamp() - task->spec().epoch_ms();
+                    spdlog::info("JOB: {}: done ({}ms): {}", task->spec().id(),
+                                 task_ms, task->spec().request_str());
+
+                    JobResult res =
+                        std::make_tuple(std::move(snap), std::move(task), resp);
+
+                    {
+                        auto result_queue = result_queue_lock.acquire();
+                        result_queue->push(std::move(res));
                     }
                 }
-            ));
+            }));
         }
 
         // pull rules from result_queue and commit changes to db.
@@ -289,7 +290,7 @@ int main(int argc, char *argv[]) {
             // ASSUMPTION: the workers only place items into the queue
             // and this is the only consumer.
             // so if the queue was non-empty above, its still non-empty here.
-            auto [ snap, task, resp ] = [&result_queue_lock](){
+            auto [snap, task, resp] = [&result_queue_lock]() {
                 auto result_queue = result_queue_lock.acquire();
                 auto res = std::move(result_queue->front());
                 result_queue->pop();
