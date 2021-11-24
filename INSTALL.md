@@ -36,7 +36,7 @@ sudo docker run -v [index_dir]:/var/lib/ursadb:rw -v [samples_dir]:/mnt/samples 
 
 1. Clone the repository:
 ```
-git clone https://github.com/CERT-Polska/ursadb.git
+git clone --recurse-submodules https://github.com/CERT-Polska/ursadb.git
 ```
 
 2. Install necessary dependencies:
