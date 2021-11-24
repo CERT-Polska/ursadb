@@ -22,8 +22,6 @@ void print_usage(const std::string &exec_name) {
 }
 
 int main(int argc, char *argv[]) {
-    // path to index
-    std::string arg_db_path;
     bool arg_single_compact = false;
 
     int c;
@@ -46,7 +44,9 @@ int main(int argc, char *argv[]) {
         print_usage(argc >= 1 ? argv[0] : "ursadb_compact");
         return 1;
     }
-    arg_db_path = std::string(argv[optind]);
+
+    // path to index
+    std::string arg_db_path(argv[optind]);
 
     spdlog::info("UrsaDB v{}: {}", get_version_string(), arg_db_path);
     fix_rlimit();
