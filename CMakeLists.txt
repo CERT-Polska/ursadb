@@ -35,6 +35,26 @@ target_enable_ipo(ursadb_new)
 target_clangformat_setup(ursadb_new)
 
 add_executable(
+    ursadb_index 
+    src/Environment.cpp
+    src/Environment.h
+    src/Index.cpp)
+target_include_directories(ursadb_index PUBLIC ${CMAKE_SOURCE_DIR})
+target_link_libraries(ursadb_index ursa)
+target_enable_ipo(ursadb_index)
+target_clangformat_setup(ursadb_index)
+
+add_executable(
+    ursadb_compact
+    src/Environment.cpp
+    src/Environment.h
+    src/Compact.cpp)
+target_include_directories(ursadb_compact PUBLIC ${CMAKE_SOURCE_DIR})
+target_link_libraries(ursadb_compact ursa)
+target_enable_ipo(ursadb_compact)
+target_clangformat_setup(ursadb_compact)
+
+add_executable(
     ursacli
     src/Client.cpp
     src/Client.h
@@ -70,6 +90,8 @@ target_clangformat_setup(ursadb_bench)
 install(TARGETS
         ursadb
         ursadb_new
+        ursadb_index
+        ursadb_compact
         ursadb_trim
         ursadb_test
         ursadb_bench

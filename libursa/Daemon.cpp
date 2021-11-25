@@ -13,7 +13,6 @@
 #include <utility>
 #include <variant>
 #include <vector>
-#include <zmq.hpp>
 
 #include "Command.h"
 #include "Database.h"
