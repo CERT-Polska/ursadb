@@ -1,7 +1,11 @@
-on: push
-
 name: Package build
-
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
 jobs:
   create_release:
     name: build deb
