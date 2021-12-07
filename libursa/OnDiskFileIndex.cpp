@@ -31,6 +31,7 @@ OnDiskFileIndex::OnDiskFileIndex(const fs::path &db_base,
       files_fname(files_fname),
       cache_fname(cache_fname),
       files_file(db_base / files_fname) {  // <- cool race condition here
+    files_file.fadvise(POSIX_FADV_RANDOM);
     if (fs::exists(db_base / cache_fname)) {
         file_count = fs::file_size(db_base / cache_fname) / 8 - 1;
     } else {

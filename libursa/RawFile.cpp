@@ -61,3 +61,7 @@ void RawFile::write(const T *buf, size_t count) {
 template void RawFile::write(const uint8_t *, size_t);
 template void RawFile::write(const uint32_t *, size_t);
 template void RawFile::write(const uint64_t *, size_t);
+
+void RawFile::fadvise(int advice) {
+    posix_fadvise(fd, 0, 0, advice);
+}

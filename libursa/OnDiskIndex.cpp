@@ -30,6 +30,7 @@ OnDiskIndex::OnDiskIndex(const std::string &fname)
       ndxfile(fname) {
     OnDiskIndexHeader header;
 
+    ndxfile.fadvise(POSIX_FADV_RANDOM);
     index_size = ndxfile.size();
 
     if (index_size < DATA_OFFSET + RUN_ARRAY_SIZE) {

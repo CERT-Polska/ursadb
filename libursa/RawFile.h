@@ -18,4 +18,6 @@ class RawFile {
     void write(const T *buf, size_t count);
 
     int get() { return fd; }
+
+    void fadvise(int advice);
 };
