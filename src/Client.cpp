@@ -35,7 +35,7 @@ void UrsaClient::check_task_status(const std::string &conn_id) {
         uint64_t work_perc =
             work_estimated > 0 ? work_done * 100 / work_estimated : 0;
         if (is_interactive) {
-            pdlog::info("Working... {}% ({} / {})", work_perc, work_done,
+            spdlog::info("Working... {}% ({} / {})", work_perc, work_done,
                         work_estimated);
         }
     }
