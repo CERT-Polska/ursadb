@@ -17,16 +17,17 @@ std::optional<std::string> s_recv_raw(zmq::socket_t *socket) {
     return std::string(static_cast<char *>(message.data()), message.size());
 }
 
-void s_send_padding(zmq::socket_t *socket, int flags) {
+void s_send_padding(zmq::socket_t *socket, std::string_view trace, int flags) {
     if (!s_send_raw(socket, std::string_view{}, flags)) {
-        throw std::runtime_error("s_send_padding failed");
+        throw std::runtime_error("s_send_padding failed:" + std::string(trace));
     }
 }
 
-void s_recv_padding(zmq::socket_t *socket) {
-    auto resp{s_recv<std::string>(socket)};
+void s_recv_padding(zmq::socket_t *socket, std::string_view trace) {
+    auto resp{s_recv<std::string>(socket, trace)};
     if (!resp.empty()) {
-        throw std::runtime_error("Expected zero-sized frame");
+        throw std::runtime_error("Expected zero-sized frame:" +
+                                 std::string(trace));
     }
 }
 

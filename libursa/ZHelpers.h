@@ -6,6 +6,13 @@
 #include <type_traits>
 #include <zmq.hpp>
 
+// ZMQTRACE is a "magic" parameter that should be passed as std::string_view
+// parameter to functions in this module. It expands to the current line
+// and filename, which will help in debugging tough zmq errors.
+#define STR1(x) #x
+#define STR(x) STR1(x)
+#define ZMQTRACE "trace(" __FILE__ "," STR(__LINE__) ")"
+
 // Sends one message to socket or throws std::runtime_error if it fails
 bool s_send_raw(zmq::socket_t *socket, std::string_view payload, int flags);
 
@@ -53,22 +60,24 @@ template <>
 bool s_try_send(zmq::socket_t *socket, const std::string_view &val, int flags);
 
 // Sends a zero-sized frame.
-void s_send_padding(zmq::socket_t *socket, int flags = 0);
+void s_send_padding(zmq::socket_t *socket, std::string_view trace,
+                    int flags = 0);
 // Receives a zero-sized frame or throws std::runtime_error.
-void s_recv_padding(zmq::socket_t *socket);
+void s_recv_padding(zmq::socket_t *socket, std::string_view trace);
 
 template <typename T>
-void s_send(zmq::socket_t *socket, const T &value, int flags = 0) {
+void s_send(zmq::socket_t *socket, const T &value, std::string_view trace,
+            int flags = 0) {
     if (!s_try_send<T>(socket, value, flags)) {
-        throw std::runtime_error("s_send failed");
+        throw std::runtime_error("s_send failed " + std::string(trace));
     }
 }
 
 template <typename T>
-T s_recv(zmq::socket_t *socket) {
+T s_recv(zmq::socket_t *socket, std::string_view trace) {
     auto response{s_try_recv<T>(socket)};
     if (!response.has_value()) {
-        throw std::runtime_error("s_recv failed");
+        throw std::runtime_error("s_recv failed" + std::string(trace));
     }
     return *response;
 }

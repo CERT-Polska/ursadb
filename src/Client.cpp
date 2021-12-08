@@ -12,7 +12,7 @@
 #include "spdlog/spdlog.h"
 
 void UrsaClient::check_task_status(const std::string &conn_id) {
-    s_send<std::string_view>(&status_socket, "status;");
+    s_send<std::string_view>(&status_socket, "status;", ZMQTRACE);
 
     std::string res_str;
     while (res_str.empty()) {
@@ -42,8 +42,8 @@ void UrsaClient::check_task_status(const std::string &conn_id) {
 }
 
 void UrsaClient::check_conn_status(zmq::socket_t *socket) {
-    s_send<std::string_view>(socket, "ping;");
-    auto res_str = s_recv<std::string>(socket);
+    s_send<std::string_view>(socket, "ping;", ZMQTRACE);
+    auto res_str = s_recv<std::string>(socket, ZMQTRACE);
 
     if (res_str.empty()) {
         throw std::runtime_error("Failed to connect to the database!");
@@ -136,7 +136,7 @@ static void s_send_cmd(zmq::socket_t *socket, std::string cmd) {
     if (cmd.back() != ';') {
         cmd = cmd + ";";
     }
-    s_send(socket, cmd);
+    s_send(socket, cmd, ZMQTRACE);
 }
 
 void UrsaClient::setup_connection() {

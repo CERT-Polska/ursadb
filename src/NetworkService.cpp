@@ -18,17 +18,17 @@
     worker.connect("ipc://backend.ipc");
 
     //  Tell backend we're ready for work
-    s_send<NetAction>(&worker, NetAction::Ready);
+    s_send<NetAction>(&worker, NetAction::Ready, ZMQTRACE);
 
     for (;;) {
         //  Read and save all frames until we get an empty frame
         //  In this example there is only 1 but it could be more
-        auto address{s_recv<std::string>(&worker)};
+        auto address{s_recv<std::string>(&worker, ZMQTRACE)};
 
-        s_recv_padding(&worker);
+        s_recv_padding(&worker, ZMQTRACE);
 
         //  Get request, send reply
-        auto request{s_recv<std::string>(&worker)};
+        auto request{s_recv<std::string>(&worker, ZMQTRACE)};
         spdlog::info("TASK: start [{}]: {}", task->spec().id(), request);
 
         Response response = dispatch_command_safe(request, &*task, &snap);
@@ -36,11 +36,11 @@
         // time, assigned worker, etc)
         std::string s = response.to_string();
 
-        s_send<NetAction>(&worker, NetAction::Response, ZMQ_SNDMORE);
-        s_send_padding(&worker, ZMQ_SNDMORE);
-        s_send(&worker, address, ZMQ_SNDMORE);
-        s_send_padding(&worker, ZMQ_SNDMORE);
-        s_send(&worker, s);
+        s_send<NetAction>(&worker, NetAction::Response, ZMQTRACE, ZMQ_SNDMORE);
+        s_send_padding(&worker, ZMQTRACE, ZMQ_SNDMORE);
+        s_send(&worker, address, ZMQTRACE, ZMQ_SNDMORE);
+        s_send_padding(&worker, ZMQTRACE, ZMQ_SNDMORE);
+        s_send(&worker, s, ZMQTRACE);
     }
 }
 
@@ -94,16 +94,16 @@ void NetworkService::commit_task(WorkerContext *wctx) {
 }
 
 void NetworkService::handle_response(WorkerContext *wctx) {
-    s_recv_padding(&backend);
+    s_recv_padding(&backend, ZMQTRACE);
 
-    auto client_addr{s_recv<std::string>(&backend)};
+    auto client_addr{s_recv<std::string>(&backend, ZMQTRACE)};
 
-    s_recv_padding(&backend);
+    s_recv_padding(&backend, ZMQTRACE);
 
-    auto reply{s_recv<std::string>(&backend)};
-    s_send(&frontend, client_addr, ZMQ_SNDMORE);
-    s_send_padding(&frontend, ZMQ_SNDMORE);
-    s_send(&frontend, reply);
+    auto reply{s_recv<std::string>(&backend, ZMQTRACE)};
+    s_send(&frontend, client_addr, ZMQTRACE, ZMQ_SNDMORE);
+    s_send_padding(&frontend, ZMQTRACE, ZMQ_SNDMORE);
+    s_send(&frontend, reply, ZMQTRACE);
 
     commit_task(wctx);
 
@@ -120,12 +120,12 @@ void NetworkService::handle_response(WorkerContext *wctx) {
 
 void NetworkService::poll_backend() {
     //  Queue worker address for LRU routing
-    auto worker_addr{s_recv<std::string>(&backend)};
+    auto worker_addr{s_recv<std::string>(&backend, ZMQTRACE)};
     WorkerContext *wctx = wctxs.at(worker_addr).get();
 
-    s_recv_padding(&backend);
+    s_recv_padding(&backend, ZMQTRACE);
 
-    auto resp_type{s_recv<NetAction>(&backend)};
+    auto resp_type{s_recv<NetAction>(&backend, ZMQTRACE)};
 
     switch (resp_type) {
         case NetAction::Response:
@@ -141,11 +141,11 @@ void NetworkService::poll_backend() {
 void NetworkService::poll_frontend() {
     //  Now get next client request, route to LRU worker
     //  Client request is [address][empty][request]
-    auto client_addr{s_recv<std::string>(&frontend)};
+    auto client_addr{s_recv<std::string>(&frontend, ZMQTRACE)};
 
-    s_recv_padding(&frontend);
+    s_recv_padding(&frontend, ZMQTRACE);
 
-    auto request{s_recv<std::string>(&frontend)};
+    auto request{s_recv<std::string>(&frontend, ZMQTRACE)};
 
     std::vector<DatabaseLock> locks;
     DatabaseSnapshot snapshot = db.snapshot();
@@ -154,9 +154,9 @@ void NetworkService::poll_frontend() {
         Command cmd{parse_command(request)};
         locks = std::move(dispatch_locks(cmd, &snapshot));
     } catch (const std::runtime_error &err) {
-        s_send(&frontend, client_addr, ZMQ_SNDMORE);
-        s_send_padding(&frontend, ZMQ_SNDMORE);
-        s_send(&frontend, Response::error("Parse error").to_string());
+        s_send(&frontend, client_addr, ZMQTRACE, ZMQ_SNDMORE);
+        s_send_padding(&frontend, ZMQTRACE, ZMQ_SNDMORE);
+        s_send(&frontend, Response::error("Parse error").to_string(), ZMQTRACE);
         return;
     }
 
@@ -164,11 +164,12 @@ void NetworkService::poll_frontend() {
     try {
         spec = db.allocate_task(request, client_addr, locks);
     } catch (const std::runtime_error &err) {
-        s_send(&frontend, client_addr, ZMQ_SNDMORE);
-        s_send_padding(&frontend, ZMQ_SNDMORE);
+        s_send(&frontend, client_addr, ZMQTRACE, ZMQ_SNDMORE);
+        s_send_padding(&frontend, ZMQTRACE, ZMQ_SNDMORE);
         s_send(&frontend,
                Response::error("Can't acquire lock, try again later", true)
-                   .to_string());
+                   .to_string(),
+               ZMQTRACE);
         return;
     }
 
@@ -180,11 +181,11 @@ void NetworkService::poll_frontend() {
     wctx->task = std::move(task);
     wctx->snap = std::move(snapshot);
 
-    s_send(&backend, worker_addr, ZMQ_SNDMORE);
-    s_send_padding(&backend, ZMQ_SNDMORE);
-    s_send(&backend, client_addr, ZMQ_SNDMORE);
-    s_send_padding(&backend, ZMQ_SNDMORE);
-    s_send(&backend, request);
+    s_send(&backend, worker_addr, ZMQTRACE, ZMQ_SNDMORE);
+    s_send_padding(&backend, ZMQTRACE, ZMQ_SNDMORE);
+    s_send(&backend, client_addr, ZMQTRACE, ZMQ_SNDMORE);
+    s_send_padding(&backend, ZMQTRACE, ZMQ_SNDMORE);
+    s_send(&backend, request, ZMQTRACE);
 }
 
 // Main entry point of the system!
