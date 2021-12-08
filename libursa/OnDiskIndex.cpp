@@ -30,7 +30,6 @@ OnDiskIndex::OnDiskIndex(const std::string &fname)
       ndxfile(fname) {
     OnDiskIndexHeader header;
 
-    ndxfile.fadvise(POSIX_FADV_RANDOM);
     index_size = ndxfile.size();
 
     if (index_size < DATA_OFFSET + RUN_ARRAY_SIZE) {
@@ -38,6 +37,7 @@ OnDiskIndex::OnDiskIndex(const std::string &fname)
     }
 
     ndxfile.pread(&header, sizeof(OnDiskIndexHeader), 0);
+    ndxfile.fadvise(POSIX_FADV_RANDOM, 0, index_size - RUN_ARRAY_SIZE);
 
     if (header.magic != DB_MAGIC) {
         throw std::runtime_error("invalid magic, not a catdata");

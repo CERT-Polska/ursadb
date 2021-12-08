@@ -19,5 +19,5 @@ class RawFile {
 
     int get() { return fd; }
 
-    void fadvise(int advice);
+    void fadvise(int advice, off_t start=0, off_t length=0);
 };
