@@ -50,11 +50,7 @@ You can also read the hosted version here:
 [cert-polska.github.io/ursadb/docs](https://cert-polska.github.io/ursadb/docs).
 
 ## Contact
-If you have any problems, bugs or feature requests related to UrsaDB, you're encouraged to create a GitHub issue. If you have other questions or want to contact the developers directly, you can email:
-
-* Jarosław Jedynak (msm@cert.pl)
-* Michał Leszczyński (monk@cert.pl)
-* CERT.PL (info@cert.pl)
+If you have any problems, bugs or feature requests related to UrsaDB, you're encouraged to create a GitHub issue.
 
 ## Funding acknowledgement
 ![Co-financed by the Connecting Europe Facility by of the European Union](https://www.cert.pl/wp-content/uploads/2019/02/en_horizontal_cef_logo-1.png)
