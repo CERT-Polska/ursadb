@@ -6,7 +6,7 @@ RUN apt update \
 RUN mkdir src && mkdir src/build
 COPY . src/
 WORKDIR /src/build
-RUN cmake -D CMAKE_CXX_COMPILER=/usr/bin/g++-7 -D CMAKE_BUILD_TYPE=Release .. && make
+RUN cmake -D CMAKE_CXX_COMPILER=/usr/bin/g++-7 -D CMAKE_BUILD_TYPE=Release .. && make -j$(nproc)
 
 FROM debian:buster
 
