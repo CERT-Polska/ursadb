@@ -20,7 +20,11 @@ COPY entrypoint.sh /entrypoint.sh
 
 RUN mkdir /var/lib/ursadb \
     && apt update && apt install -y libzmq3-dev dumb-init \
-    && chmod +x /entrypoint.sh /usr/bin/ursadb /usr/bin/ursadb_new
+    && chmod +x /entrypoint.sh /usr/bin/ursadb /usr/bin/ursadb_new \
+    && useradd -u 1000 -d /var/lib/ursadb ursa \
+    && chown -R ursa: /var/lib/ursadb /entrypoint.sh
+
+USER ursa
 
 EXPOSE 9281
 VOLUME ["/var/lib/ursadb"]
