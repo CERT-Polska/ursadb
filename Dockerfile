@@ -6,7 +6,7 @@ RUN apt update \
 RUN mkdir src && mkdir src/build
 COPY . src/
 WORKDIR /src/build
-RUN cmake -D CMAKE_CXX_COMPILER=/usr/bin/g++-7 -D CMAKE_BUILD_TYPE=Release .. && make
+RUN cmake -D CMAKE_CXX_COMPILER=/usr/bin/g++-7 -D CMAKE_BUILD_TYPE=Release .. && make -j$(nproc)
 
 FROM debian:buster
 
@@ -20,7 +20,11 @@ COPY entrypoint.sh /entrypoint.sh
 
 RUN mkdir /var/lib/ursadb \
     && apt update && apt install -y libzmq3-dev dumb-init \
-    && chmod +x /entrypoint.sh /usr/bin/ursadb /usr/bin/ursadb_new
+    && chmod +x /entrypoint.sh /usr/bin/ursadb /usr/bin/ursadb_new \
+    && useradd -u 1000 -d /var/lib/ursadb ursa \
+    && chown -R ursa: /var/lib/ursadb /entrypoint.sh
+
+USER ursa
 
 EXPOSE 9281
 VOLUME ["/var/lib/ursadb"]
