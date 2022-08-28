@@ -18,7 +18,7 @@ it means that it's not used and can be safely removed (when the database is turn
 
 Example:
 
-```
+```json
 {
     "config": {
         "database_workers": 10
@@ -40,7 +40,7 @@ Most importantly, it contains references to all indexes in this dataset,
 and a list of filenames tracked by this dataset.
 
 Example:
-```
+```json
 {
     "filename_cache": "namecache.files.set.507718ac.db.ursa",
     "files": "files.set.507718ac.db.ursa",
@@ -86,7 +86,7 @@ For example:
 Finally, the last `(2**24 + 1) * 8` bytes of an index consists of an array of uint64_t
 values, where sequence N starts at `array[N]` offset in the file, and ends at `array[N+1]`
 
-An index can be parsed with the following Python code. Warning this is just a demonstration,
+An index can be parsed with the following Python code. Warning: this is just a demonstration,
 and is way too slow to work with indexes bigger than really small ones.
 
 ```python
@@ -127,6 +127,7 @@ def parse(fpath):
             continue
 
         run = decompress(fdata[offsets[i]:offsets[i+1]])
+        # trigram [i] contains files with ids [run]
         print(f"{i:06x}: {run}")
 
 
@@ -134,11 +135,25 @@ if __name__ == '__main__':
     parse(sys.argv[1])
 ```
 
-## Names
+## Files
 
-Newline-separated list of filenames in the database. This file can be safely
-edited or changed with any editor, for example when moving the collection to a
-different folder. It's only important to:
+Newline-separated list of filenames in the database.
+
+```
+$ head -n 10 files.set.35dcff87.db.ursa
+/mnt/samples/001
+/mnt/samples/002
+/mnt/samples/003
+/mnt/samples/004
+/mnt/samples/005
+/mnt/samples/006
+/mnt/samples/007
+/mnt/samples/008
+/mnt/samples/009
+/mnt/samples/010
+```
+
+Right now, the only way to change the base directory of files is to edit this file directly. It can be safely edited or changed with any editor. It's only important to:
 
  - ensure the database is turned off
  - remove the namecache file later
@@ -147,9 +162,23 @@ different folder. It's only important to:
 
 Contains an array of `uint64_t` offsets in the `names` file.
 This is used to map file IDs to names for queries, without loading all the file
-names into memory.
+names into memory (and to speed up database startup)
 If this file doesn't exist or was removed, it'll be regenerated when the database
 starts.
+
+```
+$ xxd namecache.files.set.d2c6638f.db.ursa | head -n 10
+00000000: 0000 0000 0000 0000 1f00 0000 0000 0000  ................
+00000010: 3b00 0000 0000 0000 5d00 0000 0000 0000  ;.......].......
+00000020: 8000 0000 0000 0000 9b00 0000 0000 0000  ................
+00000030: b200 0000 0000 0000 d700 0000 0000 0000  ................
+00000040: fb00 0000 0000 0000 2601 0000 0000 0000  ........&.......
+00000050: 4c01 0000 0000 0000 6b01 0000 0000 0000  L.......k.......
+00000060: 8d01 0000 0000 0000 c601 0000 0000 0000  ................
+00000070: fd01 0000 0000 0000 3702 0000 0000 0000  ........7.......
+00000080: 5402 0000 0000 0000 7f02 0000 0000 0000  T...............
+00000090: a702 0000 0000 0000 d702 0000 0000 0000  ................
+```
 
 ## Itermeta
 
