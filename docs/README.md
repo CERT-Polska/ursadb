@@ -31,4 +31,3 @@ Random notes about Ursadb internals
     can handle your collection.
 - [On-disk format](./ondiskformat.md): Read if you want to understand Ursadb's on
     disk format.
-- [Query Planning](./queryplan.md): How a query is executed.
