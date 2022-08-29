@@ -1,7 +1,7 @@
 # Configuration
 
 Ursadb configuration is a simple set of key-value pairs. The defaults are sane.
-You don't need to change them, unless you wan't to tweak ursadb to your system.
+You don't need to change them, unless you want to tweak ursadb to your system.
 
 They can be read by issuing a `config get` command with `ursacli`:
 
