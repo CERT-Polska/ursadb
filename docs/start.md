@@ -4,7 +4,7 @@
 
 ### Installation
 
-The easiest way to start a ursadb instance is to run (substitute your files and index paths):
+The easiest way to start a ursadb instance is to run (substitute with your files and index paths):
 
 ```
 mkdir -p /tmp/ursadb/index /tmp/ursadb/files
