@@ -8,7 +8,7 @@ The easiest way to start a ursadb instance is to run (substitute with your files
 
 ```
 mkdir -p /tmp/ursadb/index /tmp/ursadb/files
-sudo docker run -p 9281 -v /tmp/ursadb/index:/var/lib/ursadb:rw -v /tmp/ursadb/files:/mnt/samples certpl/ursadb
+sudo docker run -p 9281 -v /tmp/ursadb/index:/var/lib/ursadb:rw -v /tmp/ursadb/files:/mnt/samples mqueryci/ursadb
 ```
 
 For other installation methods see [install.md](./install.md).

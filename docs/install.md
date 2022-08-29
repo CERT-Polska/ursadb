@@ -6,7 +6,7 @@ Change [index_dir] and [samples_dir] to paths on your filesystem where you want 
 index and samples.
 
 ```
-sudo docker run -v [index_dir]:/var/lib/ursadb:rw -v [samples_dir]:/mnt/samples certpl/ursadb
+sudo docker run -v [index_dir]:/var/lib/ursadb:rw -v [samples_dir]:/mnt/samples mqueryci/ursadb
 ```
 
 ## From dockerfile
