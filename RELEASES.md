@@ -1,3 +1,20 @@
+# Version 1.5 (2022-08-29)
+
+Features:
+- Alternatives (like {(41 | 42)}) implemented in the ursadb query syntax (#65)
+- Better support for wildcards (#23)
+- Syntax for indexing with taints (#31)
+
+Performance:
+- Query graph pruning (#67)
+
+Correctness:
+- Some improvements for thread safety (#32)
+
+Refactoring and maintenance:
+- Ursacli rewritten to C++ (#48)
+- Documentation improvements (#33)
+
 # Version 1.4.2 (2020-06-10)
 
 Bugfix release
