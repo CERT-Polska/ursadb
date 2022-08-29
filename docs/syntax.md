@@ -1,5 +1,14 @@
 # syntax
 
+You can communicate with ursadb in its own query language. It's not very
+complicated, but longer queries can get complex.
+
+For example, to select files with "abc" trigram with ursacli you would write:
+
+```
+ursadb> select "abc";
+```
+
 Available commands:
 
 - [`index`](#index)
@@ -20,7 +29,7 @@ All responses from the database use the JSON format.
 
 Additionally, all successful commands return response in the following format:
 
-```json
+```javascript
 {
     "result": {
         // json with type-specific information
@@ -31,7 +40,7 @@ Additionally, all successful commands return response in the following format:
 
 All failed commands return response in the following format:
 
-```json
+```javascript
 {
     // "message" key, instead of "result".
     "message": "Human-readable error message",

@@ -1,6 +1,6 @@
 # UrsaDB
 
-A 3gram search engine for querying Terabytes of data in milliseconds. Optimized for working with binary files (for example, malware dumps).
+A 3gram search engine for querying terabytes of data in milliseconds. Optimized for working with binary files (for example, malware dumps).
 
 Created in [CERT.PL](https://cert.pl). Originally by Jarosław Jedynak ([tailcall.net](https://tailcall.net)), extended and improved by Michał Leszczyński.
 
