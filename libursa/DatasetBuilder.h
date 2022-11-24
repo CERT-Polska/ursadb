@@ -38,5 +38,5 @@ class invalid_filename_error : public std::runtime_error {
     explicit invalid_filename_error(const std::string &__arg)
         : runtime_error(__arg) {}
 
-    const char *what() const _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_USE_NOEXCEPT;
+    const char *what() const noexcept;
 };

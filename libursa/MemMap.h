@@ -33,7 +33,7 @@ class empty_file_error : public std::runtime_error {
     explicit empty_file_error(const std::string &__arg)
         : runtime_error(__arg) {}
 
-    const char *what() const _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_USE_NOEXCEPT;
+    const char *what() const noexcept;
 };
 
 class file_open_error : public std::runtime_error {
@@ -42,5 +42,5 @@ class file_open_error : public std::runtime_error {
    public:
     explicit file_open_error(const std::string &__arg) : runtime_error(__arg) {}
 
-    const char *what() const _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_USE_NOEXCEPT;
+    const char *what() const noexcept;
 };
