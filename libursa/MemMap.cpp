@@ -53,12 +53,10 @@ MemMap::~MemMap() {
     }
 }
 
-const char *empty_file_error::what() const _GLIBCXX_TXN_SAFE_DYN
-    _GLIBCXX_USE_NOEXCEPT {
+const char *empty_file_error::what() const noexcept {
     return what_message.c_str();
 }
 
-const char *file_open_error::what() const _GLIBCXX_TXN_SAFE_DYN
-    _GLIBCXX_USE_NOEXCEPT {
+const char *file_open_error::what() const noexcept {
     return what_message.c_str();
 }

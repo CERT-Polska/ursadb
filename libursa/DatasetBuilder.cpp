@@ -104,7 +104,6 @@ void DatasetBuilder::clear() {
     }
 }
 
-const char *invalid_filename_error::what() const _GLIBCXX_TXN_SAFE_DYN
-    _GLIBCXX_USE_NOEXCEPT {
+const char *invalid_filename_error::what() const noexcept {
     return what_message.c_str();
 }
