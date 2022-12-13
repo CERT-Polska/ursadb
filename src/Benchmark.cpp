@@ -15,7 +15,7 @@
 #include "libursa/Utils.h"
 
 template <typename F, typename... Args>
-static uint64_t benchmark_ms(F &&func, Args &&...args) {
+static uint64_t benchmark_ms(F &&func, Args &&... args) {
     auto start = std::chrono::steady_clock::now();
     std::forward<decltype(func)>(func)(std::forward<Args>(args)...);
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(

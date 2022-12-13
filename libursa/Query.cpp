@@ -76,7 +76,7 @@ std::string Query::as_string_repr() const {
         }
         return out;
     }
-    // Query is still "raw" and mostly human-readable. Show stringlike representation.
+    // No query plan yet. Show stringlike representation.
     for (const auto &token : value) {
         if (token.num_possible_values() == 1) {
             out += token.possible_values()[0];
@@ -216,7 +216,7 @@ QueryGraph to_query_graph(const QString &str, int size,
 }
 
 Query Query::plan(const std::unordered_set<IndexType> &types_to_query,
-                       const DatabaseConfig &config) const {
+                  const DatabaseConfig &config) const {
     // If the query is not primitive, plan all the subqueries and return clone.
     if (type != QueryType::PRIMITIVE) {
         std::vector<Query> plans;
@@ -235,10 +235,10 @@ Query Query::plan(const std::unordered_set<IndexType> &types_to_query,
     // For example, "abcde\x??efg" will return abcd & bcde & efg
     std::vector<PrimitiveQuery> plan;
 
-    bool has_gram3 = types_to_query.find(IndexType::GRAM3) != types_to_query.end();
-    bool has_text4 = types_to_query.find(IndexType::TEXT4) != types_to_query.end();
-    bool has_wide8 = types_to_query.find(IndexType::WIDE8) != types_to_query.end();
-    bool has_hash4 = types_to_query.find(IndexType::HASH4) != types_to_query.end();
+    bool has_gram3 = types_to_query.count(IndexType::GRAM3) != 0;
+    bool has_text4 = types_to_query.count(IndexType::TEXT4) != 0;
+    bool has_wide8 = types_to_query.count(IndexType::WIDE8) != 0;
+    bool has_hash4 = types_to_query.count(IndexType::HASH4) != 0;
 
     // `i` is the current index. `skip_to` is used to keep track of last
     // "handled" byte. For example there's no point in adding 3gram "bcd"
@@ -268,7 +268,7 @@ Query Query::plan(const std::unordered_set<IndexType> &types_to_query,
         const auto &hgram = convert_gram(IndexType::HASH4, i, value);
         if (i >= (skip_to - 1) && has_hash4 && hgram) {
             plan.emplace_back(IndexType::HASH4, *hgram);
-            // We don't want to continue here - gram3 can bring more information.
+            // Don't continue here - gram3 can give us more information.
         }
         // Otherwise, add a regular gram3 token.
         const auto &gram = convert_gram(IndexType::GRAM3, i, value);

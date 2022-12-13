@@ -74,8 +74,7 @@ QueryResult OnDiskIndex::query(const QueryGraph &graph,
 }
 
 // Returns all files with a given ngram
-QueryResult OnDiskIndex::query(TriGram trigram,
-                               QueryCounters *counters) const {
+QueryResult OnDiskIndex::query(TriGram trigram, QueryCounters *counters) const {
     return QueryResult(std::move(query_primitive(trigram, &counters->reads())));
 }
 
