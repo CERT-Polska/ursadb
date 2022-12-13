@@ -73,13 +73,19 @@ QueryResult OnDiskDataset::query(const Query &query,
                     return ndx.query(primitive.trigram, counters);
                 }
             }
-            throw std::runtime_error("Unexpected graph type in query");
+            throw std::runtime_error("Unexpected ngram type in query");
         },
         counters);
 }
 
 void OnDiskDataset::execute(const Query &query, ResultWriter *out,
                             QueryCounters *counters) const {
+    std::unordered_set<IndexType> types_to_query;
+    for (const auto &ndx : ds->get_indexes()) {
+        types_to_query.emplace(ndx.index_type());
+    }
+    const Query plan = query.plan(types_to_query);
+
     QueryResult result = this->query(query, counters);
     if (result.is_everything()) {
         files_index->for_each_filename(

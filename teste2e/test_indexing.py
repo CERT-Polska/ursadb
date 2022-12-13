@@ -98,7 +98,7 @@ def test_wide8_index_works_as_expected(ursadb: UrsadbTestContext):
     check_query(
         ursadb,
         "{61 (00|01) (62|63) (00|01) (63|62) (00|01) 64 00}",
-        ["vvv", "qqq"],
+        ["kot", "zzz", "yyy", "vvv", "qqq"],
     )
     assert get_index_hash(ursadb, "wide8")[:16] == "c73b55c36445ca6b"
 

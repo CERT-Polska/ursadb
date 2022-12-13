@@ -218,7 +218,8 @@ QueryGraph to_query_graph(const QString &str, int size,
 // For primitive queries, find a minimal covering set of ngram queries and
 // return it. If there are multiple disconnected components, AND them.
 // For example, "abcde\x??efg" will return abcd & bcde & efg
-std::vector<PrimitiveQuery> plan_qstring(const std::unordered_set<IndexType> &types_to_query, const QString &value) {
+std::vector<PrimitiveQuery> plan_qstring(
+    const std::unordered_set<IndexType> &types_to_query, const QString &value) {
     std::vector<PrimitiveQuery> plan;
 
     bool has_gram3 = types_to_query.count(IndexType::GRAM3) != 0;

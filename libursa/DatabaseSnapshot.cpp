@@ -226,14 +226,6 @@ QueryCounters DatabaseSnapshot::execute(const Query &query,
         }
     }
 
-    std::unordered_set<IndexType> types_to_query;
-    for (const auto *ds : datasets_to_query) {
-        for (const auto &ndx : ds->get_indexes()) {
-            types_to_query.emplace(ndx.index_type());
-        }
-    }
-
-    Query plan = query.plan(types_to_query, config);
     task->spec().estimate_work(datasets_to_query.size());
 
     QueryCounters counters;
@@ -242,7 +234,7 @@ QueryCounters DatabaseSnapshot::execute(const Query &query,
         if (!ds->has_all_taints(taints)) {
             continue;
         }
-        ds->execute(plan, out, &counters);
+        ds->execute(query, out, &counters);
     }
     return counters;
 }
