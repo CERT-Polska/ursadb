@@ -215,24 +215,10 @@ QueryGraph to_query_graph(const QString &str, int size,
     return result;
 }
 
-Query Query::plan(const std::unordered_set<IndexType> &types_to_query,
-                  const DatabaseConfig &config) const {
-    // If the query is not primitive, plan all the subqueries and return clone.
-    if (type != QueryType::PRIMITIVE) {
-        std::vector<Query> plans;
-        for (auto &query : queries) {
-            plans.emplace_back(query.plan(types_to_query, config));
-        }
-        if (type == QueryType::MIN_OF) {
-            return Query(count, std::move(plans));
-        } else {
-            return Query(type, std::move(plans));
-        }
-    }
-
-    // For primitive queries, find a minimal covering set of ngram queries and
-    // return it. If there are multiple disconnected components, AND them.
-    // For example, "abcde\x??efg" will return abcd & bcde & efg
+// For primitive queries, find a minimal covering set of ngram queries and
+// return it. If there are multiple disconnected components, AND them.
+// For example, "abcde\x??efg" will return abcd & bcde & efg
+std::vector<PrimitiveQuery> plan_qstring(const std::unordered_set<IndexType> &types_to_query, const QString &value) {
     std::vector<PrimitiveQuery> plan;
 
     bool has_gram3 = types_to_query.count(IndexType::GRAM3) != 0;
@@ -283,7 +269,23 @@ Query Query::plan(const std::unordered_set<IndexType> &types_to_query,
         i += 1;
     }
 
-    return Query(std::move(plan));
+    return std::move(plan);
+}
+
+Query Query::plan(const std::unordered_set<IndexType> &types_to_query,
+                  const DatabaseConfig &config) const {
+    if (type != QueryType::PRIMITIVE) {
+        std::vector<Query> plans;
+        for (const auto &query : queries) {
+            plans.emplace_back(query.plan(types_to_query, config));
+        }
+        if (type == QueryType::MIN_OF) {
+            return Query(count, std::move(plans));
+        }
+        return Query(type, std::move(plans));
+    }
+
+    return Query(plan_qstring(types_to_query, value));
 }
 
 QueryResult Query::run(const QueryPrimitive &primitive,
@@ -298,19 +300,22 @@ QueryResult Query::run(const QueryPrimitive &primitive,
             }
         }
         return result;
-    } else if (type == QueryType::AND) {
+    }
+    if (type == QueryType::AND) {
         auto result = QueryResult::everything();
         for (const auto &query : queries) {
             result.do_and(query.run(primitive, counters), &counters->ands());
         }
         return result;
-    } else if (type == QueryType::OR) {
+    }
+    if (type == QueryType::OR) {
         auto result = QueryResult::empty();
         for (const auto &query : queries) {
             result.do_or(query.run(primitive, counters), &counters->ors());
         }
         return result;
-    } else if (type == QueryType::MIN_OF) {
+    }
+    if (type == QueryType::MIN_OF) {
         std::vector<QueryResult> results;
         std::vector<const QueryResult *> results_ptrs;
         results.reserve(queries.size());
@@ -320,7 +325,6 @@ QueryResult Query::run(const QueryPrimitive &primitive,
             results_ptrs.emplace_back(&results.back());
         }
         return QueryResult::do_min_of(count, results_ptrs, &counters->minofs());
-    } else {
-        throw std::runtime_error("Unexpected query type");
     }
+    throw std::runtime_error("Unexpected query type");
 }
