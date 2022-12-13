@@ -46,6 +46,7 @@ void combinations(const QString &qstr, size_t len, const TrigramGenerator &gen,
 
 // Converts ngram from raw representation to compressed 3byte id.
 std::optional<TriGram> convert_gram(IndexType type, uint64_t source);
+std::optional<TriGram> convert_gram(IndexType type, int index, const QString &string);
 
 template <TrigramGenerator gen>
 std::vector<TriGram> get_trigrams_eager(const uint8_t *mem, size_t size) {

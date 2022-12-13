@@ -233,9 +233,7 @@ QueryCounters DatabaseSnapshot::execute(const Query &query,
         }
     }
 
-    Query query_copy{query.clone()};
-    query_copy.precompute(types_to_query, config);
-
+    Query plan = query.plan(types_to_query, config);
     task->spec().estimate_work(datasets_to_query.size());
 
     QueryCounters counters;
@@ -244,7 +242,7 @@ QueryCounters DatabaseSnapshot::execute(const Query &query,
         if (!ds->has_all_taints(taints)) {
             continue;
         }
-        ds->execute(query_copy, out, &counters);
+        ds->execute(plan, out, &counters);
     }
     return counters;
 }

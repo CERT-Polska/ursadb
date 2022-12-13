@@ -37,6 +37,9 @@ class QToken {
     // Equivalent to `possible_values.size()`.
     uint64_t num_possible_values() const;
 
+    // Returns true, if the QToken is unique (has only one possible value)
+    bool unique() const { return opts_.size() == 1; }
+
     // Returns true, if the QToken is empty (doesn't accept any character).
     bool empty() const { return opts_.empty(); }
 
