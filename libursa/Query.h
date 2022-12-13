@@ -71,8 +71,7 @@ class Query {
 
     QueryResult run(const QueryPrimitive &primitive,
                     QueryCounters *counters) const;
-    Query plan(const std::unordered_set<IndexType> &types_to_query,
-               const DatabaseConfig &config) const;
+    Query plan(const std::unordered_set<IndexType> &types_to_query) const;
 
     Query clone() const { return Query(*this); }
 

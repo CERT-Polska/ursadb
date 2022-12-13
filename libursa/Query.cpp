@@ -273,12 +273,11 @@ std::vector<PrimitiveQuery> plan_qstring(
     return std::move(plan);
 }
 
-Query Query::plan(const std::unordered_set<IndexType> &types_to_query,
-                  const DatabaseConfig &config) const {
+Query Query::plan(const std::unordered_set<IndexType> &types_to_query) const {
     if (type != QueryType::PRIMITIVE) {
         std::vector<Query> plans;
         for (const auto &query : queries) {
-            plans.emplace_back(query.plan(types_to_query, config));
+            plans.emplace_back(query.plan(types_to_query));
         }
         if (type == QueryType::MIN_OF) {
             return Query(count, std::move(plans));

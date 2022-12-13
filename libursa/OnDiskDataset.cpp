@@ -81,7 +81,7 @@ QueryResult OnDiskDataset::query(const Query &query,
 void OnDiskDataset::execute(const Query &query, ResultWriter *out,
                             QueryCounters *counters) const {
     std::unordered_set<IndexType> types_to_query;
-    for (const auto &ndx : ds->get_indexes()) {
+    for (const auto &ndx : get_indexes()) {
         types_to_query.emplace(ndx.index_type());
     }
     const Query plan = query.plan(types_to_query);
