@@ -86,7 +86,7 @@ void OnDiskDataset::execute(const Query &query, ResultWriter *out,
     }
     const Query plan = query.plan(types_to_query);
 
-    QueryResult result = this->query(query, counters);
+    QueryResult result = this->query(plan, counters);
     if (result.is_everything()) {
         files_index->for_each_filename(
             [&out](const std::string &fname) { out->push_back(fname); });
