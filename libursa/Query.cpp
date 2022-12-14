@@ -69,6 +69,14 @@ const QString &Query::as_value() const {
 
 std::string Query::as_string_repr() const {
     std::string out = "";
+    if (!query_plan.empty()) {
+        // Query is already after planning stage. Show low-level representation.
+        for (const auto &token : query_plan) {
+            out += fmt::format("[{:x}]", token.trigram);
+        }
+        return out;
+    }
+    // No query plan yet. Show stringlike representation.
     for (const auto &token : value) {
         if (token.num_possible_values() == 1) {
             out += token.possible_values()[0];
@@ -207,40 +215,107 @@ QueryGraph to_query_graph(const QString &str, int size,
     return result;
 }
 
-void Query::precompute(const std::unordered_set<IndexType> &types_to_query,
-                       const DatabaseConfig &config) {
-    if (type == QueryType::PRIMITIVE) {
-        value_graphs.clear();
-        for (const auto &ntype : types_to_query) {
-            TokenValidator validator = get_validator_for(ntype);
-            size_t input_len = get_ngram_size_for(ntype);
-            auto graph{to_query_graph(value, input_len, config, validator)};
-            value_graphs.emplace(ntype, std::move(graph));
+// For primitive queries, find a minimal covering set of ngram queries and
+// return it. If there are multiple disconnected components, AND them.
+// For example, "abcde\x??efg" will return abcd & bcde & efg
+std::vector<PrimitiveQuery> plan_qstring(
+    const std::unordered_set<IndexType> &types_to_query, const QString &value) {
+    std::vector<PrimitiveQuery> plan;
+
+    bool has_gram3 = types_to_query.count(IndexType::GRAM3) != 0;
+    bool has_text4 = types_to_query.count(IndexType::TEXT4) != 0;
+    bool has_wide8 = types_to_query.count(IndexType::WIDE8) != 0;
+    bool has_hash4 = types_to_query.count(IndexType::HASH4) != 0;
+
+    // `i` is the current index. `skip_to` is used to keep track of last
+    // "handled" byte. For example there's no point in adding 3gram "bcd"
+    // when 4gram "abcd" was already added. Only relevant for wide8 ngrams.
+    int i = 0;
+    int skip_to = 0;
+    while (i + 2 < value.size()) {
+        // If wide8 index is supported, try to add a token and skip 6 bytes.
+        if (has_wide8) {
+            if (const auto &gram = convert_gram(IndexType::WIDE8, i, value)) {
+                plan.emplace_back(IndexType::WIDE8, *gram);
+                skip_to = i + 6;
+                i += 2;
+                continue;
+            }
         }
-    } else {
-        for (auto &query : queries) {
-            query.precompute(types_to_query, config);
+        // If text4 index is supported, try to add a token and skip 2 bytes.
+        if (has_text4) {
+            if (const auto &gram = convert_gram(IndexType::TEXT4, i, value)) {
+                plan.emplace_back(IndexType::TEXT4, *gram);
+                skip_to = i + 2;
+                i += 1;
+                continue;
+            }
         }
+        // If hash4 index is supported and current ngram is not text, try hash4.
+        const auto &hgram = convert_gram(IndexType::HASH4, i, value);
+        if (i >= (skip_to - 1) && has_hash4 && hgram) {
+            plan.emplace_back(IndexType::HASH4, *hgram);
+            // Don't continue here - gram3 can give us more information.
+        }
+        // Otherwise, add a regular gram3 token.
+        const auto &gram = convert_gram(IndexType::GRAM3, i, value);
+        if (i >= skip_to && gram) {
+            if (has_gram3) {
+                plan.emplace_back(IndexType::GRAM3, *gram);
+            }
+            i += 1;
+            continue;
+        }
+        // If no ngram can be added, remember to move forward.
+        i += 1;
     }
+
+    return std::move(plan);
+}
+
+Query Query::plan(const std::unordered_set<IndexType> &types_to_query) const {
+    if (type != QueryType::PRIMITIVE) {
+        std::vector<Query> plans;
+        for (const auto &query : queries) {
+            plans.emplace_back(query.plan(types_to_query));
+        }
+        if (type == QueryType::MIN_OF) {
+            return Query(count, std::move(plans));
+        }
+        return Query(type, std::move(plans));
+    }
+
+    return Query(plan_qstring(types_to_query, value));
 }
 
 QueryResult Query::run(const QueryPrimitive &primitive,
                        QueryCounters *counters) const {
     if (type == QueryType::PRIMITIVE) {
-        return primitive(value_graphs, counters);
-    } else if (type == QueryType::AND) {
+        auto result = QueryResult::everything();
+        for (const auto &token : query_plan) {
+            auto next = primitive(token, counters);
+            result.do_and(next, &counters->ands());
+            if (result.is_empty()) {
+                break;
+            }
+        }
+        return result;
+    }
+    if (type == QueryType::AND) {
         auto result = QueryResult::everything();
         for (const auto &query : queries) {
             result.do_and(query.run(primitive, counters), &counters->ands());
         }
         return result;
-    } else if (type == QueryType::OR) {
+    }
+    if (type == QueryType::OR) {
         auto result = QueryResult::empty();
         for (const auto &query : queries) {
             result.do_or(query.run(primitive, counters), &counters->ors());
         }
         return result;
-    } else if (type == QueryType::MIN_OF) {
+    }
+    if (type == QueryType::MIN_OF) {
         std::vector<QueryResult> results;
         std::vector<const QueryResult *> results_ptrs;
         results.reserve(queries.size());
@@ -250,7 +325,6 @@ QueryResult Query::run(const QueryPrimitive &primitive,
             results_ptrs.emplace_back(&results.back());
         }
         return QueryResult::do_min_of(count, results_ptrs, &counters->minofs());
-    } else {
-        throw std::runtime_error("Unexpected query type");
     }
+    throw std::runtime_error("Unexpected query type");
 }

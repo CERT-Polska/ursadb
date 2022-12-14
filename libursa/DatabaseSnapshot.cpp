@@ -226,16 +226,6 @@ QueryCounters DatabaseSnapshot::execute(const Query &query,
         }
     }
 
-    std::unordered_set<IndexType> types_to_query;
-    for (const auto *ds : datasets_to_query) {
-        for (const auto &ndx : ds->get_indexes()) {
-            types_to_query.emplace(ndx.index_type());
-        }
-    }
-
-    Query query_copy{query.clone()};
-    query_copy.precompute(types_to_query, config);
-
     task->spec().estimate_work(datasets_to_query.size());
 
     QueryCounters counters;
@@ -244,7 +234,7 @@ QueryCounters DatabaseSnapshot::execute(const Query &query,
         if (!ds->has_all_taints(taints)) {
             continue;
         }
-        ds->execute(query_copy, out, &counters);
+        ds->execute(query, out, &counters);
     }
     return counters;
 }
@@ -362,7 +352,7 @@ void DatabaseSnapshot::compact_locked_datasets(Task *task) const {
 // After the merging, do more plumbing to add results to the task->changes
 // collection.
 void DatabaseSnapshot::internal_compact(
-    Task *task, std::vector<const OnDiskDataset *> datasets) const {
+    Task *task, const std::vector<const OnDiskDataset *> &datasets) const {
     std::vector<std::string> ds_names;
 
     // There's nothing to compact

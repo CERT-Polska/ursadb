@@ -15,13 +15,32 @@
 
 enum class QueryType { PRIMITIVE = 1, AND = 2, OR = 3, MIN_OF = 4 };
 
-using QueryPrimitive = std::function<QueryResult(
-    const std::unordered_map<IndexType, QueryGraph> &, QueryCounters *counter)>;
+// Small utility class to represent a ngram along with its type.
+// This is different to the TriGram typedef, because TriGram doesn't know what
+// type of index it represents.
+class PrimitiveQuery {
+   public:
+    PrimitiveQuery(IndexType itype, TriGram trigram)
+        : itype(itype), trigram(trigram) {}
 
+    const IndexType itype;
+    const TriGram trigram;
+};
+
+using QueryPrimitive =
+    std::function<QueryResult(PrimitiveQuery, QueryCounters *counter)>;
+
+// Query represents the query as provided by the user.
+// Query can contain subqueries (using AND/OR/MINOF) or be a literal query.
+// There are actually two types of literal query objects - "plain" and
+// "planned". All queries start as plain - represented by QString. They are
+// independent of the database. Before actually running them, they must be
+// planned (using a plan() method). At this point query decides which ngrams
+// will actually be checked.
 class Query {
    private:
     Query(const Query &other)
-        : type(other.type), value_graphs(), count(other.count) {
+        : type(other.type), query_plan(), count(other.count) {
         queries.reserve(other.queries.size());
         for (const auto &query : other.queries) {
             queries.emplace_back(query.clone());
@@ -31,6 +50,11 @@ class Query {
             value.emplace_back(token.clone());
         }
     }
+
+    explicit Query(std::vector<PrimitiveQuery> &&query_plan)
+        : type(QueryType::PRIMITIVE),
+          query_plan(std::move(query_plan)),
+          value() {}
 
    public:
     explicit Query(QString &&qstr);
@@ -47,16 +71,15 @@ class Query {
 
     QueryResult run(const QueryPrimitive &primitive,
                     QueryCounters *counters) const;
-    void precompute(const std::unordered_set<IndexType> &types_to_query,
-                    const DatabaseConfig &config);
+    Query plan(const std::unordered_set<IndexType> &types_to_query) const;
 
     Query clone() const { return Query(*this); }
 
    private:
     QueryType type;
     // used for QueryType::PRIMITIVE
-    QString value;
-    std::unordered_map<IndexType, QueryGraph> value_graphs;
+    QString value;                           // before plan()
+    std::vector<PrimitiveQuery> query_plan;  // after plan()
     // used for QueryType::MIN_OF
     uint32_t count;
     // used for QueryType::AND/OR/MIN_OF

@@ -103,6 +103,22 @@ std::optional<TriGram> convert_gram(IndexType type, uint64_t source) {
     return std::make_optional(result[0]);
 }
 
+std::optional<TriGram> convert_gram(IndexType type, int index,
+                                    const QString &string) {
+    int size = get_ngram_size_for(type);
+    if (index + size > string.size()) {
+        return std::nullopt;
+    }
+    uint64_t source = 0;
+    for (int i = 0; i < size; i++) {
+        if (!string[index + i].unique()) {
+            return std::nullopt;
+        }
+        source = (source << 8) | string[index + i].possible_values()[0];
+    }
+    return convert_gram(type, source);
+}
+
 void gen_b64grams(const uint8_t *mem, uint64_t size,
                   const TrigramCallback &cb) {
     if (size < 4) {

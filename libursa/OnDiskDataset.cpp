@@ -67,24 +67,26 @@ std::string OnDiskDataset::get_file_name(FileId fid) const {
 QueryResult OnDiskDataset::query(const Query &query,
                                  QueryCounters *counters) const {
     return query.run(
-        [this](auto &graphs, QueryCounters *counters) {
-            QueryResult result = QueryResult::everything();
+        [this](PrimitiveQuery primitive, QueryCounters *counters) {
             for (auto &ndx : indices) {
-                if (graphs.count(ndx.index_type()) == 0) {
-                    throw std::runtime_error("Unexpected graph type in query");
+                if (ndx.index_type() == primitive.itype) {
+                    return ndx.query(primitive.trigram, counters);
                 }
-                auto subresult{
-                    ndx.query(graphs.at(ndx.index_type()), counters)};
-                result.do_and(subresult, &counters->ands());
             }
-            return result;
+            throw std::runtime_error("Unexpected ngram type in query");
         },
         counters);
 }
 
 void OnDiskDataset::execute(const Query &query, ResultWriter *out,
                             QueryCounters *counters) const {
-    QueryResult result = this->query(query, counters);
+    std::unordered_set<IndexType> types_to_query;
+    for (const auto &ndx : get_indexes()) {
+        types_to_query.emplace(ndx.index_type());
+    }
+    const Query plan = query.plan(types_to_query);
+
+    QueryResult result = this->query(plan, counters);
     if (result.is_everything()) {
         files_index->for_each_filename(
             [&out](const std::string &fname) { out->push_back(fname); });

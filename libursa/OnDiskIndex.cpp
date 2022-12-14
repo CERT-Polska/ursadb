@@ -73,6 +73,11 @@ QueryResult OnDiskIndex::query(const QueryGraph &graph,
     return graph.run(oracle, counters);
 }
 
+// Returns all files with a given ngram
+QueryResult OnDiskIndex::query(TriGram trigram, QueryCounters *counters) const {
+    return QueryResult(std::move(query_primitive(trigram, &counters->reads())));
+}
+
 std::pair<uint64_t, uint64_t> OnDiskIndex::get_run_offsets(
     TriGram trigram) const {
     uint64_t ptrs[2];

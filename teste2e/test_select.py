@@ -78,13 +78,13 @@ def test_select_with_wildcards(ursadb: UrsadbTestContext):
 
     check_query(ursadb, '"first"', ["first"])
     check_query(ursadb, '"fiRst"', ["fiRst"])
-    check_query(ursadb, '"fi\\x??st"', ["first", "fiRst"])
-    check_query(ursadb, '"fi\\x?2st"', ["first", "fiRst"])
+    check_query(ursadb, '"fi\\x??st"', ["first", "fiRst", "second"])
+    check_query(ursadb, '"fi\\x?2st"', ["first", "fiRst", "second"])
 
     check_query(ursadb, "{66 69 72 73 74}", ["first"])
     check_query(ursadb, "{66 69 52 73 74}", ["fiRst"])
-    check_query(ursadb, "{66 69 ?? 73 74}", ["first", "fiRst"])
-    check_query(ursadb, "{66 69 ?2 73 74}", ["first", "fiRst"])
+    check_query(ursadb, "{66 69 ?? 73 74}", ["first", "fiRst", "second"])
+    check_query(ursadb, "{66 69 ?2 73 74}", ["first", "fiRst", "second"])
 
 
 @pytest.mark.parametrize(
@@ -98,11 +98,11 @@ def test_select_with_wildcards_with_limits(ursadb: UrsadbTestContext):
     check_query(ursadb, '"first"', ["first"])
     check_query(ursadb, '"fiRst"', ["fiRst"])
     check_query(ursadb, '"fi\\x??st"', ["first", "fiRst", "second"])
-    check_query(ursadb, '"fi\\x?2st"', ["first", "fiRst"])
-    check_query(ursadb, '"fi\\x?2s\\x??"', ["first", "fiRst"])
+    check_query(ursadb, '"fi\\x?2st"', ["first", "fiRst", "second"])
+    check_query(ursadb, '"fi\\x?2s\\x??"', ["first", "fiRst", "second"])
 
     check_query(ursadb, "{66 69 72 73 74}", ["first"])
     check_query(ursadb, "{66 69 52 73 74}", ["fiRst"])
     check_query(ursadb, "{66 69 ?? 73 74}", ["first", "fiRst", "second"])
-    check_query(ursadb, "{66 69 ?2 73 74}", ["first", "fiRst"])
-    check_query(ursadb, "{66 69 ?2 73 ??}", ["first", "fiRst"])
+    check_query(ursadb, "{66 69 ?2 73 74}", ["first", "fiRst", "second"])
+    check_query(ursadb, "{66 69 ?2 73 ??}", ["first", "fiRst", "second"])
