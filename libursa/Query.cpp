@@ -280,6 +280,11 @@ Query Query::plan(const std::unordered_set<IndexType> &types_to_query) const {
             plans.emplace_back(query.plan(types_to_query));
         }
         if (type == QueryType::MIN_OF) {
+            if (count == 1) {
+                return Query(QueryType::OR, std::move(plans));
+            } else if (count == plans.size()) {
+                return Query(QueryType::AND, std::move(plans));
+            }
             return Query(count, std::move(plans));
         }
         return Query(type, std::move(plans));
