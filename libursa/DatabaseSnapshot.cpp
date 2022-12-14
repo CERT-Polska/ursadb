@@ -352,7 +352,7 @@ void DatabaseSnapshot::compact_locked_datasets(Task *task) const {
 // After the merging, do more plumbing to add results to the task->changes
 // collection.
 void DatabaseSnapshot::internal_compact(
-    Task *task, std::vector<const OnDiskDataset *> datasets) const {
+    Task *task, const std::vector<const OnDiskDataset *> &datasets) const {
     std::vector<std::string> ds_names;
 
     // There's nothing to compact

@@ -22,24 +22,6 @@ jobs:
       run: cmake --build build --target format
     - name: check formatting
       run: git diff --exit-code || ( >&2 echo "Please run 'make format' to fix these issues automatically." && false )
-  test_clang_tidy:
-    name: test clang tidy
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: true
-    - name: checkout master
-      run: git fetch origin master
-    - name: install dependencies
-      run: sudo apt-get install -y clang-tidy libzmq3-dev
-    - name: find changed files
-      run: git diff origin/master --name-only "*.cpp" > /tmp/filestocheck && cat /tmp/filestocheck
-    - name: clang-tidy
-      run: if [ -s /tmp/filestocheck ]; then clang-tidy $(cat /tmp/filestocheck) -checks="google-*,performance-*" -fix -- -std=c++17 -I extern/ -I extern/spdlog/include/ -I.; fi
-    - name: FYI git diff
-      run: git diff
-      if: ${{ always() }}
   run_cmake_build:
     name: run cmake build
     runs-on: ubuntu-latest

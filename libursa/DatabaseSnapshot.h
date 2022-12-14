@@ -33,8 +33,8 @@ class DatabaseSnapshot {
 
     friend class Indexer;
 
-    void internal_compact(Task *task,
-                          std::vector<const OnDiskDataset *> datasets) const;
+    void internal_compact(
+        Task *task, const std::vector<const OnDiskDataset *> &datasets) const;
 
     // Indexes files with given paths. Ensures that no file will be indexed
     // twice - this may be a very memory-heavy operation.
