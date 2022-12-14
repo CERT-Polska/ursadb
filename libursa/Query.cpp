@@ -290,41 +290,70 @@ Query Query::plan(const std::unordered_set<IndexType> &types_to_query) const {
 
 QueryResult Query::run(const QueryPrimitive &primitive,
                        QueryCounters *counters) const {
+    // Case: primitive query - reduces to AND with tokens from query plan.
     if (type == QueryType::PRIMITIVE) {
         auto result = QueryResult::everything();
         for (const auto &token : query_plan) {
-            auto next = primitive(token, counters);
-            result.do_and(next, &counters->ands());
+            result.do_and(primitive(token, counters), &counters->ands());
             if (result.is_empty()) {
                 break;
             }
         }
         return result;
     }
+    // Case: and. Short circuits when result is already empty.
     if (type == QueryType::AND) {
         auto result = QueryResult::everything();
         for (const auto &query : queries) {
             result.do_and(query.run(primitive, counters), &counters->ands());
+            if (result.is_empty()) {
+                break;
+            }
         }
         return result;
     }
+    // Case: or. Short circuits when result is already everything.
     if (type == QueryType::OR) {
         auto result = QueryResult::empty();
         for (const auto &query : queries) {
             result.do_or(query.run(primitive, counters), &counters->ors());
+            if (result.is_everything()) {
+                break;
+            }
         }
         return result;
     }
+    // Case: minof. We remove `everything` and `empty` sets from inputs, and
+    // adjust cutoff or input size appropriately. Short circuits in two cases:
+    // - cutoff is <= 0 (for example: 0 of ("a", "b")).
+    // - cutoff is > size(inputs) (for example: 3 of ("a", "b"))
+    // There is some logic duplication here and in QueryResult::do_min_of_real.
     if (type == QueryType::MIN_OF) {
         std::vector<QueryResult> results;
         std::vector<const QueryResult *> results_ptrs;
         results.reserve(queries.size());
         results_ptrs.reserve(queries.size());
+        int cutoff = count;
+        int nonempty_sources = queries.size();
         for (const auto &query : queries) {
-            results.emplace_back(query.run(primitive, counters));
-            results_ptrs.emplace_back(&results.back());
+            QueryResult next = query.run(primitive, counters);
+            if (next.is_everything()) {
+                cutoff -= 1;
+                if (cutoff <= 0) {
+                    return QueryResult::everything();
+                }
+            } else if (next.is_empty()) {
+                nonempty_sources -= 1;
+                if (cutoff > nonempty_sources) {
+                    return QueryResult::empty();
+                }
+            } else {
+                results.emplace_back(std::move(next));
+                results_ptrs.emplace_back(&results.back());
+            }
         }
-        return QueryResult::do_min_of(count, results_ptrs, &counters->minofs());
+        return QueryResult::do_min_of(cutoff, results_ptrs,
+                                      &counters->minofs());
     }
     throw std::runtime_error("Unexpected query type");
 }

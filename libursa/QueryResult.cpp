@@ -40,7 +40,7 @@ QueryResult QueryResult::do_min_of_real(
     }
 
     // Short circuit when cutoff is too big.
-    // This may happen when there are `everything` results in sources.
+    // This may happen when there are empty results in sources.
     if (cutoff > static_cast<int>(nontrivial_sources.size())) {
         return QueryResult::empty();
     }
