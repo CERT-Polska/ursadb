@@ -288,18 +288,21 @@ Query Query::plan(const std::unordered_set<IndexType> &types_to_query) const {
     return Query(plan_qstring(types_to_query, value));
 }
 
+void Query::forall_primitives(const PrimitiveCallback &callback) const {
+    if (type == QueryType::PRIMITIVE) {
+        return callback(query_plan);
+    } else {
+        for (const auto &plan : queries) {
+            plan.forall_primitives(callback);
+        }
+    }
+}
+
 QueryResult Query::run(const QueryPrimitive &primitive,
                        QueryCounters *counters) const {
     // Case: primitive query - reduces to AND with tokens from query plan.
     if (type == QueryType::PRIMITIVE) {
-        auto result = QueryResult::everything();
-        for (const auto &token : query_plan) {
-            result.do_and(primitive(token, counters), &counters->ands());
-            if (result.is_empty()) {
-                break;
-            }
-        }
-        return result;
+        return primitive(query_plan, counters);
     }
     // Case: and. Short circuits when result is already empty.
     if (type == QueryType::AND) {

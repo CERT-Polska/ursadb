@@ -66,14 +66,45 @@ std::string OnDiskDataset::get_file_name(FileId fid) const {
 
 QueryResult OnDiskDataset::query(const Query &query,
                                  QueryCounters *counters) const {
+    // There's no point in caching strings that only occur once.
+    std::map<std::vector<PrimitiveQuery>, int> query_counter;
+    query.forall_primitives([&query_counter](const auto &query_plan) {
+        query_counter[query_plan] += 1;
+    });
+
+    std::map<std::vector<PrimitiveQuery>, QueryResult> cache;
     return query.run(
-        [this](PrimitiveQuery primitive, QueryCounters *counters) {
-            for (auto &ndx : indices) {
-                if (ndx.index_type() == primitive.itype) {
-                    return ndx.query(primitive.trigram, counters);
+        [this, &cache, &query_counter](const auto &query_plan, auto *counters) {
+            // If the result is already in cache, just return it.
+            auto cached_result = cache.find(query_plan);
+            if (cached_result != cache.end()) {
+                return std::move(cache.at(query_plan).clone());
+            }
+
+            // Helper function (lambda). Return result set for a given ngram.
+            auto primitive = [this](auto ngram, auto *counters) {
+                for (auto &ndx : indices) {
+                    if (ndx.index_type() == ngram.itype) {
+                        return ndx.query(ngram.trigram, counters);
+                    }
+                }
+                throw std::runtime_error("Unexpected ngram type in query");
+            };
+
+            // AND all raw ngrams from this query.
+            auto result = QueryResult::everything();
+            for (const auto &token : query_plan) {
+                result.do_and(primitive(token, counters), &counters->ands());
+                if (result.is_empty()) {
+                    break;
                 }
             }
-            throw std::runtime_error("Unexpected ngram type in query");
+
+            // Update the cache if it makes sense (otherwise don't waste RAM).
+            if (query_counter[query_plan] > 1) {
+                cache.emplace(query_plan, std::move(result.clone()));
+            }
+            return result;
         },
         counters);
 }

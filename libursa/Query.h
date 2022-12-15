@@ -25,10 +25,25 @@ class PrimitiveQuery {
 
     const IndexType itype;
     const TriGram trigram;
+
+    // We want to use PrimitiveQuery in STL containers, and this means they
+    // must be comparable using <. Specific order doesn't matter.
+    bool operator<(const PrimitiveQuery &rhs) const {
+        if (itype < rhs.itype) {
+            return true;
+        };
+        if (itype > rhs.itype) {
+            return false;
+        };
+        return trigram < rhs.trigram;
+    }
 };
 
-using QueryPrimitive =
-    std::function<QueryResult(PrimitiveQuery, QueryCounters *counter)>;
+using QueryPrimitive = std::function<QueryResult(
+    const std::vector<PrimitiveQuery> &, QueryCounters *counter)>;
+
+using PrimitiveCallback =
+    std::function<void(const std::vector<PrimitiveQuery> &)>;
 
 // Query represents the query as provided by the user.
 // Query can contain subqueries (using AND/OR/MINOF) or be a literal query.
@@ -69,10 +84,17 @@ class Query {
     const QueryType &get_type() const;
     bool operator==(const Query &other) const;
 
+    // Run the planned query, and return the result. Uses callback as oracle.
     QueryResult run(const QueryPrimitive &primitive,
                     QueryCounters *counters) const;
+
+    // "Plan" this query - select ngrams depending on avaliable index types.
     Query plan(const std::unordered_set<IndexType> &types_to_query) const;
 
+    // Iterate over all leafs of the query tree (plans) and call callback.
+    void forall_primitives(const PrimitiveCallback &callback) const;
+
+    // Clone this query (explicit copy constructor).
     Query clone() const { return Query(*this); }
 
    private:
