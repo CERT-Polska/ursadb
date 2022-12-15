@@ -277,9 +277,8 @@ Query Query::plan(const std::unordered_set<IndexType> &types_to_query) const {
             return Query(*ngram);
         }
 
-        auto ngrams = plan_qstring(types_to_query, value);
         std::vector<Query> plans;
-        for (const auto gram : ngrams) {
+        for (const auto gram : plan_qstring(types_to_query, value)) {
             plans.emplace_back(Query(gram));
         }
         return Query(QueryType::AND, std::move(plans));
@@ -290,6 +289,7 @@ Query Query::plan(const std::unordered_set<IndexType> &types_to_query) const {
         plans.emplace_back(query.plan(types_to_query));
     }
 
+    // Special case `1 of ...` (OR) and `n of (1, 2, ... n)` (AND).
     if (type == QueryType::MIN_OF) {
         if (count == 1) {
             return Query(QueryType::OR, std::move(plans)).plan(types_to_query);
@@ -300,7 +300,7 @@ Query Query::plan(const std::unordered_set<IndexType> &types_to_query) const {
         return Query(count, std::move(plans));
     }
 
-    // For all other types (AND and OR), rewrite and simplify recursively
+    // For all other types (AND and OR), flatten and simplify recursively
     std::vector<Query> new_plans;
     for (auto it = plans.begin(); it != plans.end(); it++) {
         if (it->type == type) {
