@@ -3,6 +3,16 @@
 #include "Utils.h"
 #include "spdlog/spdlog.h"
 
+bool PrimitiveQuery::operator<(const PrimitiveQuery &rhs) const {
+    if (itype < rhs.itype) {
+        return true;
+    };
+    if (itype > rhs.itype) {
+        return false;
+    };
+    return trigram < rhs.trigram;
+}
+
 const std::vector<Query> &Query::as_queries() const {
     if (type != QueryType::AND && type != QueryType::OR &&
         type != QueryType::MIN_OF) {
@@ -271,6 +281,18 @@ std::vector<PrimitiveQuery> plan_qstring(
     }
 
     return std::move(plan);
+}
+
+void Query::forall_ngrams(const PrimitiveCallback &callback) const {
+    if (type == QueryType::PRIMITIVE) {
+        for (const auto &primitive : query_plan) {
+            callback(primitive);
+        }
+    } else {
+        for (const auto &plan : queries) {
+            plan.forall_ngrams(callback);
+        }
+    }
 }
 
 Query Query::plan(const std::unordered_set<IndexType> &types_to_query) const {
