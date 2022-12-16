@@ -67,20 +67,16 @@ std::string OnDiskDataset::get_file_name(FileId fid) const {
 QueryResult OnDiskDataset::query(const Query &query,
                                  QueryCounters *counters) const {
     // There's no point in caching strings that only occur once.
-    std::map<std::vector<PrimitiveQuery>, int> query_counter;
+    std::map<PrimitiveQuery, int> query_counter;
     query.forall_primitives([&query_counter](const auto &query_plan) {
-        query_counter[query_plan] += 1;
+        for (const auto &gram : query_plan) {
+            query_counter[gram] += 1;
+        }
     });
 
-    std::map<std::vector<PrimitiveQuery>, QueryResult> cache;
-    return query.run(
+    std::map<PrimitiveQuery, QueryResult> cache;
+    QueryResult result = query.run(
         [this, &cache, &query_counter](const auto &query_plan, auto *counters) {
-            // If the result is already in cache, just return it.
-            auto cached_result = cache.find(query_plan);
-            if (cached_result != cache.end()) {
-                return std::move(cache.at(query_plan).clone());
-            }
-
             // Helper function (lambda). Return result set for a given ngram.
             auto primitive = [this](auto ngram, auto *counters) {
                 for (auto &ndx : indices) {
@@ -94,19 +90,28 @@ QueryResult OnDiskDataset::query(const Query &query,
             // AND all raw ngrams from this query.
             auto result = QueryResult::everything();
             for (const auto &token : query_plan) {
-                result.do_and(primitive(token, counters), &counters->ands());
+                auto cached_result = cache.find(token);
+                if (cached_result != cache.end()) {
+                    result.do_and(cached_result->second.clone(), &counters->ands());
+                } else {
+                    QueryResult subresult = primitive(token, counters);
+                    if (query_counter[token] > 1) {
+                        cache.emplace(token, subresult.clone());
+                    }
+                    result.do_and(std::move(subresult), &counters->ands());
+                }
                 if (result.is_empty()) {
                     break;
                 }
             }
-
-            // Update the cache if it makes sense (otherwise don't waste RAM).
-            if (query_counter[query_plan] > 1) {
-                cache.emplace(query_plan, std::move(result.clone()));
-            }
             return result;
         },
         counters);
+    int cache_size = 0;
+    for (const auto &result : cache) {
+        cache_size += result.second.vector().size();
+    }
+    spdlog::error("cache size: {}", cache_size);
 }
 
 void OnDiskDataset::execute(const Query &query, ResultWriter *out,

@@ -4,6 +4,7 @@ class SortedRun {
     std::vector<uint32_t> sequence_;
 
    public:
+   int size() const { return sequence_.size(); }
     SortedRun() : sequence_{} {}
     SortedRun(std::vector<uint32_t> &&sequence)
         : sequence_(std::move(sequence)) {}
