@@ -51,6 +51,9 @@ class QueryCounters {
     // Counter for file reads.
     QueryCounter reads_;
 
+    // Counter for unique file reads.
+    QueryCounter uniq_reads_;
+
     // Counter for min ... of operations.
     QueryCounter minofs_;
 
@@ -58,11 +61,9 @@ class QueryCounters {
     QueryCounters() : reads_{} {}
 
     QueryCounter &ands() { return ands_; }
-
     QueryCounter &ors() { return ors_; }
-
     QueryCounter &reads() { return reads_; }
-
+    QueryCounter &uniq_reads() { return uniq_reads_; }
     QueryCounter &minofs() { return minofs_; }
 
     void add(const QueryCounters &other);
