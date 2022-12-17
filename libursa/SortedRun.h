@@ -10,6 +10,12 @@ class SortedRun {
 
     bool empty() const { return sequence_.empty(); }
 
+    // Only expose size in bytes, to let the storage implementation change
+    // in the future.
+    uint64_t size_in_bytes() const {
+        return sequence_.size() * sizeof(uint32_t);
+    }
+
     bool operator==(const SortedRun &other) const {
         return sequence_ == other.sequence_;
     }

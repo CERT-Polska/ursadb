@@ -66,11 +66,34 @@ std::string OnDiskDataset::get_file_name(FileId fid) const {
 
 QueryResult OnDiskDataset::query(const Query &query,
                                  QueryCounters *counters) const {
+    // There's no point in caching reads that only occur once.
+    std::map<PrimitiveQuery, int> ngram_counter;
+    query.forall_ngrams(
+        [&ngram_counter](const auto &ngram) { ngram_counter[ngram] += 1; });
+
+    // Use conservative 128 MB for max cache size (TODO make it configurable).
+    // In tests, this was enough for all the rules from test corpus.
+    constexpr uint64_t MAX_CACHE_BYTES = 1024 * 1024 * 128;
+    uint64_t cache_bytes = 0;
+    std::map<PrimitiveQuery, QueryResult> cache;
     return query.run(
-        [this](PrimitiveQuery primitive, QueryCounters *counters) {
+        [this, &cache, &ngram_counter, &cache_bytes](PrimitiveQuery ngram,
+                                                     QueryCounters *counters) {
+            auto cached = cache.find(ngram);
+            if (cached != cache.end()) {
+                return cached->second.clone();
+            }
+
             for (auto &ndx : indices) {
-                if (ndx.index_type() == primitive.itype) {
-                    return ndx.query(primitive.trigram, counters);
+                if (ndx.index_type() == ngram.itype) {
+                    QueryResult result = ndx.query(ngram.trigram, counters);
+                    uint64_t result_bytes = result.vector().size_in_bytes();
+                    if (ngram_counter.at(ngram) > 1 &&
+                        cache_bytes + result_bytes < MAX_CACHE_BYTES) {
+                        cache_bytes += result_bytes;
+                        cache.emplace(ngram, result.clone());
+                    }
+                    return std::move(result);
                 }
             }
             throw std::runtime_error("Unexpected ngram type in query");
