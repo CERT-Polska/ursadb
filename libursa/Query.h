@@ -39,8 +39,7 @@ using QueryPrimitive =
 // will actually be checked.
 class Query {
    private:
-    Query(const Query &other)
-        : type(other.type), query_plan(), count(other.count) {
+    Query(const Query &other) : type(other.type), ngram(), count(other.count) {
         queries.reserve(other.queries.size());
         for (const auto &query : other.queries) {
             queries.emplace_back(query.clone());
@@ -51,10 +50,8 @@ class Query {
         }
     }
 
-    explicit Query(std::vector<PrimitiveQuery> &&query_plan)
-        : type(QueryType::PRIMITIVE),
-          query_plan(std::move(query_plan)),
-          value() {}
+    explicit Query(PrimitiveQuery ngram)
+        : type(QueryType::PRIMITIVE), ngram(ngram), value() {}
 
    public:
     explicit Query(QString &&qstr);
@@ -78,8 +75,8 @@ class Query {
    private:
     QueryType type;
     // used for QueryType::PRIMITIVE
-    QString value;                           // before plan()
-    std::vector<PrimitiveQuery> query_plan;  // after plan()
+    QString value;                        // before plan()
+    std::optional<PrimitiveQuery> ngram;  // after plan()
     // used for QueryType::MIN_OF
     uint32_t count;
     // used for QueryType::AND/OR/MIN_OF
