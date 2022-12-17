@@ -71,8 +71,9 @@ QueryResult OnDiskDataset::query(const Query &query,
         [this, &uniq_ngrams](PrimitiveQuery primitive,
                              QueryCounters *counters) {
             std::optional<QueryOperation> operation;
-            if (uniq_ngrams.count(primitive) > 0) {
+            if (uniq_ngrams.count(primitive) == 0) {
                 operation = std::make_optional(&counters->uniq_reads());
+                uniq_ngrams.insert(primitive);
             }
             for (auto &ndx : indices) {
                 if (ndx.index_type() == primitive.itype) {

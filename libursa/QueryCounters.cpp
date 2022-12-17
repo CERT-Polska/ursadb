@@ -20,7 +20,7 @@ std::unordered_map<std::string, QueryCounter> QueryCounters::counters() const {
     result["or"] = ors_;
     result["and"] = ands_;
     result["read"] = reads_;
-    result["uniq_read"] = reads_;
+    result["uniq_read"] = uniq_reads_;
     result["minof"] = minofs_;
     return result;
 }
