@@ -66,12 +66,14 @@ std::string OnDiskDataset::get_file_name(FileId fid) const {
 
 QueryResult OnDiskDataset::query(const Query &query,
                                  QueryCounters *counters) const {
-    std::set<uint32_t> uniq_ngrams;
+    std::set<PrimitiveQuery> uniq_ngrams;
     return query.run(
-        [this, &uniq_ngrams](PrimitiveQuery primitive, QueryCounters *counters) {
-            uint32_t rawgram = ((uint32_t)primitive.trigram) + ((uint32_t)primitive.itype << 24);
-            QueryCounters dummy;
-            QueryOperation op(&(uniq_ngrams.count(rawgram) > 0 ? &dummy : counters)->uniq_reads());
+        [this, &uniq_ngrams](PrimitiveQuery primitive,
+                             QueryCounters *counters) {
+            std::optional<QueryOperation> operation;
+            if (uniq_ngrams.count(primitive) > 0) {
+                operation = std::make_optional(&counters->uniq_reads());
+            }
             for (auto &ndx : indices) {
                 if (ndx.index_type() == primitive.itype) {
                     return ndx.query(primitive.trigram, counters);

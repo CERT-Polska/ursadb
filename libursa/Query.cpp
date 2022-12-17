@@ -3,6 +3,16 @@
 #include "Utils.h"
 #include "spdlog/spdlog.h"
 
+bool PrimitiveQuery::operator<(const PrimitiveQuery &rhs) const {
+    if (itype < rhs.itype) {
+        return true;
+    };
+    if (itype > rhs.itype) {
+        return false;
+    };
+    return trigram < rhs.trigram;
+}
+
 const std::vector<Query> &Query::as_queries() const {
     if (type != QueryType::AND && type != QueryType::OR &&
         type != QueryType::MIN_OF) {
