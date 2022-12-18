@@ -14,7 +14,6 @@
 #include "libursa/OnDiskDataset.h"
 #include "libursa/OnDiskIndex.h"
 #include "libursa/Query.h"
-#include "libursa/QueryGraph.h"
 #include "libursa/QueryParser.h"
 #include "libursa/ResultWriter.h"
 #include "libursa/Utils.h"
@@ -50,12 +49,6 @@ QString mqs(const std::string &str) {
         out.emplace_back(QToken::single(c));
     }
     return out;
-}
-
-QueryGraph mqg(const std::string &str, IndexType ntype) {
-    TokenValidator validator = get_validator_for(ntype);
-    size_t input_len = get_ngram_size_for(ntype);
-    return to_query_graph(mqs(str), input_len, DatabaseConfig(), validator);
 }
 
 TEST_CASE("packing 3grams", "[internal]") {
@@ -719,74 +712,6 @@ TEST_CASE("Test pick_common", "[pick_common]") {
             std::vector<FileId>{1, 2, 3});
 }
 
-QueryGraph make_kot() {
-    // Basically:  k -> o -> t
-    return QueryGraph::from_qstring(mqs("kot"));
-}
-
-QueryGraph make_caet() {
-    //                  a
-    // Basically:  c -<   >- t
-    //                  e
-    QString expect;
-    expect.emplace_back(std::move(QToken::single('c')));
-    expect.emplace_back(std::move(QToken::with_values({'a', 'e'})));
-    expect.emplace_back(std::move(QToken::single('t')));
-    return QueryGraph::from_qstring(expect);
-}
-
-TEST_CASE("Simple query graph parse", "[query_graphs]") {
-    auto graph{make_kot()};
-
-    REQUIRE(graph.size() == 3);
-}
-
-TEST_CASE("Graph parse with wildcard", "[query_graphs]") {
-    auto graph{make_caet()};
-
-    REQUIRE(graph.size() == 4);
-}
-
-TEST_CASE("Simple graph and", "[query_graphs]") {
-    auto graph{make_kot()};
-
-    SECTION("With kot") {
-        graph.and_(std::move(make_kot()));
-        REQUIRE(graph.size() == 7);
-    }
-
-    SECTION("With caet") {
-        graph.and_(std::move(make_caet()));
-        REQUIRE(graph.size() == 8);
-    }
-}
-
-QueryFunc make_oracle(const std::string &accepting) {
-    return [accepting](uint64_t gram1) {
-        if (accepting.find(static_cast<char>(gram1)) != std::string::npos) {
-            return QueryResult::everything();
-        }
-        return QueryResult::empty();
-    };
-}
-
-TEST_CASE("Test basic query", "[query_graphs]") {
-    auto graph{make_kot()};
-
-    QueryCounters dummy;
-    REQUIRE(graph.run(make_oracle("tok"), &dummy).is_everything());
-    REQUIRE(!graph.run(make_oracle("abc"), &dummy).is_everything());
-}
-
-TEST_CASE("Test wildcard query", "[query_graphs]") {
-    auto graph{make_caet()};
-
-    QueryCounters dummy;
-    REQUIRE(graph.run(make_oracle("cat"), &dummy).is_everything());
-    REQUIRE(graph.run(make_oracle("cet"), &dummy).is_everything());
-    REQUIRE(!graph.run(make_oracle("abc"), &dummy).is_everything());
-}
-
 // Special value, ensure that all expected queries were asked.
 const uint64_t ORACLE_CHECK_MAGIC = std::numeric_limits<uint64_t>::max();
 
@@ -819,81 +744,6 @@ QueryFunc make_expect_oracle(IndexType type, std::vector<std::string> strings) {
 
         return QueryResult::everything();
     };
-}
-
-// Ensure that the queries that were executed match exectly to expected ones.
-// This makes sure that query was parsed correctly and contains expected ngrams.
-// For example: ensure_queries(mqs("cats"), IndexType::GRAM3, {"cats"});
-// or: ensure_queries(mqs("cats"), IndexType::GRAM3, {"cat", "ats"});
-//
-// Make sure that there the graph will execute two queries, "cat" and "ats".
-void ensure_queries(const QString &query, IndexType type,
-                    std::vector<std::string> strings) {
-    auto validator = get_validator_for(type);
-    size_t size = get_ngram_size_for(type);
-    QueryGraph graph{to_query_graph(query, size, DatabaseConfig(), validator)};
-    auto oracle = make_expect_oracle(type, std::move(strings));
-    QueryCounters dummy;
-    graph.run(oracle, &dummy);
-    oracle(ORACLE_CHECK_MAGIC);
-}
-
-TEST_CASE("Test gram3 graph generator: gram3 x 0", "[query_graphs]") {
-    ensure_queries(mqs("ca"), IndexType::GRAM3, {});
-}
-
-TEST_CASE("Test gram3 graph generator: gram3 x 1", "[query_graphs]") {
-    ensure_queries(mqs("cat"), IndexType::GRAM3, {"cat"});
-}
-
-TEST_CASE("Test gram3 graph generator: gram3 x 2", "[query_graphs]") {
-    ensure_queries(mqs("cats"), IndexType::GRAM3, {"cats"});
-}
-
-TEST_CASE("Test text4 graph generator: text4 x 0", "[query_graphs]") {
-    ensure_queries(mqs("cat"), IndexType::TEXT4, {});
-}
-
-TEST_CASE("Test text4 graph generator: text4 x 1", "[query_graphs]") {
-    ensure_queries(mqs("cats"), IndexType::TEXT4, {"cats"});
-}
-
-TEST_CASE("Test text4 graph generator: text4 x 6", "[query_graphs]") {
-    ensure_queries(mqs("catsNdogs"), IndexType::TEXT4, {"catsNdogs"});
-}
-
-TEST_CASE("Test text4 graph generator: text4 x (2+2)", "[query_graphs]") {
-    ensure_queries(mqs("cats!dogs"), IndexType::TEXT4, {"cats", "dogs"});
-}
-
-TEST_CASE("Test hash4 graph generator: hash4 x 0", "[query_graphs]") {
-    ensure_queries(mqs("cat"), IndexType::HASH4, {});
-}
-
-TEST_CASE("Test hash4 graph generator: hash4 x (6)", "[query_graphs]") {
-    ensure_queries(mqs("cats!dogs"), IndexType::HASH4, {"cats!dogs"});
-}
-
-TEST_CASE("Test wide8 graph generator: wide8 x (0)", "[query_graphs]") {
-    ensure_queries(mqs("a\0b\0c\0d"s), IndexType::WIDE8, {});
-}
-
-TEST_CASE("Test wide8 graph generator: wide8 x (1)", "[query_graphs]") {
-    ensure_queries(mqs("a\0b\0c\0d\0"s), IndexType::WIDE8, {"a\0b\0c\0d\0"s});
-}
-
-TEST_CASE("Test wide8 graph generator: wide8 x (1)'", "[query_graphs]") {
-    ensure_queries(mqs("\0a\0b\0c\0d\0"s), IndexType::WIDE8, {"a\0b\0c\0d\0"s});
-}
-
-TEST_CASE("Test wide8 graph generator: wide8 x (2)''", "[query_graphs]") {
-    ensure_queries(mqs("cats\0a\0b\0c\0d\0hmm"s), IndexType::WIDE8,
-                   {"s\0a\0b\0c\0d\0"s});
-}
-
-TEST_CASE("Test wide8 graph generator: wide8 x (1+1)''", "[query_graphs]") {
-    ensure_queries(mqs("ssda\0b\0c\0d\0hmmq\0w\0e\0r\0xtq"s), IndexType::WIDE8,
-                   {"a\0b\0c\0d\0"s, "q\0w\0e\0r\0"s});
 }
 
 QString mqs_alphabet() {

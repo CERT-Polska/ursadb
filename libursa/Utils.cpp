@@ -52,26 +52,6 @@ size_t get_ngram_size_for(IndexType type) {
     throw std::runtime_error("unhandled index type (ngram)");
 }
 
-TokenValidator get_validator_for(IndexType type) {
-    switch (type) {
-        case IndexType::GRAM3:
-            return [](uint32_t, uint8_t) { return true; };
-        case IndexType::TEXT4:
-            return
-                [](uint32_t, uint8_t chr) { return get_b64_value(chr) >= 0; };
-        case IndexType::HASH4:
-            return [](uint32_t, uint8_t) { return true; };
-        case IndexType::WIDE8:
-            return [](uint32_t ndx, uint8_t chr) {
-                if ((ndx % 2) == 0) {
-                    return get_b64_value(chr) >= 0;
-                }
-                return chr == 0;
-            };
-    }
-    throw std::runtime_error("unhandled index type (validator)");
-}
-
 TrigramGenerator get_generator_for(IndexType type) {
     switch (type) {
         case IndexType::GRAM3:

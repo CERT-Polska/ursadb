@@ -9,7 +9,6 @@ class QToken {
     // Should be sorted in the ascending order, otherwise == won't work.
     std::vector<uint8_t> opts_;
 
-    QToken(const QToken &other) = default;
     QToken(std::vector<uint8_t> &&opts) : opts_(std::move(opts)) {}
 
    public:
@@ -45,9 +44,6 @@ class QToken {
 
     // Compares two QTokens. Assumes that `opts_` is in the ascending order.
     bool operator==(const QToken &other) const;
-
-    // For when you really positively need to use a copy constructor.
-    QToken clone() const { return QToken(*this); }
 };
 
 // Represents a query string, sequence of tokens. For example {11 22 ?3 44}.

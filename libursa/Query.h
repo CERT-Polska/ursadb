@@ -9,7 +9,6 @@
 
 #include "DatabaseConfig.h"
 #include "QString.h"
-#include "QueryGraph.h"
 #include "QueryResult.h"
 #include "Utils.h"
 
@@ -43,18 +42,6 @@ using QueryPrimitive =
 // will actually be checked.
 class Query {
    private:
-    Query(const Query &other)
-        : type(other.type), query_plan(), count(other.count) {
-        queries.reserve(other.queries.size());
-        for (const auto &query : other.queries) {
-            queries.emplace_back(query.clone());
-        }
-        value.reserve(other.value.size());
-        for (const auto &token : other.value) {
-            value.emplace_back(token.clone());
-        }
-    }
-
     explicit Query(std::vector<PrimitiveQuery> &&query_plan)
         : type(QueryType::PRIMITIVE),
           query_plan(std::move(query_plan)),
@@ -76,8 +63,6 @@ class Query {
     QueryResult run(const QueryPrimitive &primitive,
                     QueryCounters *counters) const;
     Query plan(const std::unordered_set<IndexType> &types_to_query) const;
-
-    Query clone() const { return Query(*this); }
 
    private:
     QueryType type;
@@ -105,11 +90,3 @@ Query q_min_of(uint32_t count, std::vector<Query> &&queries);
 
 // Pretty-print the current query instance.
 std::ostream &operator<<(std::ostream &os, const Query &query);
-
-// Expands the query to a query graph, but at the same time is careful not to
-// generate a query graph that is too big.
-// Token validator checks if the specified character can occur at the specified
-// position in the stream (otherwise ngram won't be generated).
-QueryGraph to_query_graph(const QString &str, int size,
-                          const DatabaseConfig &config,
-                          const TokenValidator &is_ok);

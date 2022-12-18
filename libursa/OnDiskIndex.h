@@ -6,7 +6,6 @@
 #include "Core.h"
 #include "QString.h"
 #include "QueryCounters.h"
-#include "QueryGraph.h"
 #include "QueryResult.h"
 #include "RawFile.h"
 #include "Task.h"
@@ -38,7 +37,6 @@ class OnDiskIndex {
     const std::string &get_fname() const { return fname; }
     const fs::path &get_fpath() const { return fpath; }
     IndexType index_type() const { return ntype; }
-    QueryResult query(const QueryGraph &graph, QueryCounters *counters) const;
     QueryResult query(TriGram trigram, QueryCounters *counters) const;
     uint64_t real_size() const;
     static void on_disk_merge(const fs::path &db_base, const std::string &fname,

@@ -6,9 +6,7 @@
 #include <cstring>
 #include <fstream>
 
-#include "FeatureFlags.h"
 #include "Query.h"
-#include "QueryGraph.h"
 #include "Utils.h"
 #include "spdlog/spdlog.h"
 
@@ -55,22 +53,6 @@ OnDiskIndex::OnDiskIndex(const std::string &fname)
     }
 
     ntype = static_cast<IndexType>(header.raw_type);
-}
-
-// Returns all files that can be matched to given graph.
-QueryResult OnDiskIndex::query(const QueryGraph &graph,
-                               QueryCounters *counters) const {
-    spdlog::debug("Graph query for {}", get_index_type_name(index_type()));
-
-    QueryFunc oracle = [this, counters](uint64_t raw_gram) {
-        auto gram = convert_gram(index_type(), raw_gram);
-        if (gram) {
-            return QueryResult(
-                std::move(query_primitive(*gram, &counters->reads())));
-        }
-        return QueryResult::everything();
-    };
-    return graph.run(oracle, counters);
 }
 
 // Returns all files with a given ngram

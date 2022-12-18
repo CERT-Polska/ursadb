@@ -69,6 +69,7 @@ QueryResult QueryResult::do_min_of_real(
 QueryResult QueryResult::do_min_of(
     int cutoff, const std::vector<const QueryResult *> &sources,
     QueryCounter *counter) {
+    // TODO: sources can be mutable here, to save us some copies later.
     QueryOperation op(counter);
     QueryResult out{do_min_of_real(cutoff, sources)};
     return out;

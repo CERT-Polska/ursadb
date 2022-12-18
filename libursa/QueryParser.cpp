@@ -8,7 +8,6 @@
 #include <type_traits>
 
 #include "Core.h"
-#include "FeatureFlags.h"
 #include "Query.h"
 #include "Version.h"
 #include "pegtl/pegtl.hpp"

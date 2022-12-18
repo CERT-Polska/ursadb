@@ -17,7 +17,6 @@
 #include "Command.h"
 #include "Database.h"
 #include "DatasetBuilder.h"
-#include "FeatureFlags.h"
 #include "OnDiskDataset.h"
 #include "QueryParser.h"
 #include "Responses.h"
