@@ -10,6 +10,16 @@
 #include "Query.h"
 #include "spdlog/spdlog.h"
 
+uint64_t NgramProfile::size_in_bytes(PrimitiveQuery primitive) const {
+    for (auto &[key, profile] : profiles) {
+        if (key == primitive.itype) {
+            return profile.at(primitive.trigram + 1) -
+                   profile.at(primitive.trigram);
+        }
+    }
+    throw std::runtime_error("Unexpected ngram type in ngram profile");
+}
+
 void OnDiskDataset::save() {
     std::set<std::string> index_names;
     for (const auto &name : indices) {
@@ -85,12 +95,16 @@ QueryResult OnDiskDataset::query(const Query &query,
 }
 
 void OnDiskDataset::execute(const Query &query, ResultWriter *out,
-                            QueryCounters *counters) const {
+                            QueryCounters *counters,
+                            const NgramProfile &profile) const {
     std::unordered_set<IndexType> types_to_query;
     for (const auto &ndx : get_indexes()) {
         types_to_query.emplace(ndx.index_type());
     }
-    const Query plan = query.plan(types_to_query);
+    PrimitiveEvaluator evaluator = [&profile](PrimitiveQuery primitive) {
+        return profile.size_in_bytes(primitive);
+    };
+    const Query plan = query.plan(types_to_query, evaluator);
 
     QueryResult result = this->query(plan, counters);
     if (result.is_everything()) {
@@ -311,4 +325,15 @@ std::vector<const OnDiskDataset *> OnDiskDataset::get_compact_candidates(
     }
 
     return out;
+}
+
+// Generates a ngram profile from a given dataset. This is basically just
+// copying run offsets from all indexes to a new NgramProfile object.
+NgramProfile OnDiskDataset::generate_ngram_profile() const {
+    std::map<IndexType, std::vector<uint64_t>> profiles;
+    for (const auto &index : indices) {
+        profiles.emplace(index.index_type(),
+                         std::move(index.read_run_offsets()));
+    }
+    return NgramProfile(std::move(profiles));
 }

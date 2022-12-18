@@ -37,6 +37,9 @@ class OnDiskIndex {
     const std::string &get_fname() const { return fname; }
     const fs::path &get_fpath() const { return fpath; }
     IndexType index_type() const { return ntype; }
+
+    // Gets a run size of the given trigram in bytes.
+    uint64_t run_size_in_bytes(TriGram trigram) const;
     QueryResult query(TriGram trigram, QueryCounters *counters) const;
     uint64_t real_size() const;
     static void on_disk_merge(const fs::path &db_base, const std::string &fname,

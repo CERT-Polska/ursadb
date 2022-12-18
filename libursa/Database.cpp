@@ -52,6 +52,21 @@ void Database::load_from_disk() {
         load_dataset(dataset_fname);
     }
 
+    // As a heuristics, use the biggest dataset to generate a ngram profile.
+    // This has several problems:
+    // - The biggest dataset may not exist. In this case, use empty profile.
+    // - The biggest dataset may change during the work of the database. We
+    //   don't (currently) implement any mechanism to reload the ngram profile.
+    auto biggest_dataset = std::max_element(
+        working_datasets.begin(), working_datasets.end(), [](auto *a, auto *b) {
+            return a->get_file_count() < b->get_file_count();
+        });
+    if (biggest_dataset == working_datasets.end()) {
+        profile = NgramProfile();
+    } else {
+        profile = (*biggest_dataset)->generate_ngram_profile();
+    }
+
     for (const auto &iterator : db_json["iterators"].items()) {
         DatabaseName name(db_base, "iterator", iterator.key(),
                           iterator.value());
@@ -288,5 +303,5 @@ DatabaseSnapshot Database::snapshot() {
     }
 
     return DatabaseSnapshot(db_name, db_base, config_, iterators, cds,
-                            taskspecs);
+                            taskspecs, &profile);
 }

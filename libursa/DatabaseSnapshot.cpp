@@ -13,13 +13,14 @@ DatabaseSnapshot::DatabaseSnapshot(
     fs::path db_name, fs::path db_base, DatabaseConfig config,
     std::map<std::string, OnDiskIterator> iterators,
     std::vector<const OnDiskDataset *> datasets,
-    std::unordered_map<uint64_t, TaskSpec> tasks)
+    std::unordered_map<uint64_t, TaskSpec> tasks, const NgramProfile *profile)
     : db_name(std::move(db_name)),
       db_base(std::move(db_base)),
       iterators(std::move(iterators)),
       config(std::move(config)),
       datasets(std::move(datasets)),
-      tasks(std::move(tasks)) {}
+      tasks(std::move(tasks)),
+      profile(profile) {}
 
 const OnDiskDataset *DatabaseSnapshot::find_dataset(
     const std::string &name) const {
@@ -234,7 +235,7 @@ QueryCounters DatabaseSnapshot::execute(const Query &query,
         if (!ds->has_all_taints(taints)) {
             continue;
         }
-        ds->execute(query, out, &counters);
+        ds->execute(query, out, &counters, *profile);
     }
     return counters;
 }

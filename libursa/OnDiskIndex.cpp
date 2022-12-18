@@ -109,6 +109,11 @@ uint64_t find_max_batch(const std::vector<IndexMergeHelper> &indexes,
     return NUM_TRIGRAMS - trigram;
 }
 
+uint64_t OnDiskIndex::run_size_in_bytes(TriGram trigram) const {
+    auto [start, end] = get_run_offsets(trigram);
+    return end - start;
+}
+
 // Merge the indexes, and stream the results to the `out` stream immediately.
 // This function tries to batch reads, which makes it much more efficient on
 // HDDs (on SSDs the difference is not noticeable).
