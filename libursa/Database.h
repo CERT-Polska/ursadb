@@ -18,6 +18,7 @@ class Database {
     std::map<std::string, OnDiskIterator> iterators;
     std::vector<OnDiskDataset *> working_datasets;
     std::vector<std::unique_ptr<OnDiskDataset>> loaded_datasets;
+    NgramProfile profile;
     DatabaseConfig config_;
 
     uint64_t last_task_id;

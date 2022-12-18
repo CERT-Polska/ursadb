@@ -22,6 +22,7 @@ class DatabaseSnapshot {
     std::map<std::string, OnDiskIterator> iterators;
     DatabaseConfig config;
     std::vector<const OnDiskDataset *> datasets;
+    NgramProfile *profile;
     std::set<std::string> locked_datasets;
     std::set<std::string> locked_iterators;
     std::unordered_map<uint64_t, TaskSpec> tasks;
@@ -57,7 +58,8 @@ class DatabaseSnapshot {
     DatabaseSnapshot(fs::path db_name, fs::path db_base, DatabaseConfig config,
                      std::map<std::string, OnDiskIterator> iterators,
                      std::vector<const OnDiskDataset *> datasets,
-                     std::unordered_map<uint64_t, TaskSpec> tasks);
+                     std::unordered_map<uint64_t, TaskSpec> tasks,
+                     NgramProfile *profile);
 
     DatabaseName derive_name(const DatabaseName &original,
                              const std::string &type) const {

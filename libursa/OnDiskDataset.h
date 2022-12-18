@@ -15,6 +15,24 @@
 #include "ResultWriter.h"
 #include "Task.h"
 
+class NgramProfile {
+   private:
+    std::map<IndexType, std::vector<uint64_t>> profiles;
+
+   public:
+    NgramProfile() :profiles() {}
+    NgramProfile(std::map<IndexType, std::vector<uint64_t>> &&profiles) :profiles(std::move(profiles)) {}
+    NgramProfile(const NgramProfile &other) = delete;
+    uint64_t get_length(PrimitiveQuery primitive) const {
+        for (auto &[key, profile] : profiles) {
+            if (key == primitive.itype) {
+                return profile.at(primitive.trigram + 1) - profile.at(primitive.trigram);
+            }
+        }
+        throw std::runtime_error("Unexpected ngram type in ngram profile");
+    }
+};
+
 class OnDiskDataset {
     std::string name;
     fs::path db_base;
@@ -43,7 +61,7 @@ class OnDiskDataset {
     void toggle_taint(const std::string &taint);
     bool has_all_taints(const std::set<std::string> &taints) const;
     void execute(const Query &query, ResultWriter *out,
-                 QueryCounters *counters) const;
+                 QueryCounters *counters, const NgramProfile &profile) const;
     uint64_t get_file_count() const { return files_index->get_file_count(); }
     void for_each_filename(std::function<void(const std::string &)> cb) const {
         files_index->for_each_filename(cb);
@@ -58,6 +76,7 @@ class OnDiskDataset {
     const std::set<std::string> &get_taints() const { return taints; }
     static std::vector<const OnDiskDataset *> get_compact_candidates(
         const std::vector<const OnDiskDataset *> &datasets);
+    NgramProfile generate_ngram_profile() const;
 
     // Returns vectors of compatible datasets. Datasets are called compatible
     // when they can be merged with each other - they have the same types and

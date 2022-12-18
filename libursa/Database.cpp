@@ -52,6 +52,8 @@ void Database::load_from_disk() {
         load_dataset(dataset_fname);
     }
 
+    profile = working_datasets[0]->generate_ngram_profile();
+
     for (const auto &iterator : db_json["iterators"].items()) {
         DatabaseName name(db_base, "iterator", iterator.key(),
                           iterator.value());
@@ -288,5 +290,5 @@ DatabaseSnapshot Database::snapshot() {
     }
 
     return DatabaseSnapshot(db_name, db_base, config_, iterators, cds,
-                            taskspecs);
+                            taskspecs, &profile);
 }

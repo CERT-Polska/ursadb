@@ -79,18 +79,13 @@ QueryResult OnDiskDataset::query(const Query &query,
 }
 
 void OnDiskDataset::execute(const Query &query, ResultWriter *out,
-                            QueryCounters *counters) const {
+                            QueryCounters *counters, const NgramProfile &profile) const {
     std::unordered_set<IndexType> types_to_query;
     for (const auto &ndx : get_indexes()) {
         types_to_query.emplace(ndx.index_type());
     }
-    PrimitiveEvaluator evaluator = [this](PrimitiveQuery primitive) {
-        for (auto &ndx : indices) {
-            if (ndx.index_type() == primitive.itype) {
-                return ndx.run_size_in_bytes(primitive.trigram);
-            }
-        }
-        throw std::runtime_error("Unexpected ngram type in query");
+    PrimitiveEvaluator evaluator = [&profile](PrimitiveQuery primitive) {
+        return profile.get_length(primitive);
     };
     const Query plan = query.plan(types_to_query, evaluator);
 
@@ -313,4 +308,12 @@ std::vector<const OnDiskDataset *> OnDiskDataset::get_compact_candidates(
     }
 
     return out;
+}
+
+NgramProfile OnDiskDataset::generate_ngram_profile() const {
+    std::map<IndexType, std::vector<uint64_t>> profiles;
+    for (const auto &index: indices) {
+        profiles.emplace(index.index_type(), std::move(index.read_run_offsets()));
+    }
+    return NgramProfile(std::move(profiles));
 }
