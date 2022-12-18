@@ -42,7 +42,7 @@ using PrimitiveEvaluator = std::function<uint32_t(PrimitiveQuery)>;
 class Query {
    private:
     Query(const Query &other)
-        : type(other.type), query_plan(), count(other.count) {
+        : type(other.type), ngram(other.ngram), count(other.count) {
         queries.reserve(other.queries.size());
         for (const auto &query : other.queries) {
             queries.emplace_back(query.clone());
@@ -53,9 +53,9 @@ class Query {
         }
     }
 
-    explicit Query(std::vector<PrimitiveQuery> &&query_plan)
+    explicit Query(PrimitiveQuery ngram)
         : type(QueryType::PRIMITIVE),
-          query_plan(std::move(query_plan)),
+          ngram(ngram),
           value() {}
 
    public:
@@ -63,6 +63,7 @@ class Query {
     explicit Query(uint32_t count, std::vector<Query> &&queries);
     explicit Query(const QueryType &type, std::vector<Query> &&queries);
     Query(Query &&other) = default;
+    Query &operator=(Query &&other) = default;
 
     const std::vector<Query> &as_queries() const;
     const QString &as_value() const;
@@ -74,14 +75,15 @@ class Query {
     QueryResult run(const QueryPrimitive &primitive,
                     QueryCounters *counters) const;
     Query plan(const std::unordered_set<IndexType> &types_to_query, const PrimitiveEvaluator &evaluate) const;
+    uint64_t rarity(const PrimitiveEvaluator &evaluator) const;
 
     Query clone() const { return Query(*this); }
 
    private:
     QueryType type;
     // used for QueryType::PRIMITIVE
-    QString value;                           // before plan()
-    std::vector<PrimitiveQuery> query_plan;  // after plan()
+    QString value;                       // before plan()
+    std::optional<PrimitiveQuery> ngram; // after plan()
     // used for QueryType::MIN_OF
     uint32_t count;
     // used for QueryType::AND/OR/MIN_OF

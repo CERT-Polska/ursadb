@@ -69,12 +69,9 @@ const QString &Query::as_value() const {
 
 std::string Query::as_string_repr() const {
     std::string out = "";
-    if (!query_plan.empty()) {
+    if (ngram != std::nullopt) {
         // Query is already after planning stage. Show low-level representation.
-        for (const auto &token : query_plan) {
-            out += fmt::format("[{:x}]", token.trigram);
-        }
-        return out;
+        return fmt::format("{:x}", ngram->trigram);
     }
     // No query plan yet. Show stringlike representation.
     for (const auto &token : value) {
@@ -273,21 +270,57 @@ std::vector<PrimitiveQuery> plan_qstring(
     return std::move(plan);
 }
 
+uint64_t Query::rarity(const PrimitiveEvaluator &evaluator) const {
+    if (type == QueryType::PRIMITIVE) {
+        return evaluator(*ngram);
+    } else {
+        return 0x100000000;
+    }
+}
+
 Query Query::plan(const std::unordered_set<IndexType> &types_to_query, const PrimitiveEvaluator &evaluate) const {
-    if (type != QueryType::PRIMITIVE) {
+    if (type == QueryType::PRIMITIVE) {
+        if (ngram != std::nullopt) {
+            // Query already as simple as possible
+            return Query(*ngram);
+        }
+
         std::vector<Query> plans;
-        for (const auto &query : queries) {
-            plans.emplace_back(query.plan(types_to_query, evaluate));
+        for (const auto gram : plan_qstring(types_to_query, value)) {
+            plans.emplace_back(Query(gram));
         }
-        if (type == QueryType::MIN_OF) {
-            return Query(count, std::move(plans));
-        }
-        return Query(type, std::move(plans));
+        return Query(QueryType::AND, std::move(plans)).plan(types_to_query, evaluate);
     }
 
-    std::vector<PrimitiveQuery> plan = plan_qstring(types_to_query, value);
-    std::sort(plan.begin(), plan.end(), [&evaluate](auto l, auto r) { return evaluate(l) < evaluate(r); });
-    return Query(std::move(plan));
+    std::vector<Query> plans;
+    for (const auto &query : queries) {
+        plans.emplace_back(query.plan(types_to_query, evaluate));
+    }
+
+    // Special case `1 of ...` (OR) and `n of (1, 2, ... n)` (AND).
+    if (type == QueryType::MIN_OF) {
+        if (count == 1) {
+            return Query(QueryType::OR, std::move(plans)).plan(types_to_query, evaluate);
+        }
+        if (count == plans.size()) {
+            return Query(QueryType::AND, std::move(plans)).plan(types_to_query, evaluate);
+        }
+        return Query(count, std::move(plans));
+    }
+
+    // For all other types (AND and OR), flatten and simplify recursively
+    std::vector<Query> new_plans;
+    for (auto it = plans.begin(); it != plans.end(); it++) {
+        if (it->type == type) {
+            for (auto &subplan : it->queries) {
+                new_plans.emplace_back(std::move(subplan));
+            }
+        } else {
+            new_plans.emplace_back(std::move(*it));
+        }
+    }
+    std::sort(new_plans.begin(), new_plans.end(), [&evaluate](const auto &l, const auto &r) { return l.rarity(evaluate) < r.rarity(evaluate); });
+    return Query(type, std::move(new_plans));
 }
 
 QueryResult Query::run(const QueryPrimitive &primitive,
@@ -295,13 +328,7 @@ QueryResult Query::run(const QueryPrimitive &primitive,
     // Case: primitive query - reduces to AND with tokens from query plan.
     if (type == QueryType::PRIMITIVE) {
         auto result = QueryResult::everything();
-        for (const auto &token : query_plan) {
-            result.do_and(primitive(token, counters), &counters->ands());
-            if (result.is_empty()) {
-                break;
-            }
-        }
-        return result;
+        return primitive(*ngram, counters);
     }
     // Case: and. Short circuits when result is already empty.
     if (type == QueryType::AND) {
