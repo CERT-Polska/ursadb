@@ -23,12 +23,14 @@ class PrimitiveQuery {
     PrimitiveQuery(IndexType itype, TriGram trigram)
         : itype(itype), trigram(trigram) {}
 
-    const IndexType itype;
-    const TriGram trigram;
+    IndexType itype;
+    TriGram trigram;
 };
 
 using QueryPrimitive =
     std::function<QueryResult(PrimitiveQuery, QueryCounters *counter)>;
+
+using PrimitiveEvaluator = std::function<uint32_t(PrimitiveQuery)>;
 
 // Query represents the query as provided by the user.
 // Query can contain subqueries (using AND/OR/MINOF) or be a literal query.
@@ -71,7 +73,7 @@ class Query {
 
     QueryResult run(const QueryPrimitive &primitive,
                     QueryCounters *counters) const;
-    Query plan(const std::unordered_set<IndexType> &types_to_query) const;
+    Query plan(const std::unordered_set<IndexType> &types_to_query, const PrimitiveEvaluator &evaluate) const;
 
     Query clone() const { return Query(*this); }
 

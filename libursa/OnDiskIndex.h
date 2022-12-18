@@ -38,6 +38,7 @@ class OnDiskIndex {
     const std::string &get_fname() const { return fname; }
     const fs::path &get_fpath() const { return fpath; }
     IndexType index_type() const { return ntype; }
+    uint64_t run_size_in_bytes(TriGram trigram) const { auto [a, b] = get_run_offsets(trigram); return b - a; }
     QueryResult query(const QueryGraph &graph, QueryCounters *counters) const;
     QueryResult query(TriGram trigram, QueryCounters *counters) const;
     uint64_t real_size() const;

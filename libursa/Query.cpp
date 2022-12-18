@@ -273,11 +273,11 @@ std::vector<PrimitiveQuery> plan_qstring(
     return std::move(plan);
 }
 
-Query Query::plan(const std::unordered_set<IndexType> &types_to_query) const {
+Query Query::plan(const std::unordered_set<IndexType> &types_to_query, const PrimitiveEvaluator &evaluate) const {
     if (type != QueryType::PRIMITIVE) {
         std::vector<Query> plans;
         for (const auto &query : queries) {
-            plans.emplace_back(query.plan(types_to_query));
+            plans.emplace_back(query.plan(types_to_query, evaluate));
         }
         if (type == QueryType::MIN_OF) {
             return Query(count, std::move(plans));
@@ -285,7 +285,9 @@ Query Query::plan(const std::unordered_set<IndexType> &types_to_query) const {
         return Query(type, std::move(plans));
     }
 
-    return Query(plan_qstring(types_to_query, value));
+    std::vector<PrimitiveQuery> plan = plan_qstring(types_to_query, value);
+    std::sort(plan.begin(), plan.end(), [&evaluate](auto l, auto r) { return evaluate(l) < evaluate(r); });
+    return Query(std::move(plan));
 }
 
 QueryResult Query::run(const QueryPrimitive &primitive,

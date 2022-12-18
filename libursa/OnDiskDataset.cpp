@@ -84,7 +84,15 @@ void OnDiskDataset::execute(const Query &query, ResultWriter *out,
     for (const auto &ndx : get_indexes()) {
         types_to_query.emplace(ndx.index_type());
     }
-    const Query plan = query.plan(types_to_query);
+    PrimitiveEvaluator evaluator = [this](PrimitiveQuery primitive) {
+        for (auto &ndx : indices) {
+            if (ndx.index_type() == primitive.itype) {
+                return ndx.run_size_in_bytes(primitive.trigram);
+            }
+        }
+        throw std::runtime_error("Unexpected ngram type in query");
+    };
+    const Query plan = query.plan(types_to_query, evaluator);
 
     QueryResult result = this->query(plan, counters);
     if (result.is_everything()) {
