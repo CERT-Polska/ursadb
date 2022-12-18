@@ -11,6 +11,7 @@ void QueryCounters::add(const QueryCounters &other) {
     ors_.add(other.ors_);
     ands_.add(other.ands_);
     reads_.add(other.reads_);
+    uniq_reads_.add(other.uniq_reads_);
     minofs_.add(other.minofs_);
 }
 
@@ -19,6 +20,7 @@ std::unordered_map<std::string, QueryCounter> QueryCounters::counters() const {
     result["or"] = ors_;
     result["and"] = ands_;
     result["read"] = reads_;
+    result["uniq_read"] = uniq_reads_;
     result["minof"] = minofs_;
     return result;
 }
