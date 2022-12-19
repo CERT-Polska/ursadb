@@ -29,9 +29,6 @@ std::string random_hex_string(uint64_t length);
 // Returns a function that can be used to generate ngrams of the specified type.
 TrigramGenerator get_generator_for(IndexType type);
 
-// Returns a TokenValidator for ngrams of the specified type.
-TokenValidator get_validator_for(IndexType type);
-
 // Returns a number of bytes needed for ngram of the specified type.
 size_t get_ngram_size_for(IndexType type);
 

@@ -6,8 +6,6 @@
 #include <stdexcept>
 
 ExclusiveFile::ExclusiveFile(const std::string &path) {
-    fd = -1;
-
     fd = open(path.c_str(), O_CREAT | O_EXCL, 0666);
 }
 

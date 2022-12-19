@@ -46,8 +46,6 @@ add_library(
     Query.h
     QueryCounters.cpp
     QueryCounters.h
-    QueryGraph.cpp
-    QueryGraph.h
     QueryParser.cpp
     QueryParser.h
     QueryResult.cpp

@@ -14,8 +14,6 @@ class QueryResult {
     bool has_everything;
 
     QueryResult() : results{}, has_everything{true} {}
-    QueryResult(SortedRun results, bool has_everything)
-        : results(std::move(results)), has_everything(has_everything) {}
 
     static QueryResult do_min_of_real(
         int cutoff, const std::vector<const QueryResult *> &sources);
@@ -46,9 +44,4 @@ class QueryResult {
     bool is_empty() const { return !has_everything && results.empty(); }
 
     const SortedRun &vector() const { return results; }
-
-    // For when you really need to clone the query result
-    QueryResult clone() const {
-        return QueryResult(results.clone(), has_everything);
-    }
 };
