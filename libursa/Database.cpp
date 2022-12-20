@@ -246,12 +246,12 @@ void Database::commit_task(const TaskSpec &spec,
             if (split_loc == std::string::npos) {
                 throw std::runtime_error("Invalid iterator update parameter");
             }
-            uint64_t new_bytes = std::atoi(param.substr(0, split_loc).c_str());
-            uint64_t new_files = std::atoi(param.substr(split_loc + 1).c_str());
+            uint64_t new_bytes = std::stoull(param.substr(0, split_loc));
+            uint64_t new_files = std::stoull(param.substr(split_loc + 1));
             update_iterator(itname, new_bytes, new_files);
         } else if (change.type == DbChangeType::ConfigChange) {
             std::string keyname = change.obj_name;
-            uint64_t value = std::atoi(change.parameter.c_str());
+            uint64_t value = std::stoull(change.parameter);
             auto key = ConfigKey::parse(keyname);
             if (key) {
                 config_.set(*key, value);
