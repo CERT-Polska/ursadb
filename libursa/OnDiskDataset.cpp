@@ -11,6 +11,10 @@
 #include "spdlog/spdlog.h"
 
 uint64_t NgramProfile::size_in_bytes(PrimitiveQuery primitive) const {
+    if (profiles.empty()) {
+        // The profile is empty - return the same estimate for everything.
+        return 0;
+    }
     for (auto &[key, profile] : profiles) {
         if (key == primitive.itype) {
             return profile.at(primitive.trigram + 1) -
