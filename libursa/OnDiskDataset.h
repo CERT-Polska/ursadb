@@ -31,6 +31,8 @@ class NgramProfile {
     NgramProfile() : profiles() {}
     NgramProfile(std::map<IndexType, std::vector<uint64_t>> &&profiles)
         : profiles(std::move(profiles)) {}
+    NgramProfile &operator=(NgramProfile &&other) = default;
+    NgramProfile(NgramProfile &&other) = default;
     NgramProfile(const NgramProfile &other) = delete;
 
     // Returns the size in bytes of data for a given ngram.
