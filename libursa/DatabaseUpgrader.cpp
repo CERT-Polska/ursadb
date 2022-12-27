@@ -14,8 +14,7 @@ json read_json(const fs::path &root, std::string_view path) {
     std::ifstream db_file(root / path, std::ifstream::binary);
 
     if (db_file.fail()) {
-        throw std::runtime_error("Failed to open database file " +
-                                 std::string(root) + " " + std::string(path));
+        throw std::runtime_error("Failed to open database file ");
     }
 
     json db_json;
