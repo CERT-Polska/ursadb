@@ -68,7 +68,7 @@ class ConfigKey {
     // Recommendation: The default value of 1 day makes sense. Change to a
     // zero if you don't want to clean up stale iterators.
     const static ConfigKey iterator_gc_seconds() {
-        return ConfigKey("iterator_gc_seconds", 60*60*24, 0, 4294967295);
+        return ConfigKey("iterator_gc_seconds", 60 * 60 * 24, 0, 4294967295);
     }
 
     // How many tasks can be processed at once? The default 4 is a very

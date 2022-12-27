@@ -183,7 +183,8 @@ void Database::destroy_dataset(const std::string &dsname) {
 }
 
 void Database::collect_stale_iterators() {
-    uint64_t iterator_gc_seconds = config_.get(ConfigKey::iterator_gc_seconds());
+    uint64_t iterator_gc_seconds =
+        config_.get(ConfigKey::iterator_gc_seconds());
     if (iterator_gc_seconds == 0) {
         // Zero means that GC is disabled.
         return;

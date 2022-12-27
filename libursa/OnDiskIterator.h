@@ -12,11 +12,9 @@ class OnDiskIterator {
     uint64_t file_offset;
     std::time_t last_read_time;
 
-
     OnDiskIterator(const DatabaseName &name, const DatabaseName &datafile_name,
                    uint64_t total_files, uint64_t byte_offset,
-                   uint64_t file_offset,
-                   std::time_t last_read_time);
+                   uint64_t file_offset, std::time_t last_read_time);
 
    public:
     const DatabaseName &get_name() const { return name; }
