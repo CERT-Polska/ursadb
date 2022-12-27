@@ -56,9 +56,7 @@ OnDiskIterator OnDiskIterator::load(const DatabaseName &name) {
     uint64_t file_offset = j["file_offset"];
     uint64_t total_files = j["total_files"];
     auto datafile_name = name.derive("iterator", j["backing_storage"]);
-    // Handle iterators from ursadb <= 1.5 by using timestamp way
-    // in the past (note: this will cause GC to remove them).
-    uint64_t last_read_timestamp = j.value("last_read_timestamp", 0);
+    uint64_t last_read_timestamp = j["last_read_timestamp"];
 
     return OnDiskIterator(name, datafile_name, total_files, byte_offset,
                           file_offset, last_read_timestamp);
