@@ -30,6 +30,11 @@ class Database {
 
     bool can_acquire(const DatabaseLock &newlock) const;
 
+    // Find and remove all stale iterators from disk.
+    // Iterators older than iterator_gc_seconds are removed.
+    // This may cause database to be saved.
+    void collect_stale_iterators();
+
    public:
     explicit Database(const std::string &fname);
 
