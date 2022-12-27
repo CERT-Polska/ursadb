@@ -183,8 +183,13 @@ void Database::destroy_dataset(const std::string &dsname) {
 }
 
 void Database::collect_stale_iterators() {
-    std::vector<std::string> iterator_drop_list;
     uint64_t iterator_gc_seconds = config_.get(ConfigKey::iterator_gc_seconds());
+    if (iterator_gc_seconds == 0) {
+        // Zero means that GC is disabled.
+        return;
+    }
+
+    std::vector<std::string> iterator_drop_list;
     std::time_t now = std::time(nullptr);
     for (const auto &[itername, iter] : iterators) {
         if (now - iter.get_last_read_time() > iterator_gc_seconds) {
