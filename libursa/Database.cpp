@@ -198,7 +198,7 @@ void Database::collect_stale_iterators() {
             if (can_acquire(lock)) {
                 // Iterator is not locked, so it's unused, so we can free it.
                 // Yes, in theory this is a race condition. But we can't acquire
-                // a new lock here since we don't know a task, and chance of
+                // a new lock here since we don't know the task, and chance of
                 // this happening is extremely slim (iterator would have to be
                 // used in exactly right millisecond after days of inactivity).
                 iterator_drop_list.push_back(itername);
