@@ -92,7 +92,7 @@ def test_new_database(ursadb: UrsadbTestContext):
         "config": {},
         "datasets": [],
         "iterators": {},
-        "version": "1.3.2",
+        "version": "1.5.0",
     }
 
 
@@ -108,7 +108,7 @@ def test_upgrade_from_v1_0_0_clean():
         "config": {},
         "datasets": [],
         "iterators": {},
-        "version": "1.3.2",
+        "version": "1.5.0",
     }
 
 
@@ -124,5 +124,5 @@ def test_upgrade_from_v1_0_0_dirty():
         "config": {},
         "datasets": ["set.72fa9b58.db.ursa", "set.964c6279.db.ursa"],
         "iterators": {"00c16214": "itermeta.00c16214.db.ursa"},
-        "version": "1.3.2",
+        "version": "1.5.0",
     }

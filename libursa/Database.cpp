@@ -182,6 +182,40 @@ void Database::destroy_dataset(const std::string &dsname) {
     }
 }
 
+void Database::collect_stale_iterators() {
+    uint64_t iterator_gc_seconds =
+        config_.get(ConfigKey::iterator_gc_seconds());
+    if (iterator_gc_seconds == 0) {
+        // Zero means that GC is disabled.
+        return;
+    }
+
+    std::vector<std::string> iterator_drop_list;
+    std::time_t now = std::time(nullptr);
+    for (const auto &[itername, iter] : iterators) {
+        if (now - iter.get_last_read_time() > iterator_gc_seconds) {
+            auto lock = IteratorLock(itername);
+            if (can_acquire(lock)) {
+                // Iterator is not locked, so it's unused, so we can free it.
+                // Yes, in theory this is a race condition. But we can't acquire
+                // a new lock here since we don't know the task, and chance of
+                // this happening is extremely slim (iterator would have to be
+                // used in exactly right millisecond after days of inactivity).
+                iterator_drop_list.push_back(itername);
+            }
+        }
+    }
+
+    for (const auto &itername : iterator_drop_list) {
+        iterators.at(itername).drop();
+        iterators.erase(itername);
+    }
+
+    if (!iterator_drop_list.empty()) {
+        save();
+    }
+}
+
 void Database::collect_garbage(
     std::set<DatabaseSnapshot *> &working_snapshots) {
     std::set<std::string> required_datasets;
@@ -207,6 +241,8 @@ void Database::collect_garbage(
     for (const auto &ds : drop_list) {
         destroy_dataset(ds);
     }
+
+    collect_stale_iterators();
 }
 
 void Database::commit_task(const TaskSpec &spec,

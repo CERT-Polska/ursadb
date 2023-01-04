@@ -37,7 +37,7 @@ class ConfigKey {
     static std::vector<ConfigKey> available() {
         return {
             query_max_edge(),     query_max_ngram(), database_workers(),
-            merge_max_datasets(), merge_max_files(),
+            merge_max_datasets(), merge_max_files(), iterator_gc_seconds(),
         };
     }
 
@@ -57,6 +57,18 @@ class ConfigKey {
     // fast, use many wildcards, but have many false positives, increase to 256.
     const static ConfigKey query_max_ngram() {
         return ConfigKey("query_max_ngram", 16, 1, 16777215);
+    }
+
+    // Iterators can be used to keep intermediate results of queries on disk,
+    // instead of returning them all immediately as a part of response. But
+    // sometimes they're left behind when client don't read them to the end
+    // or drop them properly. So the database will remove all stale iterators
+    // if they're not accessed for a long time.
+    // Setting this value to zero disables iterator GC completely.
+    // Recommendation: The default value of 1 day makes sense. Change to a
+    // zero if you don't want to clean up stale iterators.
+    const static ConfigKey iterator_gc_seconds() {
+        return ConfigKey("iterator_gc_seconds", 60 * 60 * 24, 0, 4294967295);
     }
 
     // How many tasks can be processed at once? The default 4 is a very

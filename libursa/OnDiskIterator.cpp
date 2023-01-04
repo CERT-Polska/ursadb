@@ -8,12 +8,13 @@
 OnDiskIterator::OnDiskIterator(const DatabaseName &name,
                                const DatabaseName &datafile_name,
                                uint64_t total_files, uint64_t byte_offset,
-                               uint64_t file_offset)
+                               uint64_t file_offset, std::time_t last_read_time)
     : name(name),
       datafile_name(datafile_name),
       total_files(total_files),
       byte_offset(byte_offset),
-      file_offset(file_offset) {}
+      file_offset(file_offset),
+      last_read_time(last_read_time) {}
 
 void write_itermeta(const DatabaseName &target, uint64_t byte_offset,
                     uint64_t file_offset, uint64_t total_files,
@@ -28,6 +29,7 @@ void write_itermeta(const DatabaseName &target, uint64_t byte_offset,
     iter_json["file_offset"] = file_offset;
     iter_json["total_files"] = total_files;
     iter_json["backing_storage"] = backing_storage.get_filename();
+    iter_json["last_read_timestamp"] = std::time(nullptr);
 
     iter_file << std::setw(4) << iter_json << std::endl;
     iter_file.close();
@@ -54,9 +56,10 @@ OnDiskIterator OnDiskIterator::load(const DatabaseName &name) {
     uint64_t file_offset = j["file_offset"];
     uint64_t total_files = j["total_files"];
     auto datafile_name = name.derive("iterator", j["backing_storage"]);
+    uint64_t last_read_timestamp = j["last_read_timestamp"];
 
     return OnDiskIterator(name, datafile_name, total_files, byte_offset,
-                          file_offset);
+                          file_offset, last_read_timestamp);
 }
 
 void OnDiskIterator::pop(int count, std::vector<std::string> *out) {
