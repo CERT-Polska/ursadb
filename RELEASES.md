@@ -15,7 +15,7 @@ Correctness:
 
 Refactoring and maintenance:
 - Bump catch v2.2.2 -> v2.13.10 (#192) 
-- Disable clang-tidy, which become very noisy (#193)
+- Disable clang-tidy, which has become very noisy (#193)
 - Add performabce counters for unique ngram reads (#199)
 - Remove dead code accrued over the years (#200)
 
