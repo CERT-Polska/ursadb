@@ -1,4 +1,25 @@
-# Version 1.5 (2022-08-29)
+# Version 1.5.1 (2023-01-04)
+
+Mostly bugfix and maintenance release:
+
+Features:
+- Implement GC for iterators - remove stale iterators (#208)
+
+Performance:
+- Move away from query graphs to query plans (#191)
+- And improve their performance (#194)
+
+Correctness:
+- Fix Undefined Behaviour when getting a memory map size (#188)
+- Add support for 2gb+ iterators (fix signed i32 overflow) (#202)
+
+Refactoring and maintenance:
+- Bump catch v2.2.2 -> v2.13.10 (#192) 
+- Disable clang-tidy, which has become very noisy (#193)
+- Add performabce counters for unique ngram reads (#199)
+- Remove dead code accrued over the years (#200)
+
+# Version 1.5.0 (2022-08-29)
 
 Features:
 - Alternatives (like {(41 | 42)}) implemented in the ursadb query syntax (#65)
