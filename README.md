@@ -47,7 +47,7 @@ Read the [syntax](./docs/syntax.md) documentation to learn more about available 
 More documentation can be found in the [docs](./docs/) directory.
 
 You can also read the hosted version here:
-[cert-polska.github.io/ursadb/docs](https://cert-polska.github.io/ursadb/docs).
+[cert-polska.github.io/ursadb](https://cert-polska.github.io/ursadb).
 
 ## Contact
 If you have any problems, bugs or feature requests related to UrsaDB, you're encouraged to create a GitHub issue.
