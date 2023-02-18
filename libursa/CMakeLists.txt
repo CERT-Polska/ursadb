@@ -29,6 +29,8 @@ add_library(
     IndexBuilder.h
     Indexer.cpp
     Indexer.h
+    IoPrio.cpp
+    IoPrio.h
     Json.h
     MemMap.cpp
     MemMap.h
