@@ -63,7 +63,7 @@ Response execute_command(const IteratorPopCommand &cmd, Task *task,
 
 Response execute_command(const IndexFromCommand &cmd, Task *task,
                          const DatabaseSnapshot *snap) {
-    IoPriority(IoPriorityClass::Idle);
+    auto idle_guard = IoPriority(IoPriorityClass::Idle);
 
     const auto &path_list_fname = cmd.get_path_list_fname();
 
@@ -98,7 +98,7 @@ Response execute_command(const IndexFromCommand &cmd, Task *task,
 
 Response execute_command(const IndexCommand &cmd, Task *task,
                          const DatabaseSnapshot *snap) {
-    IoPriority(IoPriorityClass::Idle);
+    auto idle_guard = IoPriority(IoPriorityClass::Idle);
 
     if (cmd.ensure_unique()) {
         snap->recursive_index_paths(task, cmd.get_index_types(), cmd.taints(),
@@ -145,7 +145,7 @@ Response execute_command(const ConfigSetCommand &cmd, Task *task,
 
 Response execute_command(const ReindexCommand &cmd, Task *task,
                          const DatabaseSnapshot *snap) {
-    IoPriority(IoPriorityClass::Idle);
+    auto idle_guard = IoPriority(IoPriorityClass::Idle);
 
     const std::string &dataset_id = cmd.dataset_id();
     snap->reindex_dataset(task, cmd.get_index_types(), dataset_id);
@@ -155,7 +155,7 @@ Response execute_command(const ReindexCommand &cmd, Task *task,
 
 Response execute_command([[maybe_unused]] const CompactCommand &cmd, Task *task,
                          const DatabaseSnapshot *snap) {
-    IoPriority(IoPriorityClass::Idle);
+    auto idle_guard = IoPriority(IoPriorityClass::Idle);
 
     snap->compact_locked_datasets(task);
     return Response::ok();
@@ -260,7 +260,7 @@ std::vector<DatabaseLock> acquire_locks(
 
 std::vector<DatabaseLock> acquire_locks(const CompactCommand &cmd,
                                         const DatabaseSnapshot *snap) {
-    IoPriority(IoPriorityClass::Idle);
+    auto idle_guard = IoPriority(IoPriorityClass::Idle);
 
     std::vector<std::string> to_lock;
     if (cmd.get_type() == CompactType::Smart) {

@@ -21,11 +21,28 @@ enum {
     IOPRIO_WHO_USER,
 };
 
+enum {
+    IOPRIO_CLASS_NONE,
+    IOPRIO_CLASS_RT,
+    IOPRIO_CLASS_BE,
+    IOPRIO_CLASS_IDLE,
+};
+
+constexpr int IOPRIO_CLASS_SHIFT = 13;
+
 // Change ioprio for the current process, and save the current PID.
 IoPriority::IoPriority(IoPriorityClass ioprio) {
     _old_pid = getpid();
     _old_ioprio = ioprio_get(IOPRIO_WHO_PROCESS, _old_pid);
-    ioprio_set(IOPRIO_WHO_PROCESS, _old_pid, (int)ioprio);
+    int ioprio_value = 0;
+    if (ioprio == IoPriorityClass::BestEffort) {
+        ioprio_value = (IOPRIO_CLASS_BE << IOPRIO_CLASS_SHIFT) | 0;
+    } else if (ioprio == IoPriorityClass::Idle) {
+        ioprio_value = (IOPRIO_CLASS_IDLE << IOPRIO_CLASS_SHIFT) | 7;
+    } else {
+        throw std::runtime_error("Invalid IoPriorityClass");
+    }
+    ioprio_set(IOPRIO_WHO_PROCESS, _old_pid, ioprio_value);
 }
 
 // Restore ioprio for the current process (and check it's still the same PID).
