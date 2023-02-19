@@ -16,8 +16,16 @@ class Database {
     fs::path db_name;
     fs::path db_base;
     std::map<std::string, OnDiskIterator> iterators;
+    // Datasets that are a part of database. New tasks will only use working
+    // datasets for their operations.
     std::vector<OnDiskDataset *> working_datasets;
+    // Datasets that are loaded into memory (probably used by at least one
+    // task running in the db). We can't always unload dataset immediately
+    // after dropping it, because it may be used by a task.
     std::vector<std::unique_ptr<OnDiskDataset>> loaded_datasets;
+    // Ngram profile is a set of heuristic information about the "expected"
+    // relative sizes of data related to various ngrams.
+    NgramProfile profile;
     DatabaseConfig config_;
 
     uint64_t last_task_id;

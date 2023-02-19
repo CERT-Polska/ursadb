@@ -22,8 +22,8 @@ class PrimitiveQuery {
     PrimitiveQuery(IndexType itype, TriGram trigram)
         : itype(itype), trigram(trigram) {}
 
-    const IndexType itype;
-    const TriGram trigram;
+    IndexType itype;
+    TriGram trigram;
 
     // We want to use PrimitiveQuery in STL containers, and this means they
     // must be comparable using <. Specific order doesn't matter.
@@ -32,6 +32,11 @@ class PrimitiveQuery {
 
 using QueryPrimitive =
     std::function<QueryResult(PrimitiveQuery, QueryCounters *counter)>;
+
+// Type of function used to evaluate a given PrimitiveQuery.
+// The lower the result is, the smaller the (expected) size of the result
+// is and the higher priority of the given ngram should be.
+using PrimitiveEvaluator = std::function<uint32_t(PrimitiveQuery)>;
 
 // Query represents the query as provided by the user.
 // Query can contain subqueries (using AND/OR/MINOF) or be a literal query.
@@ -62,7 +67,8 @@ class Query {
 
     QueryResult run(const QueryPrimitive &primitive,
                     QueryCounters *counters) const;
-    Query plan(const std::unordered_set<IndexType> &types_to_query) const;
+    Query plan(const std::unordered_set<IndexType> &types_to_query,
+               const PrimitiveEvaluator &evaluate) const;
 
    private:
     QueryType type;
