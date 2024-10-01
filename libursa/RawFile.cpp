@@ -44,6 +44,10 @@ void RawFile::pread(void *buf, size_t to_read, off_t offset) const {
     }
 }
 
+void RawFile::prefetch(size_t size, off_t offset) const {
+    ::posix_fadvise(fd, offset, size, POSIX_FADV_WILLNEED);
+}
+
 template <typename T>
 void RawFile::write(const T *buf, size_t count) {
     const auto *buf_raw = reinterpret_cast<const char *>(buf);
