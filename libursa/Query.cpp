@@ -60,7 +60,7 @@ std::ostream &operator<<(std::ostream &os, const Query &query) {
         }
         os << ")";
     } else if (type == QueryType::PRIMITIVE) {
-        os << "'" << query.as_string_repr() << "'";
+        os << query.as_string_repr();
     } else {
         throw std::runtime_error("Unknown query type.");
     }
@@ -79,12 +79,9 @@ const QString &Query::as_value() const {
 
 std::string Query::as_string_repr() const {
     std::string out = "";
-    if (!query_plan.empty()) {
+    if (value.empty()) {
         // Query is already after planning stage. Show low-level representation.
-        for (const auto &token : query_plan) {
-            out += fmt::format("[{:x}]", token.trigram);
-        }
-        return out;
+        return fmt::format("{}:[{:06x}]", (int)ngram.itype, ngram.trigram);
     }
     // No query plan yet. Show stringlike representation.
     for (const auto &token : value) {
@@ -126,9 +123,9 @@ QToken filter_qtoken(const QToken &token, uint32_t off,
 // For primitive queries, find a minimal covering set of ngram queries and
 // return it. If there are multiple disconnected components, AND them.
 // For example, "abcde\x??efg" will return abcd & bcde & efg
-std::vector<PrimitiveQuery> plan_qstring(
+Query plan_qstring(
     const std::unordered_set<IndexType> &types_to_query, const QString &value) {
-    std::vector<PrimitiveQuery> plan;
+    std::vector<Query> plan;
 
     bool has_gram3 = types_to_query.count(IndexType::GRAM3) != 0;
     bool has_text4 = types_to_query.count(IndexType::TEXT4) != 0;
@@ -144,7 +141,7 @@ std::vector<PrimitiveQuery> plan_qstring(
         // If wide8 index is supported, try to add a token and skip 6 bytes.
         if (has_wide8) {
             if (const auto &gram = convert_gram(IndexType::WIDE8, i, value)) {
-                plan.emplace_back(IndexType::WIDE8, *gram);
+                plan.emplace_back(PrimitiveQuery(IndexType::WIDE8, *gram));
                 skip_to = i + 6;
                 i += 2;
                 continue;
@@ -153,7 +150,7 @@ std::vector<PrimitiveQuery> plan_qstring(
         // If text4 index is supported, try to add a token and skip 2 bytes.
         if (has_text4) {
             if (const auto &gram = convert_gram(IndexType::TEXT4, i, value)) {
-                plan.emplace_back(IndexType::TEXT4, *gram);
+                plan.emplace_back(PrimitiveQuery(IndexType::TEXT4, *gram));
                 skip_to = i + 2;
                 i += 1;
                 continue;
@@ -162,14 +159,14 @@ std::vector<PrimitiveQuery> plan_qstring(
         // If hash4 index is supported and current ngram is not text, try hash4.
         const auto &hgram = convert_gram(IndexType::HASH4, i, value);
         if (i >= (skip_to - 1) && has_hash4 && hgram) {
-            plan.emplace_back(IndexType::HASH4, *hgram);
+            plan.emplace_back(PrimitiveQuery(IndexType::HASH4, *hgram));
             // Don't continue here - gram3 can give us more information.
         }
         // Otherwise, add a regular gram3 token.
         const auto &gram = convert_gram(IndexType::GRAM3, i, value);
         if (i >= skip_to && gram) {
             if (has_gram3) {
-                plan.emplace_back(IndexType::GRAM3, *gram);
+                plan.emplace_back(PrimitiveQuery(IndexType::GRAM3, *gram));
             }
             i += 1;
             continue;
@@ -178,9 +175,12 @@ std::vector<PrimitiveQuery> plan_qstring(
         i += 1;
     }
 
-    return std::move(plan);
+    return q_and(std::move(plan));
 }
 
+// Query provided by user contains generic strings like "asdf".
+// To actually do the query, we need to convert generic strings to n-grams.
+// This is done using plan_qstring, everything else is copied unchanged.
 Query Query::plan(const std::unordered_set<IndexType> &types_to_query) const {
     if (type != QueryType::PRIMITIVE) {
         std::vector<Query> plans;
@@ -193,21 +193,14 @@ Query Query::plan(const std::unordered_set<IndexType> &types_to_query) const {
         return Query(type, std::move(plans));
     }
 
-    return Query(plan_qstring(types_to_query, value));
+    return plan_qstring(types_to_query, value);
 }
 
 QueryResult Query::run(const QueryPrimitive &primitive,
                        QueryCounters *counters) const {
     // Case: primitive query - reduces to AND with tokens from query plan.
     if (type == QueryType::PRIMITIVE) {
-        auto result = QueryResult::everything();
-        for (const auto &token : query_plan) {
-            result.do_and(primitive(token, counters), &counters->ands());
-            if (result.is_empty()) {
-                break;
-            }
-        }
-        return result;
+        return primitive(ngram, counters);
     }
     // Case: and. Short circuits when result is already empty.
     if (type == QueryType::AND) {
