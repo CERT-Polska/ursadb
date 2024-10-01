@@ -18,7 +18,14 @@ const std::vector<Query> &Query::as_queries() const {
         type != QueryType::MIN_OF) {
         throw std::runtime_error("This query doesn\'t contain subqueries.");
     }
+    return queries;
+}
 
+std::vector<Query> &Query::as_queries() {
+    if (type != QueryType::AND && type != QueryType::OR &&
+        type != QueryType::MIN_OF) {
+        throw std::runtime_error("This query doesn\'t contain subqueries.");
+    }
     return queries;
 }
 

@@ -50,6 +50,8 @@ add_library(
     QueryParser.h
     QueryResult.cpp
     QueryResult.h
+    QueryOptimizer.cpp
+    QueryOptimizer.h
     RawFile.cpp
     RawFile.h
     Responses.cpp

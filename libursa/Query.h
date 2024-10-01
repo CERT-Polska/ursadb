@@ -22,8 +22,8 @@ class PrimitiveQuery {
     PrimitiveQuery(IndexType itype, TriGram trigram)
         : itype(itype), trigram(trigram) {}
 
-    const IndexType itype;
-    const TriGram trigram;
+    IndexType itype;
+    TriGram trigram;
 
     // We want to use PrimitiveQuery in STL containers, and this means they
     // must be comparable using <. Specific order doesn't matter.
@@ -51,6 +51,7 @@ class Query {
     Query &operator=(Query &&) = default;
 
     const std::vector<Query> &as_queries() const;
+    std::vector<Query> &as_queries();
     const QString &as_value() const;
     uint32_t as_count() const;
     std::string as_string_repr() const;
