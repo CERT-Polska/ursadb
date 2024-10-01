@@ -188,12 +188,17 @@ void NetworkService::poll_frontend() {
     s_send(&backend, request, ZMQTRACE);
 }
 
+void print_usage_and_exit() {
+    puts("Usage:");
+    puts("    ursadb database-file [bind-address]");
+    puts("       -v     Enable verbose output (debug messages)");
+    exit(1);
+}
+
 // Main entry point of the system!
 int main(int argc, char *argv[]) {
     if (argc < 2) {
-        printf("Usage:\n");
-        printf("    %s database-file [bind-address]\n", argv[0]);
-        return 1;
+        print_usage_and_exit();
     }
 
     spdlog::info("UrsaDB v{}", get_version_string());
@@ -202,15 +207,33 @@ int main(int argc, char *argv[]) {
     migrate_version(argv[1]);
 
     try {
-        Database db(argv[1]);
-        std::string bind_address = "tcp://127.0.0.1:9281";
-
-        if (argc > 3) {
-            spdlog::error("Too many command line arguments.");
-        } else if (argc == 3) {
-            bind_address = std::string(argv[2]);
+        bool enable_debug = false;
+        const char *db_file = NULL;
+        const char *bind_address = NULL;
+        for (int i = 1; i < argc; i++) {
+            if (std::string("-v") == argv[i]) {
+                enable_debug = true;
+            } else if (db_file == NULL) {
+                db_file = argv[i];  // first positional arg
+            } else if (bind_address == NULL) {
+                bind_address = argv[i];
+            } else {
+                spdlog::error("Too many positional arguments.");
+            }
         }
 
+        if (db_file == NULL) {
+            print_usage_and_exit();
+        } else if (bind_address == NULL) {
+            bind_address = "tcp://127.0.0.1:9281";
+        }
+
+        if (enable_debug) {
+            spdlog::set_level(spdlog::level::debug);
+            spdlog::debug("Debug logging enabled");
+        }
+
+        Database db(db_file);
         spdlog::info("BIND: {}", bind_address);
         NetworkService service(db, bind_address);
         service.run();

@@ -43,11 +43,11 @@ std::ostream &operator<<(std::ostream &os, const Query &query) {
     if (type == QueryType::AND || type == QueryType::OR ||
         type == QueryType::MIN_OF) {
         if (type == QueryType::AND) {
-            os << "AND(";
+            os << "and(";
         } else if (type == QueryType::OR) {
-            os << "OR(";
+            os << "or(";
         } else if (type == QueryType::MIN_OF) {
-            os << "MIN_OF(" << query.as_count() << ", ";
+            os << "min_of(" << query.as_count() << ", ";
         }
 
         bool is_first = true;
@@ -81,7 +81,9 @@ std::string Query::as_string_repr() const {
     std::string out = "";
     if (value.empty()) {
         // Query is already after planning stage. Show low-level representation.
-        return fmt::format("{}:[{:06x}]", (int)ngram.itype, ngram.trigram);
+        // First digit is the index type and the rest is the raw trigram.
+        // Underscore was picked to make copying from terminal easier.
+        return fmt::format("{}_{:06x}", (int)ngram.itype, ngram.trigram);
     }
     // No query plan yet. Show stringlike representation.
     for (const auto &token : value) {

@@ -8,6 +8,7 @@
 #include "DatabaseName.h"
 #include "Json.h"
 #include "Query.h"
+#include "spdlog/fmt/ostr.h"
 #include "spdlog/spdlog.h"
 
 void OnDiskDataset::save() {
@@ -91,6 +92,7 @@ void OnDiskDataset::execute(const Query &query, ResultWriter *out,
         types_to_query.emplace(ndx.index_type());
     }
     const Query plan = query.plan(types_to_query);
+    spdlog::debug("PLAN: {}", plan);
 
     QueryResult result = this->query(plan, counters);
     if (result.is_everything()) {
