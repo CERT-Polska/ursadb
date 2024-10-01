@@ -51,6 +51,7 @@ class Query {
     Query &operator=(Query &&) = default;
 
     const std::vector<Query> &as_queries() const;
+    std::vector<Query> &as_queries();
     const QString &as_value() const;
     uint32_t as_count() const;
     std::string as_string_repr() const;
