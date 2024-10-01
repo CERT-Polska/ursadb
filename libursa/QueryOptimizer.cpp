@@ -32,6 +32,27 @@ Query flatten_trivial_operations(Query &&q, bool *changed) {
     return std::move(q);
 }
 
+// This optimization inlines eliglible suboperations:
+// AND(AND(a, b), AND(c, d), e) --> AND(a, b, c, d, e)
+// OR(OR(a, b), OR(c, d), e) --> OR(a, b, c, d, e)
+Query inline_suboperations(Query &&q, bool *changed) {
+    if (q.get_type() != QueryType::AND && q.get_type() != QueryType::OR) {
+        return std::move(q);
+    }
+    std::vector<Query> newqueries;
+    for (auto &&query : q.as_queries()) {
+        if (query.get_type() == q.get_type()) {
+            for (auto &&subquery : query.as_queries()) {
+                newqueries.emplace_back(std::move(subquery));
+            }
+            *changed = true;
+        } else {
+            newqueries.emplace_back(std::move(query));
+        }
+    }
+    return std::move(Query(q.get_type(), std::move(newqueries)));
+}
+
 Query q_optimize(Query &&q) {
     if (q.get_type() == QueryType::PRIMITIVE) {
         // Nothing to improve here.
@@ -43,6 +64,7 @@ Query q_optimize(Query &&q) {
     while (changed) {
         changed = false;
         q = flatten_trivial_operations(std::move(q), &changed);
+        q = inline_suboperations(std::move(q), &changed);
     }
 
     return std::move(q);
