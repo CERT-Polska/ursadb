@@ -17,6 +17,21 @@ Query simplify_subqueries(Query &&q) {
     return std::move(Query(q.get_type(), std::move(newqueries)));
 }
 
+// This optimization simplifies trivial (one operant) operations:
+// AND(x) --> x
+// OR(x)  --> x
+Query flatten_trivial_operations(Query &&q, bool *changed) {
+    if (q.get_type() == QueryType::AND && q.as_queries().size() == 1) {
+        *changed = true;
+        return std::move(q.as_queries()[0]);
+    }
+    if (q.get_type() == QueryType::OR && q.as_queries().size() == 1) {
+        *changed = true;
+        return std::move(q.as_queries()[0]);
+    }
+    return std::move(q);
+}
+
 Query q_optimize(Query &&q) {
     if (q.get_type() == QueryType::PRIMITIVE) {
         // Nothing to improve here.
@@ -24,8 +39,11 @@ Query q_optimize(Query &&q) {
     }
 
     q = simplify_subqueries(std::move(q));
-
-    // Optimization passes will be added here later.
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        q = flatten_trivial_operations(std::move(q), &changed);
+    }
 
     return std::move(q);
 }
