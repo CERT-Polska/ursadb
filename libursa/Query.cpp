@@ -80,8 +80,14 @@ const QString &Query::as_value() const {
     if (type != QueryType::PRIMITIVE) {
         throw std::runtime_error("This query doesn\'t have any value.");
     }
-
     return value;
+}
+
+PrimitiveQuery Query::as_ngram() const {
+    if (type != QueryType::PRIMITIVE) {
+        throw std::runtime_error("This query doesn\'t contain a ngram.");
+    }
+    return ngram;
 }
 
 std::string Query::as_string_repr() const {
