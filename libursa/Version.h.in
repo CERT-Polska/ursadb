@@ -6,7 +6,7 @@
 // It looks similar to the db version to make it easy to correlate them.
 constexpr std::string_view ursadb_format_version = "1.5.0";
 
-constexpr std::string_view ursadb_version = "@PROJECT_VERSION@";
-constexpr std::string_view ursadb_commit = "@COMMIT_HASH@";
+// Project version.
+// Consider updating the version tag when doing PRs.
 constexpr std::string_view ursadb_version_string =
-    "@PROJECT_VERSION@+@COMMIT_HASH@";
+    "@PROJECT_VERSION@+primitives";

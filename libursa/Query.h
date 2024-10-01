@@ -41,17 +41,14 @@ using QueryPrimitive =
 // planned (using a plan() method). At this point query decides which ngrams
 // will actually be checked.
 class Query {
-   private:
-    explicit Query(std::vector<PrimitiveQuery> &&query_plan)
-        : type(QueryType::PRIMITIVE),
-          query_plan(std::move(query_plan)),
-          value() {}
-
    public:
+    explicit Query(PrimitiveQuery ngram)
+        : type(QueryType::PRIMITIVE), ngram(ngram), value() {}
     explicit Query(QString &&qstr);
     explicit Query(uint32_t count, std::vector<Query> &&queries);
     explicit Query(const QueryType &type, std::vector<Query> &&queries);
     Query(Query &&other) = default;
+    Query &operator=(Query &&) = default;
 
     const std::vector<Query> &as_queries() const;
     const QString &as_value() const;
@@ -66,9 +63,10 @@ class Query {
 
    private:
     QueryType type;
-    // used for QueryType::PRIMITIVE
-    QString value;                           // before plan()
-    std::vector<PrimitiveQuery> query_plan;  // after plan()
+    // used for QueryType::PRIMITIVE before plan()
+    QString value;
+    // used for QueryType::PRIMITIVE after plan(). Initial value arbitrary.
+    PrimitiveQuery ngram = PrimitiveQuery(IndexType::GRAM3, 0);
     // used for QueryType::MIN_OF
     uint32_t count;
     // used for QueryType::AND/OR/MIN_OF
