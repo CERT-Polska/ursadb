@@ -22,8 +22,8 @@ class PrimitiveQuery {
     PrimitiveQuery(IndexType itype, TriGram trigram)
         : itype(itype), trigram(trigram) {}
 
-    const IndexType itype;
-    const TriGram trigram;
+    IndexType itype;
+    TriGram trigram;
 
     // We want to use PrimitiveQuery in STL containers, and this means they
     // must be comparable using <. Specific order doesn't matter.
