@@ -9,6 +9,14 @@ Query q_everything() {
     return std::move(q_and(std::move(queries)));
 }
 
+// Checks if the query represents every value in the dataset.
+// The only cases when it happens are empty and() and min 0 of (...).
+// "min 0 of (...)" is simplified in another pass, so just check for and().
+// See also comment above.
+bool is_everything(const Query &q) {
+    return q.get_type() == QueryType::AND && q.as_queries().size() == 0;
+}
+
 // Run the optimization pases on subqueries.
 // After this step, every subquery should be maximally optimized,
 // So I believe there's no need to run this in a loop.
@@ -104,6 +112,38 @@ Query simplify_minof(Query &&q, bool *changed) {
     return std::move(q);
 }
 
+// Propagate 'everything' results through the query. For example,
+// if we know that C is everything, we immediately know OR(a, b, C)
+// OR(AND(), b, c) --> AND()
+// MIN 3 OF (AND(), b, c, d) --> MIN 2 OF (b, c, d)
+Query propagate_degenerate_queries(Query &&q, bool *changed) {
+    if (q.get_type() == QueryType::MIN_OF) {
+        std::vector<Query> newqueries;
+        uint32_t count = q.as_count();
+        for (auto &&query : q.as_queries()) {
+            if (is_everything(query)) {
+                count -= 1;
+                *changed = true;
+                if (count == 0) {
+                    return std::move(q_everything());
+                }
+            } else {
+                newqueries.emplace_back(std::move(query));
+            }
+        }
+        return std::move(q_min_of(count, std::move(newqueries)));
+    }
+    if (q.get_type() == QueryType::OR) {
+        for (auto &&query : q.as_queries()) {
+            if (is_everything(query)) {
+                *changed = true;
+                return std::move(q_everything());
+            }
+        }
+    }
+    return std::move(q);
+}
+
 Query q_optimize(Query &&q) {
     if (q.get_type() == QueryType::PRIMITIVE) {
         // Nothing to improve here.
@@ -118,6 +158,7 @@ Query q_optimize(Query &&q) {
         q = inline_suboperations(std::move(q), &changed);
         q = deduplicate_primitives(std::move(q), &changed);
         q = simplify_minof(std::move(q), &changed);
+        q = propagate_degenerate_queries(std::move(q), &changed);
     }
 
     return std::move(q);
