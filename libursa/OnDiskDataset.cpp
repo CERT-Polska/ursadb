@@ -83,6 +83,13 @@ QueryResult OnDiskDataset::query(const Query &query,
             }
             throw std::runtime_error("Unexpected ngram type in query");
         },
+        [this, &seen](PrimitiveQuery primitive) {
+            for (auto &ndx : indices) {
+                if (ndx.index_type() == primitive.itype) {
+                    ndx.prefetch(primitive.trigram);
+                }
+            }
+        },
         counters);
 }
 

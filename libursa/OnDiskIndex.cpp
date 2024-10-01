@@ -60,6 +60,12 @@ QueryResult OnDiskIndex::query(TriGram trigram, QueryCounters *counters) const {
     return QueryResult(std::move(query_primitive(trigram, &counters->reads())));
 }
 
+void OnDiskIndex::prefetch(TriGram trigram) const {
+    std::pair<uint64_t, uint64_t> offsets = get_run_offsets(trigram);
+    uint64_t length = offsets.second - offsets.first;
+    ndxfile.prefetch(length, offsets.first);
+}
+
 std::pair<uint64_t, uint64_t> OnDiskIndex::get_run_offsets(
     TriGram trigram) const {
     uint64_t ptrs[2];

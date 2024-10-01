@@ -33,6 +33,8 @@ class PrimitiveQuery {
 using QueryPrimitive =
     std::function<QueryResult(PrimitiveQuery, QueryCounters *counter)>;
 
+using PrefetchFunc = std::function<void(PrimitiveQuery)>;
+
 // Query represents the query as provided by the user.
 // Query can contain subqueries (using AND/OR/MINOF) or be a literal query.
 // There are actually two types of literal query objects - "plain" and
@@ -60,10 +62,14 @@ class Query {
     bool operator==(const Query &other) const;
 
     QueryResult run(const QueryPrimitive &primitive,
+                    const PrefetchFunc &prefetch,
                     QueryCounters *counters) const;
     Query plan(const std::unordered_set<IndexType> &types_to_query) const;
 
    private:
+    void prefetch(int from_index, int howmany, bool only_last,
+                  const PrefetchFunc &prefetch) const;
+
     QueryType type;
     // used for QueryType::PRIMITIVE before plan()
     QString value;

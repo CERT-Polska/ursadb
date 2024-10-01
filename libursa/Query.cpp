@@ -211,17 +211,46 @@ Query Query::plan(const std::unordered_set<IndexType> &types_to_query) const {
     return plan_qstring(types_to_query, value);
 }
 
+// Prefetch the next `howmany` ngrams.
+// This doesn't recurse into other queries. It's not a big problem,
+// because all primitives that we can fetch are in long AND sequences.
+// But in the future we may consider improving this.
+void Query::prefetch(int from_index, int howmany, bool only_last,
+                     const PrefetchFunc &prefetcher) const {
+    for (int i = 0; i < howmany; i++) {
+        int ndx = i + from_index;
+        if (ndx >= queries.size()) {
+            break;
+        }
+        if (queries[ndx].type == QueryType::PRIMITIVE) {
+            if (only_last && (i + 1 != howmany)) {
+                continue;
+            }
+            spdlog::debug("prefetching {}", ndx);
+            prefetcher(queries[ndx].ngram);
+        }
+    }
+}
+
 QueryResult Query::run(const QueryPrimitive &primitive,
+                       const PrefetchFunc &prefetcher,
                        QueryCounters *counters) const {
     // Case: primitive query - reduces to AND with tokens from query plan.
     if (type == QueryType::PRIMITIVE) {
         return primitive(ngram, counters);
     }
+
+    constexpr int PRETECTH_RANGE = 3;
+    prefetch(0, PRETECTH_RANGE, false, prefetcher);
+
     // Case: and. Short circuits when result is already empty.
     if (type == QueryType::AND) {
         auto result = QueryResult::everything();
-        for (const auto &query : queries) {
-            result.do_and(query.run(primitive, counters), &counters->ands());
+        for (int i = 0; i < queries.size(); i++) {
+            prefetch(i + 1, PRETECTH_RANGE, true, prefetcher);
+            const auto &query = queries[i];
+            result.do_and(query.run(primitive, prefetcher, counters),
+                          &counters->ands());
             if (result.is_empty()) {
                 break;
             }
@@ -232,7 +261,8 @@ QueryResult Query::run(const QueryPrimitive &primitive,
     if (type == QueryType::OR) {
         auto result = QueryResult::empty();
         for (const auto &query : queries) {
-            result.do_or(query.run(primitive, counters), &counters->ors());
+            result.do_or(query.run(primitive, prefetcher, counters),
+                         &counters->ors());
             if (result.is_everything()) {
                 break;
             }
@@ -252,7 +282,7 @@ QueryResult Query::run(const QueryPrimitive &primitive,
         int cutoff = count;
         int nonempty_sources = queries.size();
         for (const auto &query : queries) {
-            QueryResult next = query.run(primitive, counters);
+            QueryResult next = query.run(primitive, prefetcher, counters);
             if (next.is_everything()) {
                 cutoff -= 1;
                 if (cutoff <= 0) {
