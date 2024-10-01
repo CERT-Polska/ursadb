@@ -54,6 +54,7 @@ class Query {
     std::vector<Query> &as_queries();
     const QString &as_value() const;
     uint32_t as_count() const;
+    PrimitiveQuery as_ngram() const;
     std::string as_string_repr() const;
     const QueryType &get_type() const;
     bool operator==(const Query &other) const;
