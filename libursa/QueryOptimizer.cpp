@@ -53,6 +53,29 @@ Query inline_suboperations(Query &&q, bool *changed) {
     return std::move(Query(q.get_type(), std::move(newqueries)));
 }
 
+// This optimization gets rid of duplicated primitive queries.
+// AND(a, a, a, a, b, b) == AND(a, b)
+// This also applies to OR(), but it'll happen very rarely.
+Query deduplicate_primitives(Query &&q, bool *changed) {
+    if (q.get_type() != QueryType::AND && q.get_type() != QueryType::OR) {
+        return std::move(q);
+    }
+
+    std::set<PrimitiveQuery> seen;
+    std::vector<Query> newqueries;
+    for (auto &&query : q.as_queries()) {
+        if (query.get_type() != QueryType::PRIMITIVE) {
+            newqueries.emplace_back(std::move(query));
+        } else if (seen.count(query.as_ngram()) == 0) {
+            newqueries.emplace_back(std::move(query));
+            seen.insert(query.as_ngram());
+        } else {
+            *changed = true;
+        }
+    }
+    return std::move(Query(q.get_type(), std::move(newqueries)));
+}
+
 Query q_optimize(Query &&q) {
     if (q.get_type() == QueryType::PRIMITIVE) {
         // Nothing to improve here.
@@ -65,6 +88,7 @@ Query q_optimize(Query &&q) {
         changed = false;
         q = flatten_trivial_operations(std::move(q), &changed);
         q = inline_suboperations(std::move(q), &changed);
+        q = deduplicate_primitives(std::move(q), &changed);
     }
 
     return std::move(q);
