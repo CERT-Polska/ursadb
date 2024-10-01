@@ -43,14 +43,12 @@ using QueryPrimitive =
 class Query {
    public:
     explicit Query(PrimitiveQuery ngram)
-        : type(QueryType::PRIMITIVE),
-          ngram(ngram),
-          value() {}
+        : type(QueryType::PRIMITIVE), ngram(ngram), value() {}
     explicit Query(QString &&qstr);
     explicit Query(uint32_t count, std::vector<Query> &&queries);
     explicit Query(const QueryType &type, std::vector<Query> &&queries);
     Query(Query &&other) = default;
-    Query& operator=(Query&&) = default;
+    Query &operator=(Query &&) = default;
 
     const std::vector<Query> &as_queries() const;
     const QString &as_value() const;

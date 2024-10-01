@@ -123,8 +123,8 @@ QToken filter_qtoken(const QToken &token, uint32_t off,
 // For primitive queries, find a minimal covering set of ngram queries and
 // return it. If there are multiple disconnected components, AND them.
 // For example, "abcde\x??efg" will return abcd & bcde & efg
-Query plan_qstring(
-    const std::unordered_set<IndexType> &types_to_query, const QString &value) {
+Query plan_qstring(const std::unordered_set<IndexType> &types_to_query,
+                   const QString &value) {
     std::vector<Query> plan;
 
     bool has_gram3 = types_to_query.count(IndexType::GRAM3) != 0;
