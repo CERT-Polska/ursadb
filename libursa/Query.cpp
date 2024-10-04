@@ -226,7 +226,6 @@ void Query::prefetch(int from_index, int howmany, bool only_last,
             if (only_last && (i + 1 != howmany)) {
                 continue;
             }
-            spdlog::debug("prefetching {}", ndx);
             prefetcher(queries[ndx].ngram);
         }
     }
@@ -260,7 +259,7 @@ QueryResult Query::run(const QueryPrimitive &primitive,
     // Case: or. Short circuits when result is already everything.
     if (type == QueryType::OR) {
         auto result = QueryResult::empty();
-        for (const auto &query : queries) {
+        for (auto &query : queries) {
             result.do_or(query.run(primitive, prefetcher, counters),
                          &counters->ors());
             if (result.is_everything()) {
@@ -276,7 +275,7 @@ QueryResult Query::run(const QueryPrimitive &primitive,
     // There is some logic duplication here and in QueryResult::do_min_of_real.
     if (type == QueryType::MIN_OF) {
         std::vector<QueryResult> results;
-        std::vector<const QueryResult *> results_ptrs;
+        std::vector<QueryResult *> results_ptrs;
         results.reserve(queries.size());
         results_ptrs.reserve(queries.size());
         int cutoff = count;

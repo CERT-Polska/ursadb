@@ -108,7 +108,7 @@ void OnDiskDataset::execute(const Query &query, ResultWriter *out,
         files_index->for_each_filename(
             [&out](const std::string &fname) { out->push_back(fname); });
     } else {
-        for (const auto &fid : result.vector()) {
+        for (const auto &fid : result.vector().decompressed()) {
             out->push_back(get_file_name(fid));
         }
     }

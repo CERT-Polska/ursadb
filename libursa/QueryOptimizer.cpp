@@ -32,7 +32,7 @@ Query simplify_subqueries(Query &&q) {
     return std::move(Query(q.get_type(), std::move(newqueries)));
 }
 
-// This optimization simplifies trivial (one operant) operations:
+// This optimization simplifies trivial (one operand) operations:
 // AND(x) --> x
 // OR(x)  --> x
 Query flatten_trivial_operations(Query &&q, bool *changed) {
