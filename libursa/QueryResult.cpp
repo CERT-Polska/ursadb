@@ -2,31 +2,31 @@
 
 #include <algorithm>
 
-void QueryResult::do_or(const QueryResult &other, QueryCounter *counter) {
+void QueryResult::do_or(QueryResult &&other, QueryCounter *counter) {
     auto op = QueryOperation(counter);
     if (this->is_everything() || other.is_everything()) {
         has_everything = true;
-        results = SortedRun();
+        results = std::move(SortedRun());
     } else {
         results.do_or(other.results);
     }
 }
 
-void QueryResult::do_and(const QueryResult &other, QueryCounter *counter) {
+void QueryResult::do_and(QueryResult &&other, QueryCounter *counter) {
     auto op = QueryOperation(counter);
     if (other.is_everything()) {
     } else if (this->is_everything()) {
-        results = other.results;
+        results = std::move(other.results);
         has_everything = other.has_everything;
     } else {
         results.do_and(other.results);
     }
 }
 
-QueryResult QueryResult::do_min_of_real(
-    int cutoff, const std::vector<const QueryResult *> &sources) {
-    std::vector<const SortedRun *> nontrivial_sources;
-    for (const auto *source : sources) {
+QueryResult QueryResult::do_min_of_real(int cutoff,
+                                        std::vector<QueryResult *> &sources) {
+    std::vector<SortedRun *> nontrivial_sources;
+    for (QueryResult *source : sources) {
         if (source->is_everything()) {
             cutoff -= 1;
         } else if (!source->is_empty()) {
@@ -66,9 +66,9 @@ QueryResult QueryResult::do_min_of_real(
     return QueryResult(SortedRun::pick_common(cutoff, nontrivial_sources));
 }
 
-QueryResult QueryResult::do_min_of(
-    int cutoff, const std::vector<const QueryResult *> &sources,
-    QueryCounter *counter) {
+QueryResult QueryResult::do_min_of(int cutoff,
+                                   std::vector<QueryResult *> &sources,
+                                   QueryCounter *counter) {
     // TODO: sources can be mutable here, to save us some copies later.
     QueryOperation op(counter);
     QueryResult out{do_min_of_real(cutoff, sources)};

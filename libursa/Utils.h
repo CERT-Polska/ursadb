@@ -119,9 +119,15 @@ class PosixRunWriter {
     }
 };
 
+// "Run" here means a sorted list of FileIDs.
+// A "compressed" run format is described in the documentation
+// "ondiskformat.md", in the "Index" section. It's a variable length
+// encoding that stores date more efficiently. Uncompressed format is a vector.
+// Functions here convert from one representation to another.
 uint64_t compress_run(const std::vector<FileId> &run, std::ostream &out);
 std::vector<FileId> read_compressed_run(const uint8_t *start,
                                         const uint8_t *end);
+
 std::string get_index_type_name(IndexType type);
 std::optional<IndexType> index_type_from_string(const std::string &type);
 

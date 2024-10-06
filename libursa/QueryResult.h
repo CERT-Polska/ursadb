@@ -15,8 +15,8 @@ class QueryResult {
 
     QueryResult() : results{}, has_everything{true} {}
 
-    static QueryResult do_min_of_real(
-        int cutoff, const std::vector<const QueryResult *> &sources);
+    static QueryResult do_min_of_real(int cutoff,
+                                      std::vector<QueryResult *> &sources);
 
    public:
     QueryResult(QueryResult &&other) = default;
@@ -28,12 +28,12 @@ class QueryResult {
 
     static QueryResult everything() { return QueryResult(); }
 
-    void do_or(const QueryResult &other, QueryCounter *counter);
-    void do_and(const QueryResult &other, QueryCounter *counter);
+    void do_or(QueryResult &&other, QueryCounter *counter);
+    void do_and(QueryResult &&other, QueryCounter *counter);
 
-    static QueryResult do_min_of(
-        int cutoff, const std::vector<const QueryResult *> &sources,
-        QueryCounter *counter);
+    static QueryResult do_min_of(int cutoff,
+                                 std::vector<QueryResult *> &sources,
+                                 QueryCounter *counter);
 
     // If true, means that QueryResults represents special "uninitialized"
     // value, "set of all FileIds in DataSet".
@@ -44,4 +44,5 @@ class QueryResult {
     bool is_empty() const { return !has_everything && results.empty(); }
 
     const SortedRun &vector() const { return results; }
+    SortedRun &vector() { return results; }
 };

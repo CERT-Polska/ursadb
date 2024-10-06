@@ -21,9 +21,8 @@ class OnDiskIndex {
     IndexType ntype;
 
     static constexpr uint32_t VERSION = 6;
-    std::vector<FileId> get_run(uint64_t ptr, uint64_t next_ptr) const;
-    std::vector<FileId> query_primitive(TriGram trigram,
-                                        QueryCounter *counter) const;
+    SortedRun get_run(uint64_t ptr, uint64_t next_ptr) const;
+    SortedRun query_primitive(TriGram trigram, QueryCounter *counter) const;
     std::pair<uint64_t, uint64_t> get_run_offsets(TriGram trigram) const;
 
     static void on_disk_merge_core(const std::vector<IndexMergeHelper> &indexes,
