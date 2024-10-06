@@ -538,17 +538,17 @@ TEST_CASE("Compress run sanity", "[compress_run]") {
 std::vector<FileId> pick_common(
     int cutoff, const std::vector<const std::vector<uint32_t> *> &sources_raw) {
     std::vector<SortedRun> sources;
-    std::vector<const SortedRun *> sourceptrs;
+    std::vector<SortedRun *> sourceptrs;
     sources.reserve(sources_raw.size());
     sourceptrs.reserve(sources_raw.size());
 
-    for (const auto &src : sources_raw) {
+    for (auto &src : sources_raw) {
         sources.push_back(SortedRun(std::vector<uint32_t>(*src)));
         sourceptrs.push_back(&sources.back());
     }
 
     auto out{SortedRun::pick_common(cutoff, sourceptrs)};
-    return std::vector<FileId>(out.begin(), out.end());
+    return out.decompressed();
 }
 
 TEST_CASE("Test pick_common", "[pick_common]") {
