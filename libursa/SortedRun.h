@@ -13,7 +13,7 @@ class RunIterator : public std::iterator<std::forward_iterator_tag, uint32_t> {
     uint8_t *nextpos();
 
    public:
-    RunIterator(uint8_t *run) : pos_(run), prev_(-1) { }
+    RunIterator(uint8_t *run) : pos_(run), prev_(-1) {}
     ~RunIterator() {}
 
     RunIterator &operator++() {
