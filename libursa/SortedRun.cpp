@@ -13,7 +13,7 @@ uint32_t RunIterator::current() const {
         acc += (next & 0x7FU) << shift;
         shift += 7U;
         if ((next & 0x80U) == 0) {
-            return curr_ + acc + 1;
+            return prev_ + acc + 1;
         }
     }
 }

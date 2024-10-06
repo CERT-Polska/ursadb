@@ -7,22 +7,22 @@
 class RunIterator : public std::iterator<std::forward_iterator_tag, uint32_t> {
     typedef RunIterator iterator;
     uint8_t *pos_;
-    int32_t curr_;
+    int32_t prev_;
 
     uint32_t current() const;
     uint8_t *nextpos();
 
    public:
-    RunIterator(uint8_t *run) : pos_(run), curr_(-1) { curr_ = current(); }
+    RunIterator(uint8_t *run) : pos_(run), prev_(-1) { }
     ~RunIterator() {}
 
     RunIterator &operator++() {
+        prev_ = current();
         pos_ = nextpos();
-        curr_ = current();
         return *this;
     }
 
-    uint32_t operator*() const { return curr_; }
+    uint32_t operator*() const { return current(); }
     bool operator!=(const iterator &rhs) const { return pos_ != rhs.pos_; }
 };
 
