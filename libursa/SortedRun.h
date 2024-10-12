@@ -9,6 +9,10 @@ class RunIterator : public std::iterator<std::forward_iterator_tag, uint32_t> {
     uint8_t *pos_;
     int32_t prev_;
 
+    void forward(int steps, int32_t new_pos) {
+        pos_ += steps;
+        prev_ = new_pos;
+    }
     uint32_t current() const;
     uint8_t *nextpos();
 
@@ -16,14 +20,23 @@ class RunIterator : public std::iterator<std::forward_iterator_tag, uint32_t> {
     RunIterator(uint8_t *run) : pos_(run), prev_(-1) {}
     ~RunIterator() {}
 
+    // Moves to the next element (this may mean a variable number of bytes).
     RunIterator &operator++() {
         prev_ = current();
         pos_ = nextpos();
         return *this;
     }
 
+    // Gets the current element under the iterator. Useful in STL algorithms.
     uint32_t operator*() const { return current(); }
+
+    // Compares the iterators. Useful in STL algorithms.
     bool operator!=(const iterator &rhs) const { return pos_ != rhs.pos_; }
+
+    // Fast (optimized) std::set_intersection implementation, tweaked for the
+    // expected data distribution.
+    static void do_and(RunIterator begin, RunIterator end,
+                       std::vector<uint32_t> *target);
 };
 
 // This class represents a "run" - a sorted list of FileIDs. This can be
@@ -72,11 +85,16 @@ class SortedRun {
         : sequence_(other.sequence_), run_(other.run_) {}
     SortedRun &operator=(SortedRun &&) = default;
 
+    // Checks if the current run is empty.
     bool empty() const { return sequence_.empty() && run_.empty(); }
 
+    // Does the OR operation with the other vector, overwrites this object.
     void do_or(SortedRun &other);
+
+    // Does the AND operation with the other vector, overwrites this object.
     void do_and(SortedRun &other);
 
+    // Does the MIN_OF operation on specified operands. Allocates a new reuslt.
     static SortedRun pick_common(int cutoff, std::vector<SortedRun *> &sources);
 
     // When you really need to clone the run - TODO remove.
