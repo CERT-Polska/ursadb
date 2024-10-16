@@ -1,5 +1,6 @@
-#include "Core.h"
 #include <emmintrin.h>
+
+#include "Core.h"
 
 uint32_t run_read(uint8_t *pos);
 uint8_t *run_forward(uint8_t *pos);
@@ -19,7 +20,13 @@ class IntersectionHelper {
 
    public:
     IntersectionHelper(std::vector<uint32_t> *seq, std::vector<uint8_t> *run)
-    :run_it_(run->data()), run_end_(run->data() + run->size()), prev_(-1), seq_start_(seq->data()), seq_it_(seq->data()), seq_end_(seq->data() + seq->size()), seq_out_(seq->data()) {}
+        : run_it_(run->data()),
+          run_end_(run->data() + run->size()),
+          prev_(-1),
+          seq_start_(seq->data()),
+          seq_it_(seq->data()),
+          seq_end_(seq->data() + seq->size()),
+          seq_out_(seq->data()) {}
 
     size_t result_size() const { return seq_out_ - seq_start_; }
     void intersect();

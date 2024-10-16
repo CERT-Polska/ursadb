@@ -51,7 +51,7 @@ void SortedRun::do_or(SortedRun &other) {
     other.decompress();
     std::vector<FileId> new_results;
     std::set_union(other.begin(), other.end(), begin(), end(),
-                    std::back_inserter(new_results));
+                   std::back_inserter(new_results));
     std::swap(new_results, sequence_);
 }
 
@@ -91,7 +91,8 @@ bool IntersectionHelper::step_by_8() {
         return true;
     }
 
-    for (uint8_t *end = run_it_ + BATCH_SIZE; run_it_ < end && seq_it_ < seq_end_;) {
+    for (uint8_t *end = run_it_ + BATCH_SIZE;
+         run_it_ < end && seq_it_ < seq_end_;) {
         uint32_t next = prev_ + *run_it_ + 1;
         if (next < *seq_it_) {
             prev_ = next;
@@ -132,8 +133,8 @@ void SortedRun::do_and(SortedRun &other) {
         helper.intersect();
         new_end = begin() + helper.result_size();
     } else {
-        new_end = std::set_intersection(
-            other.begin(), other.end(), begin(), end(), begin());
+        new_end = std::set_intersection(other.begin(), other.end(), begin(),
+                                        end(), begin());
     }
     sequence_.erase(new_end, end());
 }
