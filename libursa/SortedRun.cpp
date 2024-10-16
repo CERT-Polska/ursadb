@@ -6,23 +6,25 @@
 
 #include "Utils.h"
 
-uint32_t RunIterator::current() const {
+// Read element currently under pos.
+uint32_t run_read(uint8_t *pos) {
     uint64_t acc = 0;
     uint32_t shift = 0;
-    for (uint8_t *it = pos_;; it++) {
+    for (uint8_t *it = pos;; it++) {
         uint32_t next = *it;
         acc += (next & 0x7FU) << shift;
         shift += 7U;
         if ((next & 0x80U) == 0) {
-            return prev_ + acc + 1;
+            return acc + 1;
         }
     }
 }
 
-uint8_t *RunIterator::nextpos() {
-    for (uint8_t *it = pos_;; it++) {
-        if ((*it & 0x80) == 0) {
-            return it + 1;
+// Move pos to the next element.
+uint8_t *run_forward(uint8_t *pos) {
+    for (;; pos++) {
+        if ((*pos & 0x80) == 0) {
+            return pos + 1;
         }
     }
 }
@@ -43,113 +45,97 @@ std::vector<uint32_t>::iterator SortedRun::end() {
     return sequence_.end();
 }
 
-RunIterator SortedRun::comp_begin() {
-    validate_compression(true);
-    return RunIterator(run_.data());
-}
-
-RunIterator SortedRun::comp_end() {
-    validate_compression(true);
-    return RunIterator(run_.data() + run_.size());
-}
-
 void SortedRun::do_or(SortedRun &other) {
     // In almost every case this is already decompressed.
     decompress();
+    other.decompress();
     std::vector<FileId> new_results;
-    if (other.is_compressed()) {
-        // Unlikely case, in most cases both runs are already decompressed.
-        std::set_union(other.comp_begin(), other.comp_end(), begin(), end(),
-                       std::back_inserter(new_results));
-    } else {
-        std::set_union(other.begin(), other.end(), begin(), end(),
-                       std::back_inserter(new_results));
-    }
+    std::set_union(other.begin(), other.end(), begin(), end(),
+                    std::back_inserter(new_results));
     std::swap(new_results, sequence_);
 }
 
-// Performance critical method. As of the current version, in some tests,
-// more than half of the time is spent ANDing decompressed and compressed runs.
-// We expect the compressed set to be large, and sequence to be short.
-//
-// About the fast case: integers on disk are Variable Length Encoded (VLE).
-// This means that interes <= 0x7f are encoded as a single byte, and larger
-// ones use multiple bytes (with 0x80 bit used as a continuation bit).
-// This function optimizes the common case where most VLE integers are
-// small, i.e. are stored as a single byte without additional encoding.
-void RunIterator::do_and(RunIterator begin, RunIterator end,
-                         std::vector<uint32_t> *target) {
-    std::vector<uint32_t> &sequence = *target;
-    int out_ndx = 0;
-    int ndx = 0;
-    int size = sequence.size();
+// Read VLE integer under run_it_ and do the intersection.
+void IntersectionHelper::step_single() {
+    uint32_t next = prev_ + run_read(run_it_);
+    if (next < *seq_it_) {
+        prev_ = next;
+        run_it_ = run_forward(run_it_);
+        return;
+    }
+    if (*seq_it_ == next) {
+        *seq_out_++ = *seq_it_;
+        prev_ = next;
+        run_it_ = run_forward(run_it_);
+    }
+    seq_it_++;
+}
 
-    RunIterator it = begin;
-    while (it.pos_ < end.pos_ && ndx < size) {
-        // Handle the fast-case. This is purely an optimization, the function
-        // will still function properly (but slower) with this `if` removed.
-        // Fast case: the next 8 VLE bytes are all small (0x80 bit not set).
-        constexpr int BATCH_SIZE = 8;
-        constexpr uint64_t VLE_MASK = 0x8080808080808080UL;
-        uint64_t *as_qword = (uint64_t *)it.pos_;
-        if (it.pos_ + BATCH_SIZE < end.pos_ && (*as_qword & VLE_MASK) == 0) {
-            // Fast case of the fast case - if the pointer after processing the
-            // current 8 bytes is still smaller than the next element of
-            // sequence, just get the sum and skip 8 elements forward.
-            uint32_t after_batch = it.prev_ + BATCH_SIZE;
-            after_batch += std::accumulate(it.pos_, it.pos_ + BATCH_SIZE, 0);
-            if (after_batch < sequence[ndx]) {
-                it.forward(BATCH_SIZE, after_batch);
-                continue;
-            }
+// Read 8 bytes under run_it_. If all are small, handle them all.
+bool IntersectionHelper::step_by_8() {
+    constexpr int BATCH_SIZE = 8;
+    constexpr uint64_t VLE_MASK = 0x8080808080808080UL;
 
-            // Regular fast case - do the intersection without decoding VLE
-            // integers (remember, we know they are all small, i.e. one byte).
-            // Basically the same logic as regular case (see below).
-            for (uint8_t *end = it.pos_ + 8; it.pos_ < end && ndx < size;) {
-                uint32_t next = it.prev_ + *it.pos_ + 1;
-                if (next < sequence[ndx]) {
-                    it.forward(1, next);
-                    continue;
-                }
-                if (sequence[ndx] == next) {
-                    sequence[out_ndx++] = sequence[ndx];
-                    it.forward(1, next);
-                }
-                ndx += 1;
-            }
-            continue;
-        }
-
-        // Regular set intersection logic (non-optimized/default case).
-        // This is basically equivalent to std::set_intersection.
-        uint32_t next = *it;
-        if (next < sequence[ndx]) {
-            ++it;
-            continue;
-        }
-        if (sequence[ndx] == next) {
-            sequence[out_ndx++] = sequence[ndx];
-            ++it;
-        }
-        ndx += 1;
+    uint64_t *as_qword = (uint64_t *)run_it_;
+    uint64_t hit = (*as_qword & VLE_MASK);
+    if (hit != 0) {
+        return false;
     }
 
-    // Clean up elements from the end of the ANDed vector.
-    sequence.erase(sequence.begin() + out_ndx, sequence.end());
+    uint32_t after_batch = prev_ + BATCH_SIZE;
+    after_batch += std::accumulate(run_it_, run_it_ + BATCH_SIZE, 0);
+
+    if (after_batch < *seq_it_) {
+        run_it_ += BATCH_SIZE;
+        prev_ = after_batch;
+        return true;
+    }
+
+    for (uint8_t *end = run_it_ + BATCH_SIZE; run_it_ < end && seq_it_ < seq_end_;) {
+        uint32_t next = prev_ + *run_it_ + 1;
+        if (next < *seq_it_) {
+            prev_ = next;
+            run_it_ += 1;
+            continue;
+        }
+        if (*seq_it_ == next) {
+            *seq_out_++ = *seq_it_;
+            prev_ = next;
+            run_it_ += 1;
+        }
+        seq_it_++;
+    }
+    return true;
+}
+
+void IntersectionHelper::intersect_by_8() {
+    while (run_it_ < run_end_ - 8 && seq_it_ < seq_end_) {
+        if (step_by_8()) {
+            continue;
+        }
+        step_single();
+    }
+}
+
+void IntersectionHelper::intersect() {
+    intersect_by_8();
+    while (run_it_ < run_end_ && seq_it_ < seq_end_) {
+        step_single();
+    }
 }
 
 void SortedRun::do_and(SortedRun &other) {
-    // Benchmarking shows that handling a situation where this->is_compressed()
-    // makes the code *slower*. I assume that's because of memory efficiency.
     decompress();
+    std::vector<uint32_t>::iterator new_end;
     if (other.is_compressed()) {
-        RunIterator::do_and(other.comp_begin(), other.comp_end(), &sequence_);
+        IntersectionHelper helper(&sequence_, &other.run_);
+        helper.intersect();
+        new_end = begin() + helper.result_size();
     } else {
-        std::vector<uint32_t>::iterator new_end = std::set_intersection(
+        new_end = std::set_intersection(
             other.begin(), other.end(), begin(), end(), begin());
-        sequence_.erase(new_end, sequence_.end());
     }
+    sequence_.erase(new_end, end());
 }
 
 void SortedRun::decompress() {

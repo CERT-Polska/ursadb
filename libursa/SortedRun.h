@@ -1,42 +1,28 @@
 #include "Core.h"
+#include <emmintrin.h>
 
-// Iterate over a compressed run representation.
-// "Run" here means a sorted list of FileIDs (this name is used in the
-// codebase).  And a "compressed" run format is described in the documentation
-// "ondiskformat.md", in the "Index" section.
-class RunIterator : public std::iterator<std::forward_iterator_tag, uint32_t> {
-    typedef RunIterator iterator;
-    uint8_t *pos_;
+uint32_t run_read(uint8_t *pos);
+uint8_t *run_forward(uint8_t *pos);
+
+class IntersectionHelper {
+    uint8_t *run_it_;
+    uint8_t *run_end_;
     int32_t prev_;
+    uint32_t *seq_start_;
+    uint32_t *seq_it_;
+    uint32_t *seq_end_;
+    uint32_t *seq_out_;
 
-    void forward(int steps, int32_t new_pos) {
-        pos_ += steps;
-        prev_ = new_pos;
-    }
-    uint32_t current() const;
-    uint8_t *nextpos();
+    bool step_by_8();
+    void step_single();
+    void intersect_by_8();
 
    public:
-    RunIterator(uint8_t *run) : pos_(run), prev_(-1) {}
-    ~RunIterator() {}
+    IntersectionHelper(std::vector<uint32_t> *seq, std::vector<uint8_t> *run)
+    :run_it_(run->data()), run_end_(run->data() + run->size()), prev_(-1), seq_start_(seq->data()), seq_it_(seq->data()), seq_end_(seq->data() + seq->size()), seq_out_(seq->data()) {}
 
-    // Moves to the next element (this may mean a variable number of bytes).
-    RunIterator &operator++() {
-        prev_ = current();
-        pos_ = nextpos();
-        return *this;
-    }
-
-    // Gets the current element under the iterator. Useful in STL algorithms.
-    uint32_t operator*() const { return current(); }
-
-    // Compares the iterators. Useful in STL algorithms.
-    bool operator!=(const iterator &rhs) const { return pos_ != rhs.pos_; }
-
-    // Fast (optimized) std::set_intersection implementation, tweaked for the
-    // expected data distribution.
-    static void do_and(RunIterator begin, RunIterator end,
-                       std::vector<uint32_t> *target);
+    size_t result_size() const { return seq_out_ - seq_start_; }
+    void intersect();
 };
 
 // This class represents a "run" - a sorted list of FileIDs. This can be
@@ -64,10 +50,6 @@ class SortedRun {
     // Iterate over the decompressed representation (throws if compressed)
     std::vector<uint32_t>::iterator begin();
     std::vector<uint32_t>::iterator end();
-
-    // Iterate over the compressed representation (throws if decompressed)
-    RunIterator comp_begin();
-    RunIterator comp_end();
 
     SortedRun(const SortedRun &other) = default;
 
