@@ -1,29 +1,35 @@
+#include <emmintrin.h>
+
 #include "Core.h"
 
-// Iterate over a compressed run representation.
-// "Run" here means a sorted list of FileIDs (this name is used in the
-// codebase).  And a "compressed" run format is described in the documentation
-// "ondiskformat.md", in the "Index" section.
-class RunIterator : public std::iterator<std::forward_iterator_tag, uint32_t> {
-    typedef RunIterator iterator;
-    uint8_t *pos_;
-    int32_t prev_;
+uint32_t run_read(uint8_t *pos);
+uint8_t *run_forward(uint8_t *pos);
 
-    uint32_t current() const;
-    uint8_t *nextpos();
+class IntersectionHelper {
+    uint8_t *run_it_;
+    uint8_t *run_end_;
+    int32_t prev_;
+    uint32_t *seq_start_;
+    uint32_t *seq_it_;
+    uint32_t *seq_end_;
+    uint32_t *seq_out_;
+
+    bool step_by_8();
+    void step_single();
+    void intersect_by_8();
 
    public:
-    RunIterator(uint8_t *run) : pos_(run), prev_(-1) {}
-    ~RunIterator() {}
+    IntersectionHelper(std::vector<uint32_t> *seq, std::vector<uint8_t> *run)
+        : run_it_(run->data()),
+          run_end_(run->data() + run->size()),
+          prev_(-1),
+          seq_start_(seq->data()),
+          seq_it_(seq->data()),
+          seq_end_(seq->data() + seq->size()),
+          seq_out_(seq->data()) {}
 
-    RunIterator &operator++() {
-        prev_ = current();
-        pos_ = nextpos();
-        return *this;
-    }
-
-    uint32_t operator*() const { return current(); }
-    bool operator!=(const iterator &rhs) const { return pos_ != rhs.pos_; }
+    size_t result_size() const { return seq_out_ - seq_start_; }
+    void intersect();
 };
 
 // This class represents a "run" - a sorted list of FileIDs. This can be
@@ -52,10 +58,6 @@ class SortedRun {
     std::vector<uint32_t>::iterator begin();
     std::vector<uint32_t>::iterator end();
 
-    // Iterate over the compressed representation (throws if decompressed)
-    RunIterator comp_begin();
-    RunIterator comp_end();
-
     SortedRun(const SortedRun &other) = default;
 
    public:
@@ -72,11 +74,16 @@ class SortedRun {
         : sequence_(other.sequence_), run_(other.run_) {}
     SortedRun &operator=(SortedRun &&) = default;
 
+    // Checks if the current run is empty.
     bool empty() const { return sequence_.empty() && run_.empty(); }
 
+    // Does the OR operation with the other vector, overwrites this object.
     void do_or(SortedRun &other);
+
+    // Does the AND operation with the other vector, overwrites this object.
     void do_and(SortedRun &other);
 
+    // Does the MIN_OF operation on specified operands. Allocates a new reuslt.
     static SortedRun pick_common(int cutoff, std::vector<SortedRun *> &sources);
 
     // When you really need to clone the run - TODO remove.
