@@ -69,6 +69,7 @@ std::string OnDiskDataset::get_file_name(FileId fid) const {
 QueryResult OnDiskDataset::query(const Query &query,
                                  QueryCounters *counters) const {
     std::set<PrimitiveQuery> seen;
+    std::map<std::vector<PrimitiveQuery>, SortedRun> string_cache;
     return query.run(
         [this, &seen](PrimitiveQuery primitive, QueryCounters *counters) {
             std::optional<QueryOperation> operation;
@@ -90,6 +91,7 @@ QueryResult OnDiskDataset::query(const Query &query,
                 }
             }
         },
+        &string_cache,
         counters);
 }
 
