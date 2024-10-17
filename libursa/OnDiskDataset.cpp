@@ -91,8 +91,7 @@ QueryResult OnDiskDataset::query(const Query &query,
                 }
             }
         },
-        &string_cache,
-        counters);
+        &string_cache, counters);
 }
 
 void OnDiskDataset::execute(const Query &query, ResultWriter *out,

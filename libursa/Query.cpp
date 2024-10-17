@@ -248,7 +248,6 @@ QueryResult Query::run(const QueryPrimitive &primitive,
         auto cache_key = get_cache_key();
         auto cached_it = cache->find(cache_key);
         if (cached_it != cache->end()) {
-            spdlog::info("found a cached string {}!", cached_it->second.size());
             return QueryResult(cached_it->second.clone());
         }
         auto result = QueryResult::everything();
@@ -262,7 +261,6 @@ QueryResult Query::run(const QueryPrimitive &primitive,
             }
         }
         if (!cache_key.empty() && !result.is_everything()) {
-            spdlog::debug("caching (len: {})...", cache_key.size());
             cache->emplace(std::move(cache_key), result.vector().clone());
         }
         return result;
@@ -292,7 +290,8 @@ QueryResult Query::run(const QueryPrimitive &primitive,
         int cutoff = count;
         int nonempty_sources = queries.size();
         for (const auto &query : queries) {
-            QueryResult next = query.run(primitive, prefetcher, cache, counters);
+            QueryResult next =
+                query.run(primitive, prefetcher, cache, counters);
             if (next.is_everything()) {
                 cutoff -= 1;
                 if (cutoff <= 0) {
