@@ -233,6 +233,7 @@ void Query::prefetch(int from_index, int howmany, bool only_last,
 
 QueryResult Query::run(const QueryPrimitive &primitive,
                        const PrefetchFunc &prefetcher,
+                       std::map<std::vector<PrimitiveQuery>, SortedRun> *cache,
                        QueryCounters *counters) const {
     // Case: primitive query - reduces to AND with tokens from query plan.
     if (type == QueryType::PRIMITIVE) {
@@ -244,15 +245,23 @@ QueryResult Query::run(const QueryPrimitive &primitive,
 
     // Case: and. Short circuits when result is already empty.
     if (type == QueryType::AND) {
+        auto cache_key = get_cache_key();
+        auto cached_it = cache->find(cache_key);
+        if (cached_it != cache->end()) {
+            return QueryResult(cached_it->second.clone());
+        }
         auto result = QueryResult::everything();
         for (int i = 0; i < queries.size(); i++) {
             prefetch(i + 1, PRETECTH_RANGE, true, prefetcher);
             const auto &query = queries[i];
-            result.do_and(query.run(primitive, prefetcher, counters),
+            result.do_and(query.run(primitive, prefetcher, cache, counters),
                           &counters->ands());
             if (result.is_empty()) {
                 break;
             }
+        }
+        if (!cache_key.empty() && !result.is_everything()) {
+            cache->emplace(std::move(cache_key), result.vector().clone());
         }
         return result;
     }
@@ -260,7 +269,7 @@ QueryResult Query::run(const QueryPrimitive &primitive,
     if (type == QueryType::OR) {
         auto result = QueryResult::empty();
         for (auto &query : queries) {
-            result.do_or(query.run(primitive, prefetcher, counters),
+            result.do_or(query.run(primitive, prefetcher, cache, counters),
                          &counters->ors());
             if (result.is_everything()) {
                 break;
@@ -281,7 +290,8 @@ QueryResult Query::run(const QueryPrimitive &primitive,
         int cutoff = count;
         int nonempty_sources = queries.size();
         for (const auto &query : queries) {
-            QueryResult next = query.run(primitive, prefetcher, counters);
+            QueryResult next =
+                query.run(primitive, prefetcher, cache, counters);
             if (next.is_everything()) {
                 cutoff -= 1;
                 if (cutoff <= 0) {
@@ -301,4 +311,15 @@ QueryResult Query::run(const QueryPrimitive &primitive,
                                       &counters->minofs());
     }
     throw std::runtime_error("Unexpected query type");
+}
+
+std::vector<PrimitiveQuery> Query::get_cache_key() const {
+    std::vector<PrimitiveQuery> result;
+    for (const auto &query : queries) {
+        if (query.get_type() != QueryType::PRIMITIVE) {
+            return {};
+        }
+        result.push_back(query.as_ngram());
+    }
+    return result;
 }

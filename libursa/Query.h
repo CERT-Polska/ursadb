@@ -63,8 +63,11 @@ class Query {
 
     QueryResult run(const QueryPrimitive &primitive,
                     const PrefetchFunc &prefetch,
+                    std::map<std::vector<PrimitiveQuery>, SortedRun> *cache,
                     QueryCounters *counters) const;
     Query plan(const std::unordered_set<IndexType> &types_to_query) const;
+
+    std::vector<PrimitiveQuery> get_cache_key() const;
 
    private:
     void prefetch(int from_index, int howmany, bool only_last,
