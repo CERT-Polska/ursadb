@@ -1,3 +1,27 @@
+# Version 1.5.2 (2024-10-17)
+
+Almost exclusively performance improvements. Query speed is reduced by over 50% in tested workloads.
+
+Features:
+- Add a verbose mode (-v) that also prints debug logs (#218) 
+
+Performance:
+- Refactor  (#218) 
+- Add debug logs, including query plans (#218)
+- opt1: Flatten trivial operations (#220)
+- opt2: Inline suboperations (#221)
+- opt3: Deduplicate primitives (#222)
+- opt4: Simplify minof in some cases (#223)
+- opt5: Propagate degenerate queries (#224)
+- opt6: Reorder subqueries more optimally (#225)
+- opt7: Prefetch disk reads (#226)
+- opt8: Keep runs in compressed form for longer (#227)
+
+Correctness:
+
+Refactoring and maintenance:
+- Create a simple framework for query optimizations (#217) 
+
 # Version 1.5.1 (2023-01-04)
 
 Mostly bugfix and maintenance release:
