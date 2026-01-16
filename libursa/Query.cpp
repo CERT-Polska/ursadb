@@ -234,7 +234,7 @@ void Query::prefetch(int from_index, int howmany, bool only_last,
 QueryResult Query::run(const QueryPrimitive &primitive,
                        const PrefetchFunc &prefetcher,
                        QueryCounters *counters) const {
-    // Case: primitive query - reduces to AND with tokens from query plan.
+    // Case: primitive query - just return results for a given ngram.
     if (type == QueryType::PRIMITIVE) {
         return primitive(ngram, counters);
     }

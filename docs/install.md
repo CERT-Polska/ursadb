@@ -27,14 +27,14 @@ git clone --recurse-submodules https://github.com/CERT-Polska/ursadb.git
 2. Install necessary dependencies:
 ```
 sudo apt update
-sudo apt install -y gcc-7 g++-7 libzmq3-dev cmake build-essential clang-format git
+sudo apt install -y gcc g++ libzmq3-dev cmake build-essential clang-format git
 ```
 
 3. Build project:
 ```
 mkdir build
 cd build
-cmake -D CMAKE_C_COMPILER=gcc-7 -D CMAKE_CXX_COMPILER=g++-7 -D CMAKE_BUILD_TYPE=Release ..
+cmake -D CMAKE_C_COMPILER=gcc -D CMAKE_CXX_COMPILER=g++ -D CMAKE_BUILD_TYPE=Release ..
 make -j$(nproc)
 ```
 

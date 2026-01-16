@@ -246,6 +246,9 @@ int main(int argc, char *argv[]) {
     } catch (const zmq::error_t &ex) {
         spdlog::error("ZeroMQ error: {}", ex.what());
         return 1;
+    } catch (...) {
+        spdlog::error("Unexpected fatal error.");
+        return 1;
     }
 
     return 0;

@@ -112,10 +112,9 @@ Query simplify_minof(Query &&q, bool *changed) {
     return std::move(q);
 }
 
-// Propagate 'everything' results through the query. For example,
-// if we know that C is everything, we immediately know OR(a, b, C)
-// OR(AND(), b, c) --> AND()
-// MIN 3 OF (AND(), b, c, d) --> MIN 2 OF (b, c, d)
+// Propagate 'everything' results through the query. For example, for every a and b:
+// OR(a, b, everything) == everything
+// MIN 3 OF (everything, b, c, d) --> MIN 2 OF (b, c, d)
 Query propagate_degenerate_queries(Query &&q, bool *changed) {
     if (q.get_type() == QueryType::MIN_OF) {
         std::vector<Query> newqueries;
@@ -158,7 +157,7 @@ uint32_t query_heuristic_cost(const Query &q) {
         case QueryType::PRIMITIVE:
             // Sort by ngram type, then by ngram value, alphabetically first.
             // This is (un)surprisingly important for two reasons:
-            // 1. we read sequentially as many ngrams as possible.
+            // 1. we read ngrams sequentially from disk.
             // 2. consecutive ngrams are independent: (abc, bcd) vs (abc, def).
             // Use smaller indexes first, because they're faster to read.
             switch (q.as_ngram().itype) {

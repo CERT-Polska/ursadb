@@ -77,7 +77,7 @@ Multiple paths can be specified at once:
 index "/opt/something" "/opt/foobar";
 ```
 
-By default, `gram3` index will be used (this is probably [not what you want](./indextypes.md). Index types may be specified manually:
+By default, `gram3` index will be used (this is probably [not what you want](./indextypes.md)). Index types may be specified manually:
 
 ```
 index "/opt/something" with [gram3, text4, hash4, wide8];
