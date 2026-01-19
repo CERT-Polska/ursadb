@@ -112,9 +112,9 @@ Query simplify_minof(Query &&q, bool *changed) {
     return std::move(q);
 }
 
-// Propagate 'everything' results through the query. For example, for every a and b:
-// OR(a, b, everything) == everything
-// MIN 3 OF (everything, b, c, d) --> MIN 2 OF (b, c, d)
+// Propagate 'everything' results through the query. For example, for every a
+// and b: OR(a, b, everything) == everything MIN 3 OF (everything, b, c, d) -->
+// MIN 2 OF (b, c, d)
 Query propagate_degenerate_queries(Query &&q, bool *changed) {
     if (q.get_type() == QueryType::MIN_OF) {
         std::vector<Query> newqueries;

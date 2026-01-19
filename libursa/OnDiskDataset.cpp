@@ -1,7 +1,5 @@
 #include "OnDiskDataset.h"
 
-#include "spdlog/spdlog.h"
-
 #include <array>
 #include <fstream>
 #include <set>
@@ -11,7 +9,7 @@
 #include "Json.h"
 #include "Query.h"
 #include "QueryOptimizer.h"
-
+#include "spdlog/spdlog.h"
 
 void OnDiskDataset::save() {
     std::set<std::string> index_names;
