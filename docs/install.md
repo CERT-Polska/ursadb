@@ -34,7 +34,7 @@ sudo apt install -y gcc g++ libzmq3-dev cmake build-essential clang-format git
 ```
 mkdir build
 cd build
-cmake -D CMAKE_C_COMPILER=gcc -D CMAKE_CXX_COMPILER=g++ -D CMAKE_BUILD_TYPE=Release ..
+cmake -D CMAKE_BUILD_TYPE=Release ..
 make -j$(nproc)
 ```
 
