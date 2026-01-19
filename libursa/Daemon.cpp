@@ -235,6 +235,10 @@ Response dispatch_command_safe(const std::string &cmd_str, Task *task,
     } catch (const std::bad_alloc &e) {
         spdlog::error("Task {} failed: out of memory!", task->spec().id());
         return Response::error("out of memory");
+    } catch (...) {
+        spdlog::error("Task {} failed: unexpected fatal error.",
+                      task->spec().id());
+        return Response::error("unexpected error");
     }
 }
 

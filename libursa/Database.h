@@ -40,8 +40,8 @@ class Database {
 
     const fs::path &get_name() const { return db_name; };
     const fs::path &get_base() const { return db_base; };
-    const std::unordered_map<uint64_t, std::unique_ptr<TaskSpec>>
-        &current_tasks() {
+    const std::unordered_map<uint64_t, std::unique_ptr<TaskSpec>> &
+    current_tasks() {
         return tasks;
     }
     void commit_task(const TaskSpec &spec,
