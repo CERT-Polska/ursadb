@@ -478,7 +478,7 @@ dataset "dataset_id" untaint "tag_name";
 Remove a dataset from the database.
 
 ```
-dataset "dataset_id" drop "tag_name";
+dataset "dataset_id" drop;
 ```
 
 ### Response format
